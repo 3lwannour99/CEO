@@ -10,39 +10,49 @@ services:
       NODE_ENV: development
       NEXT_TELEMETRY_DISABLED: "1"
       WATCHPACK_POLLING: "true"
-    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
-    
+    command: ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--port", "3000"]
     volumes:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
 
-
   backend:
-        build: ./backend
-        container_name: ceo-report-backend
-        depends_on:
-            - database
-        volumes:
-            - ./backend:/app
-            - /app/node_modules
-        env_file: ./backend/.env
-        command: ["npm", "run", "start:all"]
-        ports:
-            - "3000:3000"
-            - "5555:5555"
+    container_name: ceo-report-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      FRONTEND_URL: "http://localhost:3000"
+      TEMPLATE_DB_URL: "postgresql://admin:12345678@database:5432/db"
+    command: ["npm", "run", "start:all"]
+    ports:
+      - "4000:3000"
+      - "5555:5555"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
 
-    database:
-        image: postgres:18
-        container_name: ceo-report-db
-        environment:
-            POSTGRES_USER: "admin"
-            POSTGRES_PASSWORD: "12345678"
-            POSTGRES_DB: "db"
-        ports:
-            - "5432:5432"
-        volumes:
-            - pg_data:/var/lib/postgresql
+  database:
+    image: postgres:18
+    container_name: ceo-report-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: "12345678"
+      POSTGRES_DB: db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
-    pg_data:
+  pg_data:
