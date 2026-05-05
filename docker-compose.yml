@@ -9,6 +9,8 @@ services:
       NODE_ENV: development
       NEXT_TELEMETRY_DISABLED: "1"
       WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1000"
     command: ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--port", "3000"]
     volumes:
       - ./frontend:/app
@@ -27,6 +29,11 @@ services:
       PORT: "3000"
       FRONTEND_URL: "http://localhost:3000"
       TEMPLATE_DB_URL: "postgresql://admin:12345678@database:5432/db"
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1000"
+      TSC_WATCHFILE: "PriorityPollingInterval"
+      TSC_WATCHDIRECTORY: "RecursiveDirectoryUsingPolling"
+      WATCHPACK_POLLING: "true"
     command: ["npm", "run", "start:all"]
     ports:
       - "4000:3000"
