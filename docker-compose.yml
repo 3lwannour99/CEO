@@ -1,0 +1,48 @@
+services:
+  frontend:
+    container_name: ceo-report-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      WATCHPACK_POLLING: "true"
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+    
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+
+  backend:
+        build: ./backend
+        container_name: ceo-report-backend
+        depends_on:
+            - database
+        volumes:
+            - ./backend:/app
+            - /app/node_modules
+        env_file: ./backend/.env
+        command: ["npm", "run", "start:all"]
+        ports:
+            - "3000:3000"
+            - "5555:5555"
+
+    database:
+        image: postgres:18
+        container_name: ceo-report-db
+        environment:
+            POSTGRES_USER: "admin"
+            POSTGRES_PASSWORD: "12345678"
+            POSTGRES_DB: "db"
+        ports:
+            - "5432:5432"
+        volumes:
+            - pg_data:/var/lib/postgresql
+
+volumes:
+    pg_data:

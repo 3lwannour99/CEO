@@ -1,0 +1,29 @@
+services:
+  backend:
+    build: .
+    container_name: template-backend
+    depends_on:
+      - database
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file: .env
+    command: ['npm', 'run', 'start:all']
+    ports:
+      - '3000:3000'
+      - '5555:5555'
+
+  database:
+    image: postgres:18
+    container_name: template-db
+    environment:
+      POSTGRES_USER: template_admin
+      POSTGRES_PASSWORD: '12345678'
+      POSTGRES_DB: template_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - pg_data:/var/lib/postgresql
+
+volumes:
+  pg_data:
