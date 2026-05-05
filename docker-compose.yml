@@ -1,6 +1,5 @@
 services:
   frontend:
-    container_name: ceo-report-frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -17,7 +16,6 @@ services:
       - /app/.next
 
   backend:
-    container_name: ceo-report-backend
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -39,7 +37,6 @@ services:
 
   database:
     image: postgres:18
-    container_name: ceo-report-db
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: "12345678"
@@ -47,7 +44,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - pg_data_18:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U admin -d db"]
       interval: 5s
@@ -55,4 +52,4 @@ services:
       retries: 10
 
 volumes:
-  pg_data:
+  pg_data_18:
