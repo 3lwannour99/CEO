@@ -33,6 +33,8 @@ const relevantDateFields: Exclude<DateField, "all">[] = [
   "estimatedArrival",
 ];
 
+const reservedStatuses = new Set(["reserve", "reservationForCompanies"]);
+
 export function parseCalendarDate(value?: string | null): Date | null {
   if (!value) {
     return null;
@@ -44,6 +46,110 @@ export function parseCalendarDate(value?: string | null): Date | null {
   }
 
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function isDateInSelectedRange(itemDate: Date, exactDate: Date | null, fromDate: Date | null, toDate: Date | null): boolean {
+  if (exactDate) {
+    return itemDate.getTime() === exactDate.getTime();
+  }
+
+  if (fromDate && itemDate < fromDate) {
+    return false;
+  }
+
+  if (toDate && itemDate > toDate) {
+    return false;
+  }
+
+  return true;
+}
+
+function itemDateIsInSelectedRange(item: InventoryItem, field: Exclude<DateField, "all">, exactDate: Date | null, fromDate: Date | null, toDate: Date | null): boolean {
+  const itemDate = parseCalendarDate(item[field]);
+  return Boolean(itemDate && isDateInSelectedRange(itemDate, exactDate, fromDate, toDate));
+}
+
+function itemStatusIs(item: InventoryItem, status: string): boolean {
+  return item.normalizedStatus === status;
+}
+
+function itemIsReserved(item: InventoryItem): boolean {
+  return reservedStatuses.has(String(item.normalizedStatus));
+}
+
+function itemIsInStock(item: InventoryItem): boolean {
+  return item.isInStock || itemStatusIs(item, "inStock");
+}
+
+function itemIsInTransit(item: InventoryItem): boolean {
+  return String(item.normalizedStatus) === "in-transit" || Boolean(item.estimatedArrival && !item.grpoDate && !item.isSold);
+}
+
+function itemMatchesSelectedDateField(item: InventoryItem, field: Exclude<DateField, "all">, exactDate: Date | null, fromDate: Date | null, toDate: Date | null): boolean {
+  if (field === "arInvoiceDate") {
+    if (itemStatusIs(item, "sold")) {
+      return itemDateIsInSelectedRange(item, field, exactDate, fromDate, toDate);
+    }
+
+    // A/R invoice dates only belong to sold vehicles, so unrelated stock/reserved rows stay visible.
+    return true;
+  }
+
+  if (field === "reserveDate") {
+    if (itemIsReserved(item)) {
+      return itemDateIsInSelectedRange(item, field, exactDate, fromDate, toDate);
+    }
+
+    // Reserve dates only belong to reserved vehicles, so sold/stock rows are not removed by this filter.
+    return true;
+  }
+
+  if (field === "contractDate") {
+    if (parseCalendarDate(item.contractDate)) {
+      return itemDateIsInSelectedRange(item, field, exactDate, fromDate, toDate);
+    }
+
+    // Missing contract dates are unrelated unless the row itself is in contract status.
+    return !itemStatusIs(item, "contract");
+  }
+
+  if (field === "grpoDate") {
+    if (itemIsInStock(item)) {
+      return itemDateIsInSelectedRange(item, field, exactDate, fromDate, toDate);
+    }
+
+    // GRPO dates mainly apply to inventory rows, so sold/non-stock rows stay visible.
+    return true;
+  }
+
+  if (field === "apInvoiceDate") {
+    if (parseCalendarDate(item.apInvoiceDate)) {
+      return itemDateIsInSelectedRange(item, field, exactDate, fromDate, toDate);
+    }
+
+    // AP invoice dates are expected for current inventory; unrelated rows without one stay visible.
+    return !itemIsInStock(item);
+  }
+
+  if (field === "createDate") {
+    if (parseCalendarDate(item.createDate)) {
+      return itemDateIsInSelectedRange(item, field, exactDate, fromDate, toDate);
+    }
+
+    // Create date filtering only applies to rows that actually provide a create date.
+    return true;
+  }
+
+  if (field === "estimatedArrival") {
+    if (parseCalendarDate(item.estimatedArrival)) {
+      return itemDateIsInSelectedRange(item, field, exactDate, fromDate, toDate);
+    }
+
+    // ETA is meaningful for in-transit rows; other rows without ETA should not disappear.
+    return !itemIsInTransit(item);
+  }
+
+  return true;
 }
 
 export function toDateInputValue(date: Date): string {
@@ -106,26 +212,9 @@ export function itemMatchesDateFilters(item: InventoryItem, filters: InventoryFi
     return true;
   }
 
-  const fields = filters.dateField === "all" ? relevantDateFields : [filters.dateField];
+  if (filters.dateField === "all") {
+    return relevantDateFields.some((field) => itemDateIsInSelectedRange(item, field, exactDate, fromDate, toDate));
+  }
 
-  return fields.some((field) => {
-    const itemDate = parseCalendarDate(item[field]);
-    if (!itemDate) {
-      return false;
-    }
-
-    if (exactDate) {
-      return itemDate.getTime() === exactDate.getTime();
-    }
-
-    if (fromDate && itemDate < fromDate) {
-      return false;
-    }
-
-    if (toDate && itemDate > toDate) {
-      return false;
-    }
-
-    return true;
-  });
+  return itemMatchesSelectedDateField(item, filters.dateField, exactDate, fromDate, toDate);
 }
