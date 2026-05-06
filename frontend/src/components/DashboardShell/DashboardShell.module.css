@@ -1,0 +1,25 @@
+.shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-app-bg);
+}
+
+.contentArea {
+  min-width: 0;
+  flex: 1;
+}
+
+.main {
+  display: grid;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+@media (max-width: 768px) {
+  .main {
+    padding: var(--space-4);
+  }
+}

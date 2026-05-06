@@ -1,0 +1,43 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border-radius: var(--radius-xs);
+  padding: 0 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.available,
+.success,
+.fast {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.reserved,
+.info,
+.medium,
+.intransit {
+  color: var(--color-info);
+  background: var(--color-info-soft);
+}
+
+.sold,
+.critical,
+.danger {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.servicehold,
+.warning,
+.slow {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.neutral {
+  color: var(--color-muted);
+  background: var(--color-soft);
+}

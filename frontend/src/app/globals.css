@@ -1,17 +1,118 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-app-bg: #f5f7fb;
+  --color-sidebar: #ffffff;
+  --color-sidebar-active: #edf5f2;
+  --color-card: #ffffff;
+  --color-surface: #ffffff;
+  --color-filter-bg: #ffffff;
+  --color-table-head: #f4f7f9;
+  --color-row-hover: #f7faf9;
+  --color-soft: #eef2f6;
+  --color-text: #13201b;
+  --color-muted: #63716b;
+  --color-border: #dfe7e2;
+  --color-border-strong: #b8c8c0;
+  --color-accent: #1f7a5c;
+  --color-accent-contrast: #ffffff;
+  --color-accent-soft: rgba(31, 122, 92, 0.14);
+  --color-ink: #18233a;
+  --color-success: #16794f;
+  --color-success-soft: rgba(22, 121, 79, 0.14);
+  --color-warning: #9a6500;
+  --color-warning-soft: rgba(154, 101, 0, 0.15);
+  --color-danger: #b42318;
+  --color-danger-soft: rgba(180, 35, 24, 0.13);
+  --color-info: #1f5f99;
+  --color-info-soft: rgba(31, 95, 153, 0.13);
+  --shadow-xs: 0 1px 2px rgba(18, 32, 27, 0.06);
+  --shadow-sm: 0 10px 28px rgba(18, 32, 27, 0.08);
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --sidebar-width: 268px;
+  --sidebar-compact-width: 86px;
+  --topbar-height: 72px;
+  --content-max-width: 1500px;
+}
+
+:root[data-theme="dark"],
+body[data-theme="dark"] {
+  --color-app-bg: #101413;
+  --color-sidebar: #151b19;
+  --color-sidebar-active: #1d2a25;
+  --color-card: #171f1c;
+  --color-surface: #121816;
+  --color-filter-bg: #151c19;
+  --color-table-head: #1c2521;
+  --color-row-hover: #1a2420;
+  --color-soft: #202a26;
+  --color-text: #edf5f1;
+  --color-muted: #9aaaa3;
+  --color-border: #2b3732;
+  --color-border-strong: #43544d;
+  --color-accent: #55c39c;
+  --color-accent-contrast: #07120e;
+  --color-accent-soft: rgba(85, 195, 156, 0.14);
+  --color-ink: #dce9e3;
+  --color-success: #65d3a2;
+  --color-success-soft: rgba(101, 211, 162, 0.13);
+  --color-warning: #f3ba4d;
+  --color-warning-soft: rgba(243, 186, 77, 0.14);
+  --color-danger: #ff7b72;
+  --color-danger-soft: rgba(255, 123, 114, 0.13);
+  --color-info: #7bb7ff;
+  --color-info-soft: rgba(123, 183, 255, 0.13);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-sm: 0 14px 34px rgba(0, 0, 0, 0.24);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --color-app-bg: #101413;
+    --color-sidebar: #151b19;
+    --color-sidebar-active: #1d2a25;
+    --color-card: #171f1c;
+    --color-surface: #121816;
+    --color-filter-bg: #151c19;
+    --color-table-head: #1c2521;
+    --color-row-hover: #1a2420;
+    --color-soft: #202a26;
+    --color-text: #edf5f1;
+    --color-muted: #9aaaa3;
+    --color-border: #2b3732;
+    --color-border-strong: #43544d;
+    --color-accent: #55c39c;
+    --color-accent-contrast: #07120e;
+    --color-accent-soft: rgba(85, 195, 156, 0.14);
+    --color-ink: #dce9e3;
+    --color-success: #65d3a2;
+    --color-success-soft: rgba(101, 211, 162, 0.13);
+    --color-warning: #f3ba4d;
+    --color-warning-soft: rgba(243, 186, 77, 0.14);
+    --color-danger: #ff7b72;
+    --color-danger-soft: rgba(255, 123, 114, 0.13);
+    --color-info: #7bb7ff;
+    --color-info-soft: rgba(123, 183, 255, 0.13);
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow-sm: 0 14px 34px rgba(0, 0, 0, 0.24);
   }
 }
 
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
 html {
-  height: 100%;
+  min-height: 100%;
 }
 
 html,
@@ -21,20 +122,12 @@ body {
 }
 
 body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
+  min-height: 100vh;
+  color: var(--color-text);
+  background: var(--color-app-bg);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
 }
 
 a {
@@ -42,8 +135,8 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+button,
+input,
+select {
+  font: inherit;
 }

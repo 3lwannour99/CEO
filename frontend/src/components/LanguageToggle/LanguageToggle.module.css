@@ -1,0 +1,32 @@
+.group {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+
+.option {
+  min-width: 42px;
+  min-height: 38px;
+  border: 0;
+  border-inline-end: 1px solid var(--color-border);
+  color: var(--color-muted);
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.option:last-child {
+  border-inline-end: 0;
+}
+
+.option:hover,
+.active {
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+}
