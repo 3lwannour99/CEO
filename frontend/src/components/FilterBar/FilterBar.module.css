@@ -1,0 +1,66 @@
+.filterBar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: var(--space-3);
+  align-items: end;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-filter-bg);
+  padding: var(--space-4);
+}
+
+.compact {
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.field span {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.field input {
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  outline: none;
+}
+
+.resetButton {
+  min-height: 40px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-5);
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.field input:disabled,
+.resetButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+@media (max-width: 1024px) {
+  .filterBar,
+  .compact {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .filterBar,
+  .compact {
+    grid-template-columns: 1fr;
+  }
+}

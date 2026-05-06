@@ -1,0 +1,61 @@
+.state,
+.skeleton,
+.refreshing {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  color: var(--color-muted);
+  padding: var(--space-5);
+  font-weight: 800;
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.state button {
+  min-height: 36px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-4);
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.state button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.error {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.warning {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.refreshing {
+  padding: var(--space-3) var(--space-4);
+}
+
+.skeleton {
+  min-height: 180px;
+  background:
+    linear-gradient(90deg, transparent, var(--color-soft), transparent),
+    var(--color-card);
+  background-size: 220px 100%, 100% 100%;
+}
+
+@media (max-width: 480px) {
+  .state {
+    display: grid;
+  }
+}

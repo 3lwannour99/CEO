@@ -1,0 +1,58 @@
+.dateFilter {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr)) auto;
+  gap: var(--space-3);
+  grid-column: 1 / -1;
+  align-items: end;
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.field span {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.field select,
+.field input {
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.clearButton {
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-4);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.field select:disabled,
+.field input:disabled,
+.clearButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+@media (max-width: 1024px) {
+  .dateFilter {
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .dateFilter {
+    grid-template-columns: 1fr;
+  }
+}

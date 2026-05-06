@@ -7,6 +7,7 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: development
+      NEXT_PUBLIC_API_BASE_URL: "http://localhost:4000/api"
       NEXT_TELEMETRY_DISABLED: "1"
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
@@ -16,6 +17,8 @@ services:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
+    depends_on:
+      - backend
 
   backend:
     build:
@@ -26,9 +29,12 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: development
-      PORT: "3000"
+      PORT: "4000"
       FRONTEND_URL: "http://localhost:3000"
       TEMPLATE_DB_URL: "postgresql://admin:12345678@database:5432/db"
+      COUNTERSCREEN_TIMEOUT_MS: "30000"
+      COUNTERSCREEN_REJECT_UNAUTHORIZED: "false"
+      COUNTERSCREEN_CACHE_TTL_SECONDS: "300"
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "1000"
       TSC_WATCHFILE: "PriorityPollingInterval"
@@ -36,7 +42,7 @@ services:
       WATCHPACK_POLLING: "true"
     command: ["npm", "run", "start:all"]
     ports:
-      - "4000:3000"
+      - "4000:4000"
       - "5555:5555"
     volumes:
       - ./backend:/app

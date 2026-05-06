@@ -1,0 +1,86 @@
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+  --table-row-height: 49px;
+}
+
+.scrollArea {
+  max-height: calc((var(--table-row-height) * 15) + 44px);
+  overflow: auto;
+}
+
+.tableWrap[data-max-rows="10"] {
+  max-height: calc((var(--table-row-height) * 10) + 44px);
+}
+
+.table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.table th {
+  color: var(--color-muted);
+  background: var(--color-table-head);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.stickyHeader th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+}
+
+.table th,
+.table td {
+  min-height: var(--table-row-height);
+  border-block-end: 1px solid var(--color-border);
+  padding: 14px 16px;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.table td {
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.table tr:last-child td {
+  border-block-end: 0;
+}
+
+.table tbody tr:hover {
+  background: var(--color-row-hover);
+}
+
+.emptyCell {
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.skeletonCell {
+  display: block;
+  width: min(140px, 80%);
+  height: 14px;
+  border-radius: var(--radius-xs);
+  background: var(--color-soft);
+  overflow: hidden;
+}
+
+.skeletonCell::after {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-card) 55%, transparent), transparent);
+  content: "";
+  transform: translateX(-100%);
+  animation: shimmer 1400ms infinite;
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}

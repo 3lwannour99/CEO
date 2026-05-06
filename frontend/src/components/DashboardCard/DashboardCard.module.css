@@ -1,0 +1,63 @@
+.card {
+  min-height: 132px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.label {
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.valueRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+}
+
+.value {
+  color: var(--color-text);
+  font-size: clamp(1.65rem, 2vw, 2.1rem);
+  line-height: 1;
+}
+
+.pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--metric-color);
+  box-shadow: 0 0 0 6px var(--metric-soft);
+}
+
+.trend {
+  margin-block-start: var(--space-4);
+  color: var(--metric-color);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.neutral {
+  --metric-color: var(--color-info);
+  --metric-soft: var(--color-info-soft);
+}
+
+.positive {
+  --metric-color: var(--color-success);
+  --metric-soft: var(--color-success-soft);
+}
+
+.warning {
+  --metric-color: var(--color-warning);
+  --metric-soft: var(--color-warning-soft);
+}
+
+.danger {
+  --metric-color: var(--color-danger);
+  --metric-soft: var(--color-danger-soft);
+}
