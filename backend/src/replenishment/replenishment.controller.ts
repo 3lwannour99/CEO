@@ -1,12 +1,13 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
+import { InventoryQueryDto } from '../inventory/dto/inventory-query.dto';
 import { ReplenishmentService } from './replenishment.service';
 
 @Controller('replenishment')
 export class ReplenishmentController {
-  constructor(private readonly replenishmentService: ReplenishmentService) {}
+    constructor(private readonly replenishmentService: ReplenishmentService) {}
 
-  @Get()
-  findAll() {
-    return this.replenishmentService.findAll();
-  }
+    @Get()
+    findAll(@Query() query: InventoryQueryDto) {
+        return this.replenishmentService.findAll(query);
+    }
 }

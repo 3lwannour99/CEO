@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { logisticsMock } from '../common/mock-data/inventory.mock';
+import { InventoryQueryDto } from '../inventory/dto/inventory-query.dto';
+import { InventoryService } from '../inventory/inventory.service';
 
 @Injectable()
 export class LogisticsService {
-  findAll() {
-    return logisticsMock;
-  }
+    constructor(private readonly inventoryService: InventoryService) {}
+
+    findAll(query: InventoryQueryDto = {}) {
+        return this.inventoryService.getLogistics(query);
+    }
 }

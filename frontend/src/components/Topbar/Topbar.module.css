@@ -100,6 +100,23 @@
   cursor: pointer;
 }
 
+.refreshButton {
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  padding-inline: var(--space-3);
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.refreshButton:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
 .company {
   display: flex;
   align-items: center;
@@ -131,7 +148,8 @@
   }
 
   .date,
-  .companyText {
+  .companyText,
+  .refreshButton {
     display: none;
   }
 }

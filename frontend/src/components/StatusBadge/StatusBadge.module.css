@@ -41,3 +41,8 @@
   color: var(--color-muted);
   background: var(--color-soft);
 }
+
+.unknown {
+  color: var(--color-muted);
+  background: var(--color-soft);
+}

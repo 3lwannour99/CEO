@@ -3,6 +3,7 @@
 import { LanguageToggle } from "@/components/LanguageToggle/LanguageToggle";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 import { useI18n } from "@/i18n/useI18n";
+import { useInventoryData } from "@/hooks/useInventoryData";
 import styles from "./Topbar.module.css";
 
 interface TopbarProps {
@@ -11,6 +12,7 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { language, t } = useI18n();
+  const { refreshData, isRefreshing } = useInventoryData();
   const currentDate = new Intl.DateTimeFormat(language, {
     weekday: "short",
     month: "short",
@@ -33,6 +35,9 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         <span className={styles.date}>{currentDate}</span>
         <button className={styles.iconButton} type="button" aria-label={t("app.notifications")} title={t("app.notifications")}>
           3
+        </button>
+        <button className={styles.refreshButton} type="button" onClick={() => void refreshData()} disabled={isRefreshing}>
+          {isRefreshing ? t("filters.refreshingData") : t("summary.refresh")}
         </button>
         <LanguageToggle />
         <ThemeToggle />

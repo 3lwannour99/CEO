@@ -1,6 +1,5 @@
 "use client";
 
-import { FilterBar } from "@/components/FilterBar/FilterBar";
 import { PageHeader } from "@/components/PageHeader/PageHeader";
 import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { useI18n } from "@/i18n/useI18n";
@@ -12,7 +11,6 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader title={t("pages.settings.title")} description={t("pages.settings.description")} meta={t("app.authenticationDeferred")} />
-      <FilterBar compact />
       <section className={styles.miniCardGrid}>
         <div className={styles.miniCard}><p className={styles.miniCardTitle}>{t("summary.permissions")}</p><p className={styles.miniCardMeta}>{t("summary.permissionsText")}</p></div>
         <div className={styles.miniCard}><p className={styles.miniCardTitle}>{t("summary.integrations")}</p><p className={styles.miniCardMeta}>{t("summary.integrationsText")}</p></div>

@@ -4,11 +4,11 @@ import { PrismaClient } from '../generated/prisma/client.js';
 
 @Injectable()
 export class PrismaService extends PrismaClient {
-  constructor() {
-    const adapter = new PrismaPg({
-      connectionString: process.env.TEMPLATE_DB_URL,
-    });
+    constructor() {
+        const adapter = new PrismaPg({
+            connectionString: process.env.TEMPLATE_DB_URL,
+        });
 
-    super({ adapter });
-  }
+        super({ adapter });
+    }
 }

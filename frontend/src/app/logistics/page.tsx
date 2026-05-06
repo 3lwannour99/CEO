@@ -1,36 +1,40 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import { ApiState } from "@/components/ApiState/ApiState";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
 import { FilterBar } from "@/components/FilterBar/FilterBar";
 import { PageHeader } from "@/components/PageHeader/PageHeader";
 import { SectionCard } from "@/components/SectionCard/SectionCard";
-import { logisticsStatuses } from "@/lib/mockData";
+import { useInventoryData } from "@/hooks/useInventoryData";
+import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
 import { useI18n } from "@/i18n/useI18n";
+import { emptyInventoryFilters, type InventoryFilters } from "@/types/filters";
 import type { LogisticsStatus } from "@/types/inventory";
-import styles from "../dashboard/dashboard.module.css";
 
 export default function LogisticsPage() {
   const { t } = useI18n();
+  const inventoryData = useInventoryData();
+  const [filters, setFilters] = useState<InventoryFilters>(emptyInventoryFilters);
+  const rows = useMemo(() => inventoryData.getLogistics(filters), [filters, inventoryData]);
+  const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
   const columns: DataTableColumn<LogisticsStatus>[] = [
-    { key: "shipment", header: t("table.shipment"), render: (row) => row.shipment },
-    { key: "po", header: t("table.poNo"), render: (row) => row.poNo },
+    { key: "po", header: t("table.poNo"), render: (row) => formatValue(row.poNo) },
+    { key: "source", header: t("table.source"), render: (row) => formatValue(row.sourceName) },
     { key: "status", header: t("table.status"), render: (row) => row.status },
-    { key: "eta", header: t("table.eta"), render: (row) => row.eta },
-    { key: "units", header: t("table.units"), render: (row) => row.units },
-    { key: "branch", header: t("table.destination"), render: (row) => row.branch },
+    { key: "eta", header: t("table.eta"), render: (row) => formatDate(row.estimatedArrival ?? row.eta) },
+    { key: "branch", header: t("table.destination"), render: (row) => formatValue(row.branch) },
+    { key: "warehouse", header: t("table.warehouse"), render: (row) => formatValue(row.warehouse) },
+    { key: "units", header: t("table.units"), render: (row) => formatNumber(row.units) },
   ];
 
   return (
     <>
       <PageHeader title={t("pages.logistics.title")} description={t("pages.logistics.description")} />
-      <FilterBar compact />
-      <section className={styles.miniCardGrid}>
-        <div className={styles.miniCard}><p className={styles.miniCardTitle}>{t("summary.atPort")}</p><p className={styles.miniCardMeta}>{t("summary.atPortText")}</p></div>
-        <div className={styles.miniCard}><p className={styles.miniCardTitle}>{t("summary.inTransfer")}</p><p className={styles.miniCardMeta}>{t("summary.inTransferText")}</p></div>
-        <div className={styles.miniCard}><p className={styles.miniCardTitle}>{t("summary.scheduled")}</p><p className={styles.miniCardMeta}>{t("summary.scheduledText")}</p></div>
-      </section>
+      <FilterBar compact filters={filters} inventoryItems={inventoryData.inventoryItems} sources={inventoryData.sources} onChange={setFilters} />
+      <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && filteredItems.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={() => setFilters(emptyInventoryFilters)} />
       <SectionCard title={t("sections.logisticsStatus")} eyebrow={t("sections.inboundOperations")}>
-        <DataTable columns={columns} rows={logisticsStatuses} />
+        <DataTable columns={columns} rows={rows} />
       </SectionCard>
     </>
   );

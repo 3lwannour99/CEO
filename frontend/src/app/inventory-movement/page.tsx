@@ -1,32 +1,45 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import { ApiState } from "@/components/ApiState/ApiState";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
 import { FilterBar } from "@/components/FilterBar/FilterBar";
+import { MetaStrip } from "@/components/MetaStrip/MetaStrip";
 import { PageHeader } from "@/components/PageHeader/PageHeader";
 import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { StatusBadge } from "@/components/StatusBadge/StatusBadge";
-import { inventoryItems } from "@/lib/mockData";
+import { useInventoryData } from "@/hooks/useInventoryData";
+import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
 import { useI18n } from "@/i18n/useI18n";
+import { emptyInventoryFilters, type InventoryFilters } from "@/types/filters";
 import type { InventoryItem } from "@/types/inventory";
 
 export default function InventoryMovementPage() {
   const { t } = useI18n();
+  const inventoryData = useInventoryData();
+  const [filters, setFilters] = useState<InventoryFilters>(emptyInventoryFilters);
+  const rows = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
   const columns: DataTableColumn<InventoryItem>[] = [
-    { key: "chassis", header: t("table.chassis"), render: (row) => row.chassis },
+    { key: "chassis", header: t("table.chassis"), render: (row) => formatValue(row.chassis) },
     { key: "model", header: t("table.model"), render: (row) => `${row.brand} ${row.model}` },
-    { key: "branch", header: t("table.branch"), render: (row) => row.branch },
-    { key: "warehouse", header: t("table.warehouse"), render: (row) => row.warehouse },
-    { key: "status", header: t("table.status"), render: (row) => <StatusBadge tone={row.chassisStatus} /> },
-    { key: "movement", header: t("table.movement"), render: (row) => <StatusBadge tone={row.movementVelocity} /> },
-    { key: "grpo", header: t("table.grpoDate"), render: (row) => row.grpoDate || t("status.pending") },
+    { key: "source", header: t("table.source"), render: (row) => row.sourceName },
+    { key: "branch", header: t("table.branch"), render: (row) => formatValue(row.branch) },
+    { key: "warehouse", header: t("table.warehouse"), render: (row) => formatValue(row.warehouse) },
+    { key: "status", header: t("table.status"), render: (row) => <StatusBadge tone={row.isSold ? "sold" : row.isReserved ? "reserved" : row.isInStock ? "available" : "unknown"} /> },
+    { key: "age", header: t("table.stockAgeDays"), render: (row) => formatValue(row.stockAgeDays) },
+    { key: "movement", header: t("table.movementCategory"), render: (row) => <StatusBadge tone={row.movementCategory} /> },
+    { key: "grpo", header: t("table.grpoDate"), render: (row) => formatDate(row.grpoDate) },
+    { key: "qty", header: t("table.qty"), render: (row) => formatNumber(row.quantity) },
   ];
 
   return (
     <>
       <PageHeader title={t("pages.inventoryMovement.title")} description={t("pages.inventoryMovement.description")} />
-      <FilterBar />
-      <SectionCard title={t("sections.movementRegister")} eyebrow={t("app.mockSapFields")} action={t("app.unitsSampled")}>
-        <DataTable columns={columns} rows={inventoryItems} />
+      <FilterBar filters={filters} inventoryItems={inventoryData.inventoryItems} sources={inventoryData.sources} onChange={setFilters} />
+      <MetaStrip meta={inventoryData.meta} />
+      <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && rows.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={() => setFilters(emptyInventoryFilters)} />
+      <SectionCard title={t("sections.movementRegister")} eyebrow={t("summary.liveData")} action={formatNumber(rows.length)}>
+        <DataTable columns={columns} rows={rows} />
       </SectionCard>
     </>
   );

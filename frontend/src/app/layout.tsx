@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DashboardShell } from "@/components/DashboardShell/DashboardShell";
 import { ThemeProvider } from "@/components/ThemeProvider/ThemeProvider";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { InventoryDataProvider } from "@/providers/InventoryDataProvider/InventoryDataProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,7 +20,9 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ThemeProvider>
           <I18nProvider>
-            <DashboardShell>{children}</DashboardShell>
+            <InventoryDataProvider>
+              <DashboardShell>{children}</DashboardShell>
+            </InventoryDataProvider>
           </I18nProvider>
         </ThemeProvider>
       </body>

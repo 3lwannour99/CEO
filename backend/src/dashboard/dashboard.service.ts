@@ -1,48 +1,88 @@
 import { Injectable } from '@nestjs/common';
-import {
-  alertsMock,
-  inventoryMock,
-  logisticsMock,
-} from '../common/mock-data/inventory.mock';
 import { InventoryService } from '../inventory/inventory.service';
+import { InventoryQueryDto } from '../inventory/dto/inventory-query.dto';
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly inventoryService: InventoryService) {}
+    constructor(private readonly inventoryService: InventoryService) {}
 
-  getSummary() {
-    const summary = this.inventoryService.getSummary();
+    async getSummary(query: InventoryQueryDto = {}) {
+        const response = await this.inventoryService.findAll(query);
+        const summary = await this.inventoryService.getSummary(query);
+        const alerts = await this.inventoryService.getAlerts(query);
+        const logistics = await this.inventoryService.getLogistics(query);
+        const sales = await this.inventoryService.getSalesPerformance(query);
+        const currentStock = response.data.filter((item) => item.isInStock);
 
-    return {
-      metrics: {
-        ...summary,
-        stockCoverageMonths: 3.7,
-      },
-      sections: {
-        inventoryStatusSummary: {
-          readyPercent: 74,
-          reservedUnits: summary.reserved,
-          serviceHoldUnits: 24,
-          averageCoverageMonths: 3.7,
-        },
-        topSellingModels: [
-          { model: 'Corolla Hybrid', brand: 'Toyota', unitsSold: 52, revenue: 1279200 },
-          { model: 'X5 xDrive40i', brand: 'BMW', unitsSold: 13, revenue: 889200 },
-          { model: 'Kona', brand: 'Hyundai', unitsSold: 24, revenue: 513600 },
-        ],
-        slowStockList: inventoryMock.filter((item) => item.movementVelocity === 'slow'),
-        recentAlerts: alertsMock,
-        stockByLocation: [
-          { location: 'Amman Main', available: 412, reserved: 38, inTransit: 61, slowMoving: 84 },
-          { location: 'Sweifieh', available: 238, reserved: 27, inTransit: 34, slowMoving: 56 },
-          { location: 'Irbid', available: 174, reserved: 16, inTransit: 22, slowMoving: 73 },
-        ],
-        salesPerformanceSnapshot: [
-          { model: 'Corolla Hybrid', unitsSold: 52, margin: '14.6%' },
-          { model: 'X5 xDrive40i', unitsSold: 13, margin: '11.2%' },
-        ],
-        logisticsStatusSnapshot: logisticsMock,
-      },
-    };
-  }
+        return {
+            metrics: {
+                totalUnits: summary.totalUnits,
+                currentStockUnits: summary.currentStockUnits,
+                soldUnits: summary.soldUnits,
+                reservedUnits: summary.reservedUnits,
+                fastMovingUnits: summary.fastMovingUnits,
+                mediumMovingUnits: summary.mediumMovingUnits,
+                slowMovingUnits: summary.slowMovingUnits,
+                inTransitUnits: summary.inTransitUnits,
+                readyForSaleUnits: summary.readyForSaleUnits,
+                stockCoverageMonths: summary.stockCoverageMonths,
+            },
+            inventoryStatusSummary: {
+                readyPercent:
+                    summary.currentStockUnits > 0
+                        ? Math.round(
+                              (summary.readyForSaleUnits /
+                                  summary.currentStockUnits) *
+                                  100,
+                          )
+                        : 0,
+                reservedUnits: summary.reservedUnits,
+                serviceHoldUnits: response.data.filter(
+                    (item) => item.chassisStatus === 'service-hold',
+                ).length,
+                averageCoverageMonths: summary.stockCoverageMonths,
+            },
+            topSellingModels: sales.topSellingModels.slice(0, 5),
+            slowStockList: currentStock
+                .filter((item) => item.movementCategory === 'slow')
+                .sort((a, b) => (b.stockAgeDays ?? 0) - (a.stockAgeDays ?? 0))
+                .slice(0, 10),
+            recentAlerts: alerts.slice(0, 10),
+            stockByLocation: Object.values(
+                currentStock.reduce<
+                    Record<
+                        string,
+                        {
+                            location: string;
+                            available: number;
+                            reserved: number;
+                            inTransit: number;
+                            slowMoving: number;
+                        }
+                    >
+                >((groups, item) => {
+                    const key = item.branch || item.sourceName || 'Unknown';
+                    groups[key] = groups[key] ?? {
+                        location: key,
+                        available: 0,
+                        reserved: 0,
+                        inTransit: 0,
+                        slowMoving: 0,
+                    };
+                    groups[key].available += item.quantity;
+                    groups[key].reserved += item.isReserved ? item.quantity : 0;
+                    groups[key].inTransit +=
+                        item.estimatedArrival && !item.grpoDate
+                            ? item.quantity
+                            : 0;
+                    groups[key].slowMoving +=
+                        item.movementCategory === 'slow' ? item.quantity : 0;
+                    return groups;
+                }, {}),
+            ),
+            salesPerformanceSnapshot: sales.topSellingModels.slice(0, 5),
+            logisticsStatusSnapshot: logistics.slice(0, 10),
+            meta: response.meta,
+        };
+    }
 }

@@ -1,12 +1,13 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
+import { InventoryQueryDto } from '../inventory/dto/inventory-query.dto';
 import { LogisticsService } from './logistics.service';
 
 @Controller('logistics')
 export class LogisticsController {
-  constructor(private readonly logisticsService: LogisticsService) {}
+    constructor(private readonly logisticsService: LogisticsService) {}
 
-  @Get()
-  findAll() {
-    return this.logisticsService.findAll();
-  }
+    @Get()
+    findAll(@Query() query: InventoryQueryDto) {
+        return this.logisticsService.findAll(query);
+    }
 }

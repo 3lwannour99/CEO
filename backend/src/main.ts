@@ -4,27 +4,29 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule);
 
-  app.enableCors({
-    origin: process.env.FRONTEND_URL ?? true,
-    credentials: true,
-  });
+    app.setGlobalPrefix('api');
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-    }),
-  );
+    app.enableCors({
+        origin: process.env.FRONTEND_URL ?? true,
+        credentials: true,
+    });
 
-  const config = new DocumentBuilder()
-    .setTitle('Inventory Dashboard API')
-    .setDescription('Mock API base for the inventory and stock management dashboard.')
-    .setVersion('1.0')
-    .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('swagger', app, documentFactory);
+    app.useGlobalPipes(
+        new ValidationPipe({
+            transform: true,
+        }),
+    );
 
-  await app.listen(process.env.PORT ?? 3000);
+    const config = new DocumentBuilder()
+        .setTitle('Inventory Dashboard API')
+        .setDescription('Inventory and stock management dashboard API.')
+        .setVersion('1.0')
+        .build();
+    const documentFactory = () => SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('swagger', app, documentFactory);
+
+    await app.listen(process.env.PORT ?? 4000);
 }
-bootstrap();
+void bootstrap();

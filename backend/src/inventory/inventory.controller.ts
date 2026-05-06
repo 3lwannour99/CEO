@@ -4,15 +4,20 @@ import { InventoryService } from './inventory.service';
 
 @Controller('inventory')
 export class InventoryController {
-  constructor(private readonly inventoryService: InventoryService) {}
+    constructor(private readonly inventoryService: InventoryService) {}
 
-  @Get()
-  findAll(@Query() query: InventoryQueryDto) {
-    return this.inventoryService.findAll(query);
-  }
+    @Get()
+    findAll(@Query() query: InventoryQueryDto) {
+        return this.inventoryService.findAll(query);
+    }
 
-  @Get('summary')
-  getSummary() {
-    return this.inventoryService.getSummary();
-  }
+    @Get('raw')
+    findRaw(@Query() query: InventoryQueryDto) {
+        return this.inventoryService.findRaw(query);
+    }
+
+    @Get('summary')
+    getSummary(@Query() query: InventoryQueryDto) {
+        return this.inventoryService.getSummary(query);
+    }
 }

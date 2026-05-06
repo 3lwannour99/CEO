@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { alertsMock } from '../common/mock-data/inventory.mock';
+import { InventoryQueryDto } from '../inventory/dto/inventory-query.dto';
+import { InventoryService } from '../inventory/inventory.service';
 
 @Injectable()
 export class AlertsService {
-  findAll() {
-    return alertsMock;
-  }
+    constructor(private readonly inventoryService: InventoryService) {}
+
+    findAll(query: InventoryQueryDto = {}) {
+        return this.inventoryService.getAlerts(query);
+    }
 }

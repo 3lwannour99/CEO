@@ -1,4 +1,5 @@
 import styles from "./DataTable.module.css";
+import { formatValue } from "@/lib/apiClient";
 
 export interface DataTableColumn<T> {
   key: string;
@@ -23,13 +24,19 @@ export function DataTable<T>({ columns, rows }: DataTableProps<T>) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              {columns.map((column) => (
-                <td key={column.key}>{column.render(row)}</td>
-              ))}
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length}>{formatValue(null)}</td>
             </tr>
-          ))}
+          ) : (
+            rows.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {columns.map((column) => (
+                  <td key={column.key}>{column.render(row) ?? formatValue(null)}</td>
+                ))}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

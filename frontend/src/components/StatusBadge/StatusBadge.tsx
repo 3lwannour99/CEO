@@ -4,7 +4,7 @@ import type { AlertSeverity, InventoryStatus } from "@/types/inventory";
 import { useI18n } from "@/i18n/useI18n";
 import styles from "./StatusBadge.module.css";
 
-type BadgeTone = InventoryStatus | AlertSeverity | "fast" | "medium" | "slow" | "neutral";
+type BadgeTone = InventoryStatus | AlertSeverity | "fast" | "medium" | "slow" | "unknown" | "neutral";
 
 interface StatusBadgeProps {
   tone: BadgeTone;
