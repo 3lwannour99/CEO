@@ -114,6 +114,7 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       reserved: "Reserved",
       inTransit: "In transit",
       serviceHold: "Service hold",
+          warehouse: "Warehouse",
     },
     table: {
       id: "ID",
@@ -423,6 +424,7 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       logistics: "اللوجستيات",
       multiLocation: "توزيع المخزون",
       settings: "الإعدادات",
+      salesmenKpi: "مؤشرات البائعين",
     },
     topbar: {
       searchPlaceholder: "بحث بالموديل أو رقم الشاسيه أو العميل أو أمر الشراء...",
@@ -496,6 +498,7 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       reserved: "محجوز",
       inTransit: "قيد الشحن",
       serviceHold: "إيقاف خدمة",
+      warehouse: "المستودع",
     },
     table: {
       id: "المعرف",
