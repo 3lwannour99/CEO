@@ -12,7 +12,7 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { language, t } = useI18n();
-  const { refreshData, isRefreshing } = useInventoryData();
+  const { refreshData, isRefreshing, isBusy } = useInventoryData();
   const currentDate = new Intl.DateTimeFormat(language, {
     weekday: "short",
     month: "short",
@@ -22,7 +22,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <header className={styles.topbar}>
-      <button className={styles.menuButton} type="button" onClick={onMenuClick} aria-label={t("app.openNavigation")}>
+      <button className={styles.menuButton} type="button" onClick={onMenuClick} aria-label={t("app.openNavigation")} disabled={isBusy}>
         <span />
         <span />
         <span />
@@ -33,10 +33,10 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </div>
       <div className={styles.actions}>
         <span className={styles.date}>{currentDate}</span>
-        <button className={styles.iconButton} type="button" aria-label={t("app.notifications")} title={t("app.notifications")}>
+        <button className={styles.iconButton} type="button" aria-label={t("app.notifications")} title={t("app.notifications")} disabled={isBusy}>
           3
         </button>
-        <button className={styles.refreshButton} type="button" onClick={() => void refreshData()} disabled={isRefreshing}>
+        <button className={styles.refreshButton} type="button" onClick={() => void refreshData()} disabled={isBusy}>
           {isRefreshing ? t("filters.refreshingData") : t("summary.refresh")}
         </button>
         <LanguageToggle />

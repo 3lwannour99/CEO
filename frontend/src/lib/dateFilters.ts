@@ -78,6 +78,7 @@ export function getPresetRange(preset?: DatePreset): { fromDate?: string; toDate
 
   if (preset === "thisMonth") {
     start.setDate(1);
+    end.setMonth(end.getMonth() + 1, 0);
   }
 
   if (preset === "lastMonth") {

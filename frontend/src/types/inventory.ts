@@ -1,6 +1,19 @@
 export type MovementVelocity = "fast" | "medium" | "slow" | "unknown";
 
-export type InventoryStatus = "available" | "reserved" | "sold" | "in-transit" | "service-hold" | "unknown";
+export type InventoryStatus =
+  | "sold"
+  | "inStock"
+  | "notAvailable"
+  | "reserve"
+  | "reservationForCompanies"
+  | "cession"
+  | "contract"
+  | "error"
+  | "unknown"
+  | "available"
+  | "reserved"
+  | "in-transit"
+  | "service-hold";
 
 export type AlertSeverity = "critical" | "warning" | "info" | "success";
 
@@ -74,6 +87,8 @@ export interface InventoryItem {
   apInvoiceDate: string;
   apInvoiceNo: string;
   chassisStatus: InventoryStatus | string;
+  displayStatus: string;
+  normalizedStatus: InventoryStatus | string;
   arInvoiceNo: string;
   cardCode: string;
   createDate: string;

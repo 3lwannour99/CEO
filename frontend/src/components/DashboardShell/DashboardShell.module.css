@@ -4,6 +4,10 @@
   background: var(--color-app-bg);
 }
 
+.shell[data-busy="true"] button:not(:disabled) {
+  cursor: not-allowed;
+}
+
 .contentArea {
   min-width: 0;
   flex: 1;

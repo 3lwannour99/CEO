@@ -236,7 +236,7 @@ export function calculateDashboardSummary(items: InventoryItem[], generatedAt: s
     inventoryStatusSummary: {
       readyPercent: summary.currentStockUnits > 0 ? Math.round((summary.readyForSaleUnits / summary.currentStockUnits) * 100) : 0,
       reservedUnits: summary.reservedUnits,
-      serviceHoldUnits: items.filter((item) => item.chassisStatus === "service-hold").length,
+      serviceHoldUnits: items.filter((item) => ["notAvailable", "cession", "contract", "error"].includes(item.normalizedStatus)).length,
       averageCoverageMonths: summary.stockCoverageMonths,
     },
     topSellingModels: sales.topSellingModels.slice(0, 5),

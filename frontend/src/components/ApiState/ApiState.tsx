@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/i18n/useI18n";
+import { useAppBusy } from "@/hooks/useAppBusy";
 import styles from "./ApiState.module.css";
 
 interface ApiStateProps {
@@ -15,6 +16,7 @@ interface ApiStateProps {
 
 export function ApiState({ loading, refreshing, error, partial, empty, onRetry, onReset }: ApiStateProps) {
   const { t } = useI18n();
+  const isBusy = useAppBusy();
 
   if (loading) {
     return <div className={styles.skeleton}>{t("filters.loadingData")}</div>;
@@ -26,7 +28,7 @@ export function ApiState({ loading, refreshing, error, partial, empty, onRetry, 
         <strong>{t("summary.apiError")}</strong>
         <span>{error}</span>
         {onRetry ? (
-          <button type="button" onClick={onRetry}>
+          <button type="button" onClick={onRetry} disabled={isBusy}>
             {t("filters.retry")}
           </button>
         ) : null}
@@ -43,7 +45,7 @@ export function ApiState({ loading, refreshing, error, partial, empty, onRetry, 
       <div className={styles.state}>
         <strong>{t("filters.emptyFiltered")}</strong>
         {onReset ? (
-          <button type="button" onClick={onReset}>
+          <button type="button" onClick={onReset} disabled={isBusy}>
             {t("filters.resetFilters")}
           </button>
         ) : null}

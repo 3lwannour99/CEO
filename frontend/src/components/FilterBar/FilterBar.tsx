@@ -2,10 +2,11 @@
 
 import { DateFilter } from "@/components/DateFilter/DateFilter";
 import { MultiSelect } from "@/components/MultiSelect/MultiSelect";
+import { OFFICIAL_VEHICLE_STATUSES } from "@/constants/statuses";
+import { useAppBusy } from "@/hooks/useAppBusy";
 import { getFilterOptions } from "@/lib/filterOptions";
 import { useI18n } from "@/i18n/useI18n";
-import type { InventoryFilters } from "@/types/filters";
-import { emptyInventoryFilters } from "@/types/filters";
+import { createDefaultInventoryFilters, type InventoryFilters } from "@/types/filters";
 import type { CounterScreenSource, InventoryItem } from "@/types/inventory";
 import styles from "./FilterBar.module.css";
 
@@ -19,15 +20,11 @@ interface FilterBarProps {
 
 export function FilterBar({ compact = false, filters, inventoryItems, sources, onChange }: FilterBarProps) {
   const { t } = useI18n();
+  const isBusy = useAppBusy();
   const options = getFilterOptions(inventoryItems, sources);
   const translatedOptions = {
     ...options,
-    statuses: [
-      { label: t("status.available"), value: "in-stock" },
-      { label: t("status.sold"), value: "sold" },
-      { label: t("status.reserved"), value: "reserved" },
-      { label: t("status.unknown"), value: "unknown" },
-    ],
+    statuses: OFFICIAL_VEHICLE_STATUSES.map((status) => ({ label: t(status.labelKey), value: status.value })),
     movementCategories: [
       { label: t("status.fast"), value: "fast" },
       { label: t("status.medium"), value: "medium" },
@@ -59,10 +56,10 @@ export function FilterBar({ compact = false, filters, inventoryItems, sources, o
       <MultiSelect label={t("filters.salesman")} options={translatedOptions.salesmen} values={filters.salesmen} onChange={(salesmen) => onChange({ ...filters, salesmen })} />
       <label className={styles.field}>
         <span>{t("filters.search")}</span>
-        <input value={filters.search} onChange={(event) => onChange({ ...filters, search: event.target.value })} placeholder={t("topbar.searchPlaceholder")} />
+        <input value={filters.search} onChange={(event) => onChange({ ...filters, search: event.target.value })} placeholder={t("topbar.searchPlaceholder")} disabled={isBusy} />
       </label>
       <DateFilter filters={filters} onChange={onChange} />
-      <button className={styles.resetButton} type="button" onClick={() => onChange(emptyInventoryFilters)}>
+      <button className={styles.resetButton} type="button" onClick={() => onChange(createDefaultInventoryFilters())} disabled={isBusy}>
         {t("filters.resetFilters")}
       </button>
     </form>

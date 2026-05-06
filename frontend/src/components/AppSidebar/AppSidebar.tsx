@@ -12,6 +12,7 @@ const navItems = [
   { labelKey: "sidebar.replenishment", href: "/replenishment", marker: "RP" },
   { labelKey: "sidebar.stockCoverage", href: "/stock-coverage", marker: "SC" },
   { labelKey: "sidebar.salesPerformance", href: "/sales-performance", marker: "SP" },
+  { labelKey: "sidebar.salesmenKpi", href: "/salesmen-kpi", marker: "SK" },
   { labelKey: "sidebar.aggregatedStock", href: "/aggregated-stock", marker: "AS" },
   { labelKey: "sidebar.logistics", href: "/logistics", marker: "LG" },
   { labelKey: "sidebar.multiLocation", href: "/multi-location", marker: "ML" },
@@ -21,9 +22,10 @@ const navItems = [
 interface AppSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isBusy?: boolean;
 }
 
-export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
+export function AppSidebar({ isOpen, onClose, isBusy = false }: AppSidebarProps) {
   const pathname = usePathname();
   const { t } = useI18n();
 
@@ -45,7 +47,15 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
                 className={`${styles.navItem} ${active ? styles.active : ""}`}
                 href={item.href}
                 key={item.href}
-                onClick={onClose}
+                onClick={(event) => {
+                  if (isBusy) {
+                    event.preventDefault();
+                    return;
+                  }
+
+                  onClose();
+                }}
+                aria-disabled={isBusy}
               >
                 <span className={styles.marker}>{item.marker}</span>
                 <span className={styles.label}>{t(item.labelKey)}</span>
@@ -58,6 +68,7 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
         className={`${styles.backdrop} ${isOpen ? styles.backdropOpen : ""}`}
         type="button"
         aria-label={t("app.closeNavigation")}
+        disabled={isBusy}
         onClick={onClose}
       />
     </>

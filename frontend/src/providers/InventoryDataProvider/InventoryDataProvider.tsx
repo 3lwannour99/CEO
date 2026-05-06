@@ -35,6 +35,7 @@ interface InventoryDataContextValue {
   sources: CounterScreenSource[];
   isInitialLoading: boolean;
   isRefreshing: boolean;
+  isBusy: boolean;
   error: string | null;
   meta?: ApiMeta;
   lastUpdated?: string;
@@ -105,6 +106,7 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
       sources,
       isInitialLoading,
       isRefreshing,
+      isBusy: isInitialLoading || isRefreshing,
       error,
       meta,
       lastUpdated: meta?.generatedAt,

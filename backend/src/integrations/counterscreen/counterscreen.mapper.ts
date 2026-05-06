@@ -1,7 +1,9 @@
 import {
     CounterScreenSource,
+    DisplayVehicleStatus,
     InventoryItem,
     MovementCategory,
+    NormalizedVehicleStatus,
     RawCounterScreenItem,
 } from './counterscreen.types';
 
@@ -91,10 +93,57 @@ function getMovementCategory(stockAgeDays: number | null): MovementCategory {
     return 'fast';
 }
 
-function normalizeStatus(value: unknown): string {
-    return asString(value)
+function normalizeStatus(value: unknown): {
+    normalizedStatus: NormalizedVehicleStatus;
+    displayStatus: DisplayVehicleStatus;
+} {
+    const key = asString(value)
         .toLowerCase()
-        .replace(/[_\s]+/g, '-');
+        .replace(/[_\s]+/g, '-')
+        .replace(/[^a-z-]/g, '');
+
+    const statuses: Record<
+        string,
+        {
+            normalizedStatus: NormalizedVehicleStatus;
+            displayStatus: DisplayVehicleStatus;
+        }
+    > = {
+        sold: { normalizedStatus: 'sold', displayStatus: 'Sold' },
+        'in-stock': {
+            normalizedStatus: 'inStock',
+            displayStatus: 'In-Stock',
+        },
+        instock: { normalizedStatus: 'inStock', displayStatus: 'In-Stock' },
+        'not-available': {
+            normalizedStatus: 'notAvailable',
+            displayStatus: 'Not-Available',
+        },
+        notavailable: {
+            normalizedStatus: 'notAvailable',
+            displayStatus: 'Not-Available',
+        },
+        reserve: { normalizedStatus: 'reserve', displayStatus: 'Reserve' },
+        reserved: { normalizedStatus: 'reserve', displayStatus: 'Reserve' },
+        'reservation-for-companies': {
+            normalizedStatus: 'reservationForCompanies',
+            displayStatus: 'Reservation for Companies',
+        },
+        reservationforcompanies: {
+            normalizedStatus: 'reservationForCompanies',
+            displayStatus: 'Reservation for Companies',
+        },
+        cession: { normalizedStatus: 'cession', displayStatus: 'Cession' },
+        contract: { normalizedStatus: 'contract', displayStatus: 'Contract' },
+        error: { normalizedStatus: 'error', displayStatus: 'Error' },
+    };
+
+    return (
+        statuses[key] ?? {
+            normalizedStatus: 'unknown',
+            displayStatus: 'Unknown',
+        }
+    );
 }
 
 export function mapCounterScreenItem(
@@ -102,15 +151,12 @@ export function mapCounterScreenItem(
     source: CounterScreenSource,
 ): InventoryItem {
     const rawStatus = asString(raw.Chassis_Status);
-    const normalizedStatus = normalizeStatus(rawStatus);
+    const { normalizedStatus, displayStatus } = normalizeStatus(rawStatus);
     const isSold = normalizedStatus === 'sold';
-    const isReserved = [
-        'reserve',
-        'reserved',
-        'reservation-for-companies',
-    ].includes(normalizedStatus);
-    const isInStock =
-        normalizedStatus === 'in-stock' || normalizedStatus === 'available';
+    const isReserved =
+        normalizedStatus === 'reserve' ||
+        normalizedStatus === 'reservationForCompanies';
+    const isInStock = normalizedStatus === 'inStock';
     const stockDate =
         parseDate(raw.GRPO_Date) ??
         parseDate(raw.APInvDate) ??
@@ -159,7 +205,9 @@ export function mapCounterScreenItem(
         plateNumber: asString(raw.U_Plate_Number),
         apInvoiceDate: asString(raw.APInvDate),
         apInvoiceNo: asString(raw.APInvNo),
-        chassisStatus: normalizedStatus || 'unknown',
+        chassisStatus: normalizedStatus,
+        displayStatus,
+        normalizedStatus,
         arInvoiceNo: asString(raw.ARInvNo),
         cardCode: asString(raw.CardCode),
         createDate: asString(raw.CreateDate),
@@ -179,9 +227,8 @@ export function mapCounterScreenItem(
         movementCategory: getMovementCategory(stockAgeDays),
         isSold,
         isReserved,
-        isInStock: !isSold && isInStock,
-        isReadyForSale:
-            !isSold && ready && (isInStock || normalizedStatus === 'unknown'),
+        isInStock,
+        isReadyForSale: !isSold && ready,
         rawStatus,
     };
 }

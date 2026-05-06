@@ -9,6 +9,28 @@ export type RawCounterScreenItem = Record<string, unknown>;
 
 export type MovementCategory = 'fast' | 'medium' | 'slow' | 'unknown';
 
+export type NormalizedVehicleStatus =
+    | 'sold'
+    | 'inStock'
+    | 'notAvailable'
+    | 'reserve'
+    | 'reservationForCompanies'
+    | 'cession'
+    | 'contract'
+    | 'error'
+    | 'unknown';
+
+export type DisplayVehicleStatus =
+    | 'Sold'
+    | 'In-Stock'
+    | 'Not-Available'
+    | 'Reserve'
+    | 'Reservation for Companies'
+    | 'Cession'
+    | 'Contract'
+    | 'Error'
+    | 'Unknown';
+
 export interface InventoryItem {
     absEntry: number | null;
     chassis: string;
@@ -51,6 +73,8 @@ export interface InventoryItem {
     apInvoiceDate: string;
     apInvoiceNo: string;
     chassisStatus: string;
+    displayStatus: DisplayVehicleStatus;
+    normalizedStatus: NormalizedVehicleStatus;
     arInvoiceNo: string;
     cardCode: string;
     createDate: string;

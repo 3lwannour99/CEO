@@ -9,6 +9,7 @@
 }
 
 .available,
+.inStock,
 .success,
 .fast {
   color: var(--color-success);
@@ -16,6 +17,8 @@
 }
 
 .reserved,
+.reserve,
+.reservationForCompanies,
 .info,
 .medium,
 .intransit {
@@ -31,6 +34,10 @@
 }
 
 .servicehold,
+.notAvailable,
+.cession,
+.contract,
+.error,
 .warning,
 .slow {
   color: var(--color-warning);

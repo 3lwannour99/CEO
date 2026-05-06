@@ -38,6 +38,13 @@
   cursor: pointer;
 }
 
+.field select:disabled,
+.field input:disabled,
+.clearButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 @media (max-width: 1024px) {
   .dateFilter {
     grid-template-columns: repeat(2, minmax(130px, 1fr));

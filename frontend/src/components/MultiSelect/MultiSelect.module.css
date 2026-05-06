@@ -24,6 +24,13 @@
   cursor: pointer;
 }
 
+.clearButton:disabled,
+.search:disabled,
+.option input:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 .dropdown {
   position: relative;
 }

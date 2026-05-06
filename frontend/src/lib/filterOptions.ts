@@ -1,4 +1,5 @@
 import type { CounterScreenSource, InventoryItem, PageFilterOption } from "@/types/inventory";
+import { OFFICIAL_VEHICLE_STATUSES } from "@/constants/statuses";
 
 function uniqueOptions(items: InventoryItem[], selector: (item: InventoryItem) => string): PageFilterOption[] {
   return Array.from(new Set(items.map(selector).filter(Boolean)))
@@ -19,12 +20,7 @@ export function getFilterOptions(items: InventoryItem[], sources: CounterScreenS
     wheels: uniqueOptions(items, (item) => item.wheel),
     branches: uniqueOptions(items, (item) => item.branch),
     warehouses: uniqueOptions(items, (item) => item.warehouse),
-    statuses: [
-      { label: "In Stock", value: "in-stock" },
-      { label: "Sold", value: "sold" },
-      { label: "Reserved", value: "reserved" },
-      { label: "Unknown", value: "unknown" },
-    ],
+    statuses: OFFICIAL_VEHICLE_STATUSES.map((status) => ({ label: status.rawValue, value: status.value })),
     movementCategories: [
       { label: "Fast", value: "fast" },
       { label: "Medium", value: "medium" },

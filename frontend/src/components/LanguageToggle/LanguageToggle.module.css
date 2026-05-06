@@ -30,3 +30,8 @@
   color: var(--color-accent-contrast);
   background: var(--color-accent);
 }
+
+.option:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}

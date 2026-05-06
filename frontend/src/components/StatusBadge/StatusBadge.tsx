@@ -7,7 +7,7 @@ import styles from "./StatusBadge.module.css";
 type BadgeTone = InventoryStatus | AlertSeverity | "fast" | "medium" | "slow" | "unknown" | "neutral";
 
 interface StatusBadgeProps {
-  tone: BadgeTone;
+  tone: BadgeTone | string;
   children?: React.ReactNode;
 }
 

@@ -10,6 +10,23 @@ function matchesAny(value: string | boolean | null | undefined, selected: string
   return selected.includes(String(value ?? ""));
 }
 
+function normalizeStatusValue(value: string | null | undefined) {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-")
+    .replace(/[^a-z-]/g, "")
+    .replace(/-/g, "");
+}
+
+function matchesStatus(item: InventoryItem, selected: string[]) {
+  if (selected.length === 0) {
+    return true;
+  }
+
+  const itemStatuses = [item.normalizedStatus, item.rawStatus, item.displayStatus, item.chassisStatus].map((value) => normalizeStatusValue(String(value ?? "")));
+  return selected.some((status) => itemStatuses.includes(normalizeStatusValue(status)));
+}
+
 function searchableText(item: InventoryItem) {
   return [
     item.chassis,
@@ -36,7 +53,6 @@ export function filterInventory(items: InventoryItem[], filters: InventoryFilter
   const search = filters.search.trim().toLowerCase();
 
   return items.filter((item) => {
-    const status = item.isSold ? "sold" : item.isReserved ? "reserved" : item.isInStock ? "in-stock" : item.chassisStatus;
     const readyStatus = item.isReadyForSale ? "ready" : "not-ready";
 
     return (
@@ -51,7 +67,7 @@ export function filterInventory(items: InventoryItem[], filters: InventoryFilter
       matchesAny(item.wheel, filters.wheels) &&
       matchesAny(item.branch, filters.branches) &&
       matchesAny(item.warehouse, filters.warehouses) &&
-      matchesAny(status, filters.statuses) &&
+      matchesStatus(item, filters.statuses) &&
       matchesAny(item.movementCategory, filters.movementCategories) &&
       matchesAny(readyStatus, filters.readyStatuses) &&
       matchesAny(item.customerGroup, filters.customerGroups) &&

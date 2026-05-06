@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ApiState } from "@/components/ApiState/ApiState";
 import { DashboardCard } from "@/components/DashboardCard/DashboardCard";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
@@ -9,17 +9,17 @@ import { MetaStrip } from "@/components/MetaStrip/MetaStrip";
 import { PageHeader } from "@/components/PageHeader/PageHeader";
 import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { StatusBadge } from "@/components/StatusBadge/StatusBadge";
+import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatCurrency, formatNumber, formatValue } from "@/lib/apiClient";
 import { useI18n } from "@/i18n/useI18n";
-import { emptyInventoryFilters, type InventoryFilters } from "@/types/filters";
 import type { DashboardMetric, InventoryAlert, InventoryItem, LocationStock, LogisticsStatus, SalesPerformanceItem } from "@/types/inventory";
 import styles from "./dashboard.module.css";
 
 export default function DashboardPage() {
   const { t } = useI18n();
   const inventoryData = useInventoryData();
-  const [filters, setFilters] = useState<InventoryFilters>(emptyInventoryFilters);
+  const { filters, setFilters, resetFilters } = useGlobalFilters();
   const data = useMemo(() => inventoryData.getDashboardSummary(filters), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
   const metrics: DashboardMetric[] = [
@@ -76,7 +76,7 @@ export default function DashboardPage() {
         partial={(inventoryData.meta?.failedSources ?? 0) > 0}
         empty={!inventoryData.isInitialLoading && filteredItems.length === 0}
         onRetry={() => void inventoryData.refreshData()}
-        onReset={() => setFilters(emptyInventoryFilters)}
+        onReset={resetFilters}
       />
       <section className={styles.metricGrid}>
         {metrics.map((metric) => (
@@ -93,21 +93,24 @@ export default function DashboardPage() {
           </div>
         </SectionCard>
         <SectionCard title={t("sections.topSellingModels")} eyebrow={t("sections.sales")}>
-          <DataTable columns={salesColumns} rows={data.topSellingModels} />
+          <DataTable columns={salesColumns} rows={data.topSellingModels} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
         </SectionCard>
         <SectionCard title={t("sections.slowStockList")} eyebrow={t("sections.inventoryMovement")}>
-          <DataTable columns={inventoryColumns} rows={data.slowStockList} />
+          <DataTable columns={inventoryColumns} rows={data.slowStockList} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
         </SectionCard>
         <SectionCard title={t("sections.recentAlerts")} eyebrow={t("sections.autoAlerts")}>
-          <DataTable columns={alertColumns} rows={data.recentAlerts} />
+          <DataTable columns={alertColumns} rows={data.recentAlerts} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
         </SectionCard>
         <SectionCard title={t("sections.stockByLocation")} eyebrow={t("sections.multiLocation")}>
-          <DataTable columns={locationColumns} rows={data.stockByLocation} />
+          <DataTable columns={locationColumns} rows={data.stockByLocation} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
         </SectionCard>
         <SectionCard title={t("sections.logisticsStatusSnapshot")} eyebrow={t("sections.inbound")}>
-          <DataTable columns={logisticsColumns} rows={data.logisticsStatusSnapshot} />
+          <DataTable columns={logisticsColumns} rows={data.logisticsStatusSnapshot} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
         </SectionCard>
       </section>
     </>
   );
 }
+
+
+

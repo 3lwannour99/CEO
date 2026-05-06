@@ -415,14 +415,27 @@ function statusMatches(item: InventoryItem, filter?: string): boolean {
         return true;
     }
 
-    const normalized = filter.toLowerCase();
+    const normalized = normalizeStatusFilter(filter);
     return (
-        item.chassisStatus.toLowerCase() === normalized ||
-        item.rawStatus.toLowerCase() === normalized ||
+        normalizeStatusFilter(item.normalizedStatus) === normalized ||
+        normalizeStatusFilter(item.chassisStatus) === normalized ||
+        normalizeStatusFilter(item.rawStatus) === normalized ||
+        normalizeStatusFilter(item.displayStatus) === normalized ||
         (normalized === 'sold' && item.isSold) ||
-        (normalized === 'reserved' && item.isReserved) ||
-        (normalized === 'in-stock' && item.isInStock)
+        (['reserve', 'reservationforcompanies', 'reserved'].includes(
+            normalized,
+        ) &&
+            item.isReserved) ||
+        (['instock', 'in-stock'].includes(normalized) && item.isInStock)
     );
+}
+
+function normalizeStatusFilter(value?: string): string {
+    return (value ?? '')
+        .toLowerCase()
+        .replace(/[_\s]+/g, '-')
+        .replace(/[^a-z-]/g, '')
+        .replace(/-/g, '');
 }
 
 function searchMatches(item: InventoryItem, search?: string): boolean {

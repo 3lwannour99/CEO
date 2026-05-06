@@ -64,6 +64,12 @@
   background: var(--color-sidebar-active);
 }
 
+.navItem[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.62;
+  pointer-events: none;
+}
+
 .marker {
   display: grid;
   place-items: center;
