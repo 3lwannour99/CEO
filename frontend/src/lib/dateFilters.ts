@@ -34,6 +34,7 @@ const relevantDateFields: Exclude<DateField, "all">[] = [
 ];
 
 const reservedStatuses = new Set(["reserve", "reservationForCompanies"]);
+const dateTimestampCache = new WeakMap<InventoryItem, Partial<Record<Exclude<DateField, "all">, number | null>>>();
 
 export function parseCalendarDate(value?: string | null): Date | null {
   if (!value) {
@@ -48,25 +49,45 @@ export function parseCalendarDate(value?: string | null): Date | null {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function isDateInSelectedRange(itemDate: Date, exactDate: Date | null, fromDate: Date | null, toDate: Date | null): boolean {
-  if (exactDate) {
-    return itemDate.getTime() === exactDate.getTime();
+function parseCalendarTimestamp(value?: string | null): number | null {
+  return parseCalendarDate(value)?.getTime() ?? null;
+}
+
+function isTimestampInSelectedRange(itemTimestamp: number, exactTimestamp: number | null, fromTimestamp: number | null, toTimestamp: number | null): boolean {
+  if (exactTimestamp !== null) {
+    return itemTimestamp === exactTimestamp;
   }
 
-  if (fromDate && itemDate < fromDate) {
+  if (fromTimestamp !== null && itemTimestamp < fromTimestamp) {
     return false;
   }
 
-  if (toDate && itemDate > toDate) {
+  if (toTimestamp !== null && itemTimestamp > toTimestamp) {
     return false;
   }
 
   return true;
 }
 
+function itemDateTimestamp(item: InventoryItem, field: Exclude<DateField, "all">): number | null {
+  const cached = dateTimestampCache.get(item);
+
+  if (cached && field in cached) {
+    return cached[field] ?? null;
+  }
+
+  const nextCache = cached ?? {};
+  const timestamp = parseCalendarTimestamp(item[field]);
+  nextCache[field] = timestamp;
+  dateTimestampCache.set(item, nextCache);
+
+  return timestamp;
+}
+
 function itemDateIsInSelectedRange(item: InventoryItem, field: Exclude<DateField, "all">, exactDate: Date | null, fromDate: Date | null, toDate: Date | null): boolean {
-  const itemDate = parseCalendarDate(item[field]);
-  return Boolean(itemDate && isDateInSelectedRange(itemDate, exactDate, fromDate, toDate));
+  const itemTimestamp = itemDateTimestamp(item, field);
+
+  return itemTimestamp !== null && isTimestampInSelectedRange(itemTimestamp, exactDate?.getTime() ?? null, fromDate?.getTime() ?? null, toDate?.getTime() ?? null);
 }
 
 function itemStatusIs(item: InventoryItem, status: string): boolean {
@@ -105,7 +126,7 @@ function itemMatchesSelectedDateField(item: InventoryItem, field: Exclude<DateFi
   }
 
   if (field === "contractDate") {
-    if (parseCalendarDate(item.contractDate)) {
+    if (itemDateTimestamp(item, "contractDate") !== null) {
       return itemDateIsInSelectedRange(item, field, exactDate, fromDate, toDate);
     }
 
@@ -123,7 +144,7 @@ function itemMatchesSelectedDateField(item: InventoryItem, field: Exclude<DateFi
   }
 
   if (field === "apInvoiceDate") {
-    if (parseCalendarDate(item.apInvoiceDate)) {
+    if (itemDateTimestamp(item, "apInvoiceDate") !== null) {
       return itemDateIsInSelectedRange(item, field, exactDate, fromDate, toDate);
     }
 
@@ -132,7 +153,7 @@ function itemMatchesSelectedDateField(item: InventoryItem, field: Exclude<DateFi
   }
 
   if (field === "createDate") {
-    if (parseCalendarDate(item.createDate)) {
+    if (itemDateTimestamp(item, "createDate") !== null) {
       return itemDateIsInSelectedRange(item, field, exactDate, fromDate, toDate);
     }
 
@@ -141,7 +162,7 @@ function itemMatchesSelectedDateField(item: InventoryItem, field: Exclude<DateFi
   }
 
   if (field === "estimatedArrival") {
-    if (parseCalendarDate(item.estimatedArrival)) {
+    if (itemDateTimestamp(item, "estimatedArrival") !== null) {
       return itemDateIsInSelectedRange(item, field, exactDate, fromDate, toDate);
     }
 

@@ -53,7 +53,7 @@ export function DateFilter({ filters, onChange }: DateFilterProps) {
         <span>{t("filters.toDate")}</span>
         <input type="date" value={filters.toDate ?? ""} onChange={(event) => update({ toDate: event.target.value, exactDate: "", datePreset: "" })} disabled={isBusy} />
       </label>
-      <button className={styles.clearButton} type="button" onClick={() => update({ dateField: "all", fromDate: "", toDate: "", exactDate: "", datePreset: "" })} disabled={isBusy}>
+      <button className={styles.clearButton} type="button" onClick={() => update({ dateField: "arInvoiceDate", fromDate: "", toDate: "", exactDate: "", datePreset: "" })} disabled={isBusy}>
         {t("filters.clear")}
       </button>
     </div>

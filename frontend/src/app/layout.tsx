@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DashboardShell } from "@/components/DashboardShell/DashboardShell";
 import { ThemeProvider } from "@/components/ThemeProvider/ThemeProvider";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { CurrencyDisplayProvider } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { FilterProvider } from "@/providers/FilterProvider/FilterProvider";
 import { InventoryDataProvider } from "@/providers/InventoryDataProvider/InventoryDataProvider";
 import "./globals.css";
@@ -22,9 +23,11 @@ export default function RootLayout({
         <ThemeProvider>
           <I18nProvider>
             <InventoryDataProvider>
-              <FilterProvider>
-                <DashboardShell>{children}</DashboardShell>
-              </FilterProvider>
+              <CurrencyDisplayProvider>
+                <FilterProvider>
+                  <DashboardShell>{children}</DashboardShell>
+                </FilterProvider>
+              </CurrencyDisplayProvider>
             </InventoryDataProvider>
           </I18nProvider>
         </ThemeProvider>

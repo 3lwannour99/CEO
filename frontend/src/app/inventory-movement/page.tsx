@@ -11,11 +11,14 @@ import { StatusBadge } from "@/components/StatusBadge/StatusBadge";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
+import { formatMoneyBundle } from "@/lib/currency";
+import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
 import type { InventoryItem } from "@/types/inventory";
 
 export default function InventoryMovementPage() {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
+  const { selectedCurrencies } = useCurrencyDisplay();
   const inventoryData = useInventoryData();
   const { filters, setFilters, resetFilters } = useGlobalFilters();
   const rows = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
@@ -29,6 +32,12 @@ export default function InventoryMovementPage() {
     { key: "age", header: t("table.stockAgeDays"), render: (row) => formatValue(row.stockAgeDays) },
     { key: "movement", header: t("table.movementCategory"), render: (row) => <StatusBadge tone={row.movementCategory} /> },
     { key: "grpo", header: t("table.grpoDate"), render: (row) => formatDate(row.grpoDate) },
+    { key: "price1", header: t("table.price1"), render: (row) => formatMoneyBundle(row.price1, row, language, selectedCurrencies) },
+    { key: "price2", header: t("table.price2"), render: (row) => formatMoneyBundle(row.price2, row, language, selectedCurrencies) },
+    { key: "price3", header: t("table.price3"), render: (row) => formatMoneyBundle(row.price3, row, language, selectedCurrencies) },
+    { key: "price4", header: t("table.price4"), render: (row) => formatMoneyBundle(row.price4, row, language, selectedCurrencies) },
+    { key: "soldPrice", header: t("table.soldPrice"), render: (row) => formatMoneyBundle(row.soldPrice, row, language, selectedCurrencies) },
+    { key: "vat", header: t("table.vat"), render: (row) => formatMoneyBundle(row.vat, row, language, selectedCurrencies) },
     { key: "qty", header: t("table.qty"), render: (row) => formatNumber(row.quantity) },
   ];
 

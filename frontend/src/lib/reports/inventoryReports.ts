@@ -11,13 +11,10 @@ import type {
   SalesPerformanceResponse,
   StockCoverageItem,
 } from "@/types/inventory";
+import { sumMoney } from "@/lib/currency";
 
 function sumQuantity(items: InventoryItem[]) {
   return items.reduce((sum, item) => sum + (item.quantity || 1), 0);
-}
-
-function sumSoldPrice(items: InventoryItem[]) {
-  return items.reduce((sum, item) => sum + item.soldPrice, 0);
 }
 
 function round(value: number) {
@@ -147,8 +144,8 @@ export function calculateSalesPerformance(items: InventoryItem[]): SalesPerforma
     brand: group[0]?.brand ?? "",
     model: group[0]?.model ?? "",
     unitsSold: sumQuantity(group),
-    revenue: sumSoldPrice(group),
-  })).sort((a, b) => b.unitsSold - a.unitsSold);
+    revenue: sumMoney(group, (item) => item.soldPrice),
+  })).sort((a, b) => b.unitsSold - a.unitsSold || b.revenue.usd - a.revenue.usd);
 
   return {
     soldUnitsByModel: byModel,
@@ -162,7 +159,7 @@ export function calculateSalesPerformance(items: InventoryItem[]): SalesPerforma
       country: group[0]?.sourceCountry ?? "",
       unitsSold: sumQuantity(group),
     })),
-    soldRevenue: sumSoldPrice(sold),
+    soldRevenue: sumMoney(sold, (item) => item.soldPrice),
     customerGroupBreakdown: groupBy(sold, (item) => item.customerGroup || "Unknown", (group) => ({
       customerGroup: group[0]?.customerGroup || "Unknown",
       unitsSold: sumQuantity(group),

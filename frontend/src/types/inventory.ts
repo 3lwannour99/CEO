@@ -1,3 +1,5 @@
+import type { MoneyTotals } from "@/lib/currency";
+
 export type MovementVelocity = "fast" | "medium" | "slow" | "unknown";
 
 export type InventoryStatus =
@@ -170,7 +172,7 @@ export interface SalesPerformanceItem {
   model: string;
   brand: string;
   unitsSold: number;
-  revenue: number;
+  revenue: MoneyTotals;
   margin?: string;
 }
 
@@ -215,7 +217,7 @@ export interface SalesPerformanceResponse {
   soldUnitsByModel: SalesPerformanceItem[];
   soldUnitsByBranch: Array<{ branch: string; unitsSold: number }>;
   soldUnitsBySource: Array<{ sourceId: string; sourceName: string; country: string; unitsSold: number }>;
-  soldRevenue: number;
+  soldRevenue: MoneyTotals;
   customerGroupBreakdown: Array<{ customerGroup: string; unitsSold: number }>;
   topSellingModels: SalesPerformanceItem[];
   lowestSellingModels: SalesPerformanceItem[];

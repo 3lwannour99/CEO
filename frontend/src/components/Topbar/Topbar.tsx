@@ -2,6 +2,7 @@
 
 import { LanguageToggle } from "@/components/LanguageToggle/LanguageToggle";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
+import { CurrencySelector } from "@/components/CurrencySelector/CurrencySelector";
 import { useI18n } from "@/i18n/useI18n";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import styles from "./Topbar.module.css";
@@ -40,6 +41,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           {isRefreshing ? t("filters.refreshingData") : t("summary.refresh")}
         </button>
         <LanguageToggle />
+        <CurrencySelector />
         <ThemeToggle />
         <div className={styles.company}>
           <span className={styles.avatar}>CR</span>

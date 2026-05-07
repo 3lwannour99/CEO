@@ -38,7 +38,7 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
       customerGroups: [],
       salesmen: [],
       search: "",
-      dateField: "all",
+      dateField: "arInvoiceDate",
       fromDate: undefined,
       toDate: undefined,
       exactDate: undefined,

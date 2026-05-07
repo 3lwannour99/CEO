@@ -1,6 +1,7 @@
 .sidebar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  inset-inline-start: 0;
   width: var(--sidebar-width);
   height: 100vh;
   flex: 0 0 var(--sidebar-width);

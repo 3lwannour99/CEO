@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useRef } from "react";
 import { DateFilter } from "@/components/DateFilter/DateFilter";
 import { MultiSelect } from "@/components/MultiSelect/MultiSelect";
 import { OFFICIAL_VEHICLE_STATUSES } from "@/constants/statuses";
@@ -21,21 +22,40 @@ interface FilterBarProps {
 export function FilterBar({ compact = false, filters, inventoryItems, sources, onChange }: FilterBarProps) {
   const { t } = useI18n();
   const isBusy = useAppBusy();
-  const options = getFilterOptions(inventoryItems, sources);
-  const translatedOptions = {
-    ...options,
-    statuses: OFFICIAL_VEHICLE_STATUSES.map((status) => ({ label: t(status.labelKey), value: status.value })),
-    movementCategories: [
-      { label: t("status.fast"), value: "fast" },
-      { label: t("status.medium"), value: "medium" },
-      { label: t("status.slow"), value: "slow" },
-      { label: t("status.unknown"), value: "unknown" },
-    ],
-    readyStatuses: [
-      { label: t("status.readyForSale"), value: "ready" },
-      { label: t("status.unknown"), value: "not-ready" },
-    ],
-  };
+  const searchTimeoutRef = useRef<number | null>(null);
+  const latestFiltersRef = useRef(filters);
+  const options = useMemo(() => getFilterOptions(inventoryItems, sources), [inventoryItems, sources]);
+  const translatedOptions = useMemo(
+    () => ({
+      ...options,
+      statuses: OFFICIAL_VEHICLE_STATUSES.map((status) => ({ label: t(status.labelKey), value: status.value })),
+      movementCategories: [
+        { label: t("status.fast"), value: "fast" },
+        { label: t("status.medium"), value: "medium" },
+        { label: t("status.slow"), value: "slow" },
+        { label: t("status.unknown"), value: "unknown" },
+      ],
+      readyStatuses: [
+        { label: t("status.readyForSale"), value: "ready" },
+        { label: t("status.unknown"), value: "not-ready" },
+      ],
+    }),
+    [options, t],
+  );
+
+  useEffect(() => {
+    latestFiltersRef.current = filters;
+  }, [filters]);
+
+  function updateSearch(value: string) {
+    if (searchTimeoutRef.current) {
+      window.clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = window.setTimeout(() => {
+      onChange({ ...latestFiltersRef.current, search: value });
+    }, 250);
+  }
 
   return (
     <form className={`${styles.filterBar} ${compact ? styles.compact : ""}`}>
@@ -56,10 +76,18 @@ export function FilterBar({ compact = false, filters, inventoryItems, sources, o
       <MultiSelect label={t("filters.salesman")} options={translatedOptions.salesmen} values={filters.salesmen} onChange={(salesmen) => onChange({ ...filters, salesmen })} />
       <label className={styles.field}>
         <span>{t("filters.search")}</span>
-        <input value={filters.search} onChange={(event) => onChange({ ...filters, search: event.target.value })} placeholder={t("topbar.searchPlaceholder")} disabled={isBusy} />
+        <input key={filters.search} defaultValue={filters.search} onChange={(event) => updateSearch(event.target.value)} placeholder={t("topbar.searchPlaceholder")} disabled={isBusy} />
       </label>
       <DateFilter filters={filters} onChange={onChange} />
-      <button className={styles.resetButton} type="button" onClick={() => onChange(createDefaultInventoryFilters())} disabled={isBusy}>
+      <button
+        className={styles.resetButton}
+        type="button"
+        onClick={() => {
+          const defaultFilters = createDefaultInventoryFilters();
+          onChange(defaultFilters);
+        }}
+        disabled={isBusy}
+      >
         {t("filters.resetFilters")}
       </button>
     </form>

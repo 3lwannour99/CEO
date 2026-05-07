@@ -8,12 +8,15 @@ import { PageHeader } from "@/components/PageHeader/PageHeader";
 import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
-import { formatCurrency, formatNumber } from "@/lib/apiClient";
+import { formatNumber } from "@/lib/apiClient";
+import { formatMoneyTotalsCompact } from "@/lib/currency";
+import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
 import type { SalesPerformanceItem } from "@/types/inventory";
 
 export default function SalesPerformancePage() {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
+  const { selectedCurrencies } = useCurrencyDisplay();
   const inventoryData = useInventoryData();
   const { filters, setFilters, resetFilters } = useGlobalFilters();
   const data = useMemo(() => inventoryData.getSalesPerformance(filters), [filters, inventoryData]);
@@ -22,7 +25,7 @@ export default function SalesPerformancePage() {
     { key: "brand", header: t("table.brand"), render: (row) => row.brand },
     { key: "model", header: t("table.model"), render: (row) => row.model },
     { key: "units", header: t("table.unitsSold"), render: (row) => formatNumber(row.unitsSold) },
-    { key: "revenue", header: t("table.revenue"), render: (row) => formatCurrency(row.revenue) },
+    { key: "revenue", header: t("table.revenue"), render: (row) => formatMoneyTotalsCompact(row.revenue, language, selectedCurrencies) },
   ];
 
   return (

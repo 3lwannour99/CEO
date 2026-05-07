@@ -11,6 +11,8 @@
 .contentArea {
   min-width: 0;
   flex: 1;
+  margin-inline-start: var(--sidebar-width);
+  padding-block-start: var(--topbar-height);
 }
 
 .main {
@@ -23,7 +25,18 @@
 }
 
 @media (max-width: 768px) {
+  .contentArea {
+    margin-inline-start: 0;
+    padding-block-start: calc(var(--topbar-height) + 56px);
+  }
+
   .main {
     padding: var(--space-4);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .contentArea {
+    margin-inline-start: var(--sidebar-compact-width);
   }
 }

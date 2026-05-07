@@ -21,6 +21,22 @@ export function MultiSelect({ label, options, values, onChange }: MultiSelectPro
     () => options.filter((option) => option.label.toLowerCase().includes(query.toLowerCase())),
     [options, query],
   );
+  const selectedLabels = useMemo(
+    () =>
+      values.map((value) => options.find((option) => option.value === value)?.label ?? value),
+    [options, values],
+  );
+  const summaryLabel = useMemo(() => {
+    if (selectedLabels.length === 0) {
+      return label;
+    }
+
+    if (selectedLabels.length <= 2) {
+      return selectedLabels.join(", ");
+    }
+
+    return `${selectedLabels.slice(0, 2).join(", ")} +${selectedLabels.length - 2}`;
+  }, [label, selectedLabels]);
 
   function toggleValue(value: string) {
     onChange(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
@@ -37,8 +53,9 @@ export function MultiSelect({ label, options, values, onChange }: MultiSelectPro
         ) : null}
       </div>
       <details className={styles.dropdown}>
-        <summary className={styles.summary}>
-          {values.length > 0 ? `${values.length} ${t("filters.selected")}` : label}
+        <summary className={styles.summary} title={selectedLabels.join(", ")}>
+          <span className={styles.summaryText}>{summaryLabel}</span>
+          {values.length > 0 ? <span className={styles.selectedCount}>{values.length} {t("filters.selected")}</span> : null}
         </summary>
         <div className={styles.panel}>
           <input

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { filterInventory } from "@/lib/filterInventory";
 import {
   calculateAggregatedStock,
@@ -95,8 +95,26 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
     return () => window.cancelAnimationFrame(frame);
   }, [loadData]);
 
+  const filteredDataCacheRef = useRef(new Map<string, InventoryItem[]>());
+
+  useEffect(() => {
+    filteredDataCacheRef.current = new Map();
+  }, [inventoryItems]);
+
   const getFilteredData = useCallback(
-    (filters: InventoryFilters) => filterInventory(inventoryItems, filters),
+    (filters: InventoryFilters) => {
+      const cacheKey = JSON.stringify(filters);
+      const cached = filteredDataCacheRef.current.get(cacheKey);
+
+      if (cached) {
+        return cached;
+      }
+
+      const filteredData = filterInventory(inventoryItems, filters);
+      filteredDataCacheRef.current.set(cacheKey, filteredData);
+
+      return filteredData;
+    },
     [inventoryItems],
   );
 

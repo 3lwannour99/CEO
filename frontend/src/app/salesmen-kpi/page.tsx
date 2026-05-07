@@ -11,8 +11,10 @@ import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { useI18n } from "@/i18n/useI18n";
-import { formatCurrency, formatDate, formatNumber } from "@/lib/apiClient";
+import { formatDate, formatNumber } from "@/lib/apiClient";
+import { formatMoneyTotalsBreakdown, formatMoneyTotalsCompact } from "@/lib/currency";
 import { calculateSalesmenKpi, type CountBreakdown, type SalesmanKpi } from "@/lib/reports/salesmenKpi";
+import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import styles from "./page.module.css";
 
 function formatPercent(value: number) {
@@ -34,7 +36,10 @@ function BreakdownCell({ items }: { items: CountBreakdown[] }) {
 }
 
 export default function SalesmenKpiPage() {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
+  const { selectedCurrencies } = useCurrencyDisplay();
+  const locale = language;
+  const currencyLabels = { original: t("currency.original"), sar: t("currency.sar"), jod: t("currency.jod"), usd: t("currency.usd") };
   const inventoryData = useInventoryData();
   const { filters, setFilters, resetFilters } = useGlobalFilters();
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
@@ -43,8 +48,8 @@ export default function SalesmenKpiPage() {
   const rankingColumns: DataTableColumn<SalesmanKpi>[] = [
     { key: "salesman", header: t("salesmenKpi.salesman"), render: (row) => row.salesman },
     { key: "soldUnits", header: t("salesmenKpi.soldUnits"), render: (row) => formatNumber(row.soldUnits) },
-    { key: "revenue", header: t("salesmenKpi.revenue"), render: (row) => formatCurrency(row.soldRevenue) },
-    { key: "average", header: t("salesmenKpi.averageSoldPrice"), render: (row) => formatCurrency(row.averageSoldPrice) },
+    { key: "revenue", header: t("salesmenKpi.revenue"), render: (row) => formatMoneyTotalsCompact(row.soldRevenue, locale, selectedCurrencies) },
+    { key: "average", header: t("salesmenKpi.averageSoldPrice"), render: (row) => formatMoneyTotalsCompact(row.averageSoldPrice, locale, selectedCurrencies) },
     { key: "shareSales", header: t("salesmenKpi.shareOfSales"), render: (row) => formatPercent(row.shareOfTotalSales) },
     { key: "shareRevenue", header: t("salesmenKpi.shareOfRevenue"), render: (row) => formatPercent(row.shareOfTotalRevenue) },
     { key: "lastSale", header: t("salesmenKpi.lastSaleDate"), render: (row) => formatDate(row.lastSaleDate) },
@@ -94,7 +99,7 @@ export default function SalesmenKpiPage() {
       <section className={styles.metricGrid}>
         <DashboardCard label={t("salesmenKpi.totalSalesmen")} value={formatNumber(report.totalSalesmen)} trend={t("summary.liveData")} />
         <DashboardCard label={t("salesmenKpi.totalSoldUnits")} value={formatNumber(report.totalSoldUnits)} trend={t("salesmenKpi.soldUnits")} tone="positive" />
-        <DashboardCard label={t("salesmenKpi.totalRevenue")} value={formatCurrency(report.totalRevenue)} trend={t("salesmenKpi.revenue")} tone="positive" />
+        <DashboardCard label={t("salesmenKpi.totalRevenue")} value={formatMoneyTotalsCompact(report.totalRevenue, locale, selectedCurrencies)} trend={formatMoneyTotalsBreakdown(report.totalRevenue, locale, currencyLabels, selectedCurrencies)} tone="positive" />
         <DashboardCard label={t("salesmenKpi.averageSalesPerSalesman")} value={formatNumber(report.averageSalesPerSalesman)} trend={t("salesmenKpi.shareOfSales")} />
         <DashboardCard label={t("salesmenKpi.topSalesmanByUnits")} value={report.topSalesmanByUnits} trend={t("salesmenKpi.soldUnits")} tone="warning" />
         <DashboardCard label={t("salesmenKpi.topSalesmanByRevenue")} value={report.topSalesmanByRevenue} trend={t("salesmenKpi.revenue")} tone="warning" />
