@@ -60,7 +60,7 @@ body[data-theme="dark"] {
   --color-accent: #D14924;
   --color-accent-contrast: #fff8f4;
   --color-accent-soft: rgba(226, 99, 62, 0.18);
-  --color-ink: #eef4ef;
+  --color-ink: #3c4842;
   --color-success: #78d9a7;
   --color-success-soft: rgba(120, 217, 167, 0.16);
   --color-warning: #f2c45c;
@@ -91,7 +91,7 @@ body[data-theme="dark"] {
     --color-accent: #e2633e;
     --color-accent-contrast: #fff8f4;
     --color-accent-soft: rgba(226, 99, 62, 0.18);
-    --color-ink: #eef4ef;
+    --color-ink: #3c4842;
     --color-success: #78d9a7;
     --color-success-soft: rgba(120, 217, 167, 0.16);
     --color-warning: #f2c45c;
@@ -125,9 +125,13 @@ body {
   min-height: 100vh;
   color: var(--color-text);
   background: var(--color-app-bg);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+body[data-language="ar"] {
+  font-family: var(--font-cairo), Arial, Helvetica, sans-serif;
 }
 
 a {
