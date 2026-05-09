@@ -40,6 +40,20 @@ function BreakdownCell({ items }: { items: CountBreakdown[] }) {
   );
 }
 
+function NamesOnlyCell({ items }: { items: CountBreakdown[] }) {
+  return (
+    <div className={styles.listCell}>
+      {items.length === 0
+        ? "-"
+        : items.map((item) => (
+            <span className={styles.pill} key={item.label}>
+              {item.label}
+            </span>
+          ))}
+    </div>
+  );
+}
+
 export default function SalesmenKpiPage() {
   const { language, t } = useI18n();
   const { selectedCurrencies } = useCurrencyDisplay();
@@ -81,9 +95,7 @@ export default function SalesmenKpiPage() {
 
   const missedColumns: DataTableColumn<SalesmanKpi>[] = [
     { key: "salesman", header: t("salesmenKpi.salesman"), render: (row) => row.salesman },
-    { key: "missingModels", header: t("salesmenKpi.missingModels"), render: (row) => <BreakdownCell items={row.missingModels} /> },
-    { key: "missingBrands", header: t("salesmenKpi.missingBrands"), render: (row) => <BreakdownCell items={row.missingBrands} /> },
-    { key: "missingColors", header: t("salesmenKpi.missingColors"), render: (row) => <BreakdownCell items={row.missingColors} /> },
+    { key: "missingModels", header: t("salesmenKpi.missingModels"), render: (row) => <NamesOnlyCell items={row.missingModels} /> },
   ];
 
   return (
