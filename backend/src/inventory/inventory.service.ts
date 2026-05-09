@@ -103,7 +103,6 @@ export class InventoryService {
         );
 
         return {
-            totalUnits: sumQuantity(currentStock),
             totalRows: data.length,
             uniqueChassisCount: chassisGroups.length,
             multiStatusChassisCount: multiStatusGroups.length,
@@ -111,6 +110,7 @@ export class InventoryService {
                 (sum, items) => sum + items.length,
                 0,
             ),
+            totalUnits: sumQuantity(data),
             currentStockUnits: sumQuantity(currentStock),
             soldUnits: sumQuantity(sold),
             reservedUnits: sumQuantity(data.filter((item) => item.isReserved)),

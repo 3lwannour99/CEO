@@ -12,141 +12,141 @@
 }
 
 .brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 48px;
-  margin-block-end: var(--space-6);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 48px;
+    margin-block-end: var(--space-6);
 }
 
 .brandMark {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  color: var(--color-accent-contrast);
-  background: var(--color-accent);
-  font-weight: 800;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    color: var(--color-accent-contrast);
+    background: var(--color-accent);
+    font-weight: 800;
 }
 
 .brandName {
-  color: var(--color-text);
-  font-weight: 800;
-  line-height: 1.1;
+    color: var(--color-text);
+    font-weight: 800;
+    line-height: 1.1;
 }
 
 .brandMeta {
-  color: var(--color-muted);
-  font-size: 0.8rem;
-  margin-block-start: 2px;
+    color: var(--color-muted);
+    font-size: 0.8rem;
+    margin-block-start: 2px;
 }
 
 .nav {
-  display: grid;
-  gap: var(--space-1);
+    display: grid;
+    gap: var(--space-1);
 }
 
 .navItem {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 42px;
-  border-radius: var(--radius-sm);
-  padding-inline: var(--space-3);
-  color: var(--color-muted);
-  font-size: 0.92rem;
-  font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 42px;
+    border-radius: var(--radius-sm);
+    padding-inline: var(--space-3);
+    color: var(--color-muted);
+    font-size: 0.92rem;
+    font-weight: 700;
 }
 
 .navItem:hover,
 .active {
-  color: var(--color-text);
-  background: var(--color-sidebar-active);
+    color: var(--color-text);
+    background: var(--color-sidebar-active);
 }
 
 .navItem[aria-disabled="true"] {
-  cursor: not-allowed;
-  opacity: 0.62;
-  pointer-events: none;
+    cursor: not-allowed;
+    opacity: 0.62;
+    pointer-events: none;
 }
 
 .marker {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-xs);
-  color: var(--color-muted);
-  background: var(--color-soft);
-  font-size: 0.7rem;
-  font-weight: 800;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-xs);
+    color: var(--color-muted);
+    background: var(--color-soft);
+    font-size: 0.7rem;
+    font-weight: 800;
 }
 
 .active .marker {
-  color: var(--color-accent-contrast);
-  background: var(--color-accent);
+    color: var(--color-accent-contrast);
+    background: var(--color-accent);
 }
 
 .backdrop {
-  display: none;
+    display: none;
 }
 
 @media (max-width: 1024px) {
-  .sidebar {
-    width: var(--sidebar-compact-width);
-    flex-basis: var(--sidebar-compact-width);
-    padding-inline: var(--space-3);
-  }
+    .sidebar {
+        width: var(--sidebar-compact-width);
+        flex-basis: var(--sidebar-compact-width);
+        padding-inline: var(--space-3);
+    }
 
-  .brandName,
-  .brandMeta,
-  .label {
-    display: none;
-  }
+    .brandName,
+    .brandMeta,
+    .label {
+        display: none;
+    }
 }
 
 @media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    inset-inline-start: 0;
-    transform: translateX(-100%);
-    width: min(86vw, 300px);
-    flex-basis: auto;
-    transition: transform 180ms ease;
-  }
+    .sidebar {
+        position: fixed;
+        inset-inline-start: 0;
+        transform: translateX(-100%);
+        width: min(86vw, 300px);
+        flex-basis: auto;
+        transition: transform 180ms ease;
+    }
 
-  .open {
-    transform: translateX(0);
-  }
+    .open {
+        transform: translateX(0);
+    }
 
-  [dir="rtl"] .sidebar {
-    transform: translateX(100%);
-  }
+    [dir="rtl"] .sidebar {
+        transform: translateX(100%);
+    }
 
-  [dir="rtl"] .open {
-    transform: translateX(0);
-  }
+    [dir="rtl"] .open {
+        transform: translateX(0);
+    }
 
-  .brandName,
-  .brandMeta,
-  .label {
-    display: block;
-  }
+    .brandName,
+    .brandMeta,
+    .label {
+        display: block;
+    }
 
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    display: block;
-    border: 0;
-    background: rgba(15, 23, 42, 0.42);
-    opacity: 0;
-    pointer-events: none;
-    z-index: 20;
-  }
+    .backdrop {
+        position: fixed;
+        inset: 0;
+        display: block;
+        border: 0;
+        background: rgba(15, 23, 42, 0.42);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 20;
+    }
 
-  .backdropOpen {
-    opacity: 1;
-    pointer-events: auto;
-  }
+    .backdropOpen {
+        opacity: 1;
+        pointer-events: auto;
+    }
 }
