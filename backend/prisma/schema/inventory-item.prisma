@@ -81,6 +81,10 @@ model InventoryItem {
   customerName     String
   customerGroup    String
   customerNumber   String
+  recipientName    String @default("")
+  recipientNumber  String @default("")
+  uTanazol         String @default("")
+  uMobNum          String @default("")
   cardCode         String
   plateNumber      String
   bank             String

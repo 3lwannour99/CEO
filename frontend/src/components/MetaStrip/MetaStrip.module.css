@@ -13,3 +13,13 @@
   font-size: 0.82rem;
   font-weight: 800;
 }
+
+.meta .liveConnected {
+  border-color: color-mix(in srgb, var(--color-success) 45%, var(--color-border));
+  color: var(--color-success);
+}
+
+.meta .liveDisconnected {
+  border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
+  color: var(--color-warning);
+}

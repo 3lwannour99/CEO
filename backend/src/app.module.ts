@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { AlertsModule } from './alerts/alerts.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CounterScreenModule } from './integrations/counterscreen/counterscreen.module';
+import { InventoryEventsModule } from './inventory-events/inventory-events.module';
 import { InventorySyncModule } from './inventory-sync/inventory-sync.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -21,6 +22,7 @@ import { StockRulesModule } from './stock-rules/stock-rules.module';
         ScheduleModule.forRoot(),
         PrismaModule,
         CounterScreenModule,
+        InventoryEventsModule,
         InventorySyncModule,
         InventoryModule,
         DashboardModule,

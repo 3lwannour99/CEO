@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CounterScreenModule } from '../integrations/counterscreen/counterscreen.module';
+import { InventoryEventsModule } from '../inventory-events/inventory-events.module';
 import { InventorySyncController } from './inventory-sync.controller';
 import { InventorySyncScheduler } from './inventory-sync.scheduler';
 import { InventorySyncService } from './inventory-sync.service';
@@ -7,7 +8,7 @@ import { InventorySyncService } from './inventory-sync.service';
 @Module({
     controllers: [InventorySyncController],
     exports: [InventorySyncService],
-    imports: [CounterScreenModule],
+    imports: [CounterScreenModule, InventoryEventsModule],
     providers: [InventorySyncScheduler, InventorySyncService],
 })
 export class InventorySyncModule {}

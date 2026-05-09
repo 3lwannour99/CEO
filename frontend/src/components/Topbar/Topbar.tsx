@@ -17,7 +17,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const { t } = useI18n();
   const { filters } = useGlobalFilters();
   const inventoryData = useInventoryData();
-  const { refreshData, isRefreshing, isBusy } = inventoryData;
+  const { refreshData, isInitialLoading, isRefreshing, isBusy } = inventoryData;
   const alertCount = inventoryData.getAlerts(filters).length;
   const currentDate = formatDate(new Date());
 
@@ -37,7 +37,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         <button className={styles.iconButton} type="button" aria-label={t("app.notifications")} title={t("app.notifications")} disabled={isBusy}>
           {alertCount}
         </button>
-        <button className={styles.refreshButton} type="button" onClick={() => void refreshData()} disabled={isBusy}>
+        <button className={styles.refreshButton} type="button" onClick={() => void refreshData("manual-refresh")} disabled={isInitialLoading || isRefreshing}>
           {isRefreshing ? t("filters.refreshingData") : t("summary.refresh")}
         </button>
         <LanguageToggle />

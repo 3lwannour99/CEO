@@ -6,12 +6,12 @@ CEOReport now separates operational inventory data from reporting data.
 
 CounterScreen/SAP remains the operational source of truth. It owns the live operational vehicle data.
 
-PostgreSQL is the reporting source of truth. Dashboard, report, alert, logistics, replenishment, and inventory APIs read from PostgreSQL reporting tables instead of calling CounterScreen during normal user requests.
+The configured database is the reporting source of truth. Dashboard, report, alert, logistics, replenishment, and inventory APIs read from database reporting tables instead of calling CounterScreen during normal user requests. Local development supports PostgreSQL or MySQL through `DATABASE_PROVIDER`; when the variable is missing or empty, PostgreSQL is the default.
 
 ```txt
 CounterScreen/SAP
 -> Backend inventory sync job
--> PostgreSQL reporting tables
+-> database reporting tables
 -> Backend APIs
 -> Frontend dashboard
 ```
@@ -62,7 +62,7 @@ No auth is currently required because the project does not have auth wired for t
 
 ## Refresh Behavior
 
-Normal dashboard requests read from PostgreSQL.
+Normal dashboard requests read from the configured reporting database.
 
 `refresh=true` is treated as an admin/manual refresh trigger:
 
@@ -97,7 +97,7 @@ Inventory list responses include reporting metadata:
 
 ## Raw Records
 
-Raw CounterScreen API payloads are not persisted in PostgreSQL. `InventoryItem` is the reporting source of truth, while `InventorySyncRun.totalRawRecords` and `InventorySourceSyncResult.recordsCount` keep sync counts for observability.
+Raw CounterScreen API payloads are not persisted in the reporting database. `InventoryItem` is the reporting source of truth, while `InventorySyncRun.totalRawRecords` and `InventorySourceSyncResult.recordsCount` keep sync counts for observability.
 
 `GET /api/inventory/raw` is retained as a disabled compatibility endpoint. It returns no records and explains that raw record storage is disabled. Use inspection scripts to fetch live CounterScreen API payloads directly when debugging mapper or source issues.
 

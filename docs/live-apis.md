@@ -2,7 +2,7 @@
 
 This document describes the inventory APIs used by the app, where their data comes from, and the response shapes exposed to the frontend.
 
-CounterScreen/SAP is the operational source of truth. PostgreSQL is the reporting source of truth. Normal frontend requests read from backend APIs backed by PostgreSQL reporting tables; CounterScreen is called only by backend sync logic. See `docs/data-architecture.md` for the sync architecture and `docs/counterscreen-api-outcome.md` for the latest observed raw API shape.
+CounterScreen/SAP is the operational source of truth. The configured database is the reporting source of truth. Normal frontend requests read from backend APIs backed by database reporting tables; CounterScreen is called only by backend sync logic. See `docs/data-architecture.md` for the sync architecture and `docs/counterscreen-api-outcome.md` for the latest observed raw API shape.
 
 ## Runtime Base URLs
 
@@ -26,7 +26,7 @@ http://localhost:4000/swagger
 
 ## Operational Data Sources
 
-The operational inventory data comes from the CounterScreen integration. The backend sync job fetches these sources and stores raw and normalized reporting data in PostgreSQL.
+The operational inventory data comes from the CounterScreen integration. The backend sync job fetches these sources and stores normalized reporting data in the configured database.
 
 Each source is fetched from:
 
@@ -229,7 +229,7 @@ Example:
 
 ## Sync and Refresh
 
-CounterScreen is not called during normal dashboard reads. A backend sync job updates PostgreSQL every minute by default.
+CounterScreen is not called during normal dashboard reads. A backend sync job updates the configured reporting database every minute by default.
 
 Request timeout per source:
 
@@ -249,7 +249,7 @@ Example:
 GET /api/inventory?refresh=true
 ```
 
-`refresh=true` triggers a backend sync first, then returns PostgreSQL data. If sync fails, the API still returns the latest available database data and includes the sync/source errors in metadata.
+`refresh=true` triggers a backend sync first, then returns database-backed reporting data. If sync fails, the API still returns the latest available database data and includes the sync/source errors in metadata.
 
 ## Query Filters
 

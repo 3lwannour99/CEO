@@ -1,0 +1,17 @@
+// -----------------------------------------------------------------------------
+// Scheduled report run model
+// -----------------------------------------------------------------------------
+
+model ScheduledReportRun {
+  id         String @id @default(cuid())
+  reportType String
+  status     String
+
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  errorMessage String?
+  metadata     Json?
+
+  @@index([reportType, startedAt])
+}

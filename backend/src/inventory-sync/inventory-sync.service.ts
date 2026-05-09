@@ -6,6 +6,7 @@ import {
     RawCounterScreenItem,
     SourceFetchResult,
 } from '../integrations/counterscreen/counterscreen.types';
+import { InventoryEventsService } from '../inventory-events/inventory-events.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 type SyncTrigger = 'manual' | 'scheduled' | 'refresh';
@@ -26,6 +27,7 @@ export class InventorySyncService {
 
     constructor(
         private readonly counterScreenService: CounterScreenService,
+        private readonly inventoryEventsService: InventoryEventsService,
         private readonly prisma: PrismaService,
     ) {}
 
@@ -87,7 +89,7 @@ export class InventorySyncService {
                           .join('; ')
                     : null;
 
-            return this.prisma.inventorySyncRun.update({
+            const updatedRun = await this.prisma.inventorySyncRun.update({
                 where: { id: syncRun.id },
                 data: {
                     finishedAt: new Date(),
@@ -101,13 +103,17 @@ export class InventorySyncService {
                 },
                 include: { sourceResults: true },
             });
+
+            await this.emitInventoryUpdated(updatedRun);
+
+            return updatedRun;
         } catch (error) {
             const message =
                 error instanceof Error ? error.message : 'Unknown sync failure';
             this.logger.error(
                 `Inventory sync ${syncRun.id} failed: ${message}`,
             );
-            return this.prisma.inventorySyncRun.update({
+            const failedRun = await this.prisma.inventorySyncRun.update({
                 where: { id: syncRun.id },
                 data: {
                     errorMessage: message,
@@ -119,6 +125,10 @@ export class InventorySyncService {
                 },
                 include: { sourceResults: true },
             });
+
+            await this.emitInventoryUpdated(failedRun);
+
+            return failedRun;
         } finally {
             this.isRunning = false;
             this.runningStartedAt = null;
@@ -238,6 +248,37 @@ export class InventorySyncService {
                 data: rows,
             }),
         ]);
+    }
+
+    private async emitInventoryUpdated(
+        syncRun: NonNullable<
+            Awaited<ReturnType<InventorySyncService['getLatestRun']>>
+        >,
+    ) {
+        const totalRows = await this.prisma.inventoryItem.count();
+        const lastSyncedAt = syncRun.finishedAt ?? syncRun.startedAt;
+
+        if (syncRun.status === 'running') {
+            return;
+        }
+
+        this.inventoryEventsService.emitInventoryUpdated({
+            failedSources: syncRun.failedSources,
+            lastSyncedAt: lastSyncedAt.toISOString(),
+            sourceResults: syncRun.sourceResults.map((sourceResult) => ({
+                errorMessage: sourceResult.errorMessage ?? undefined,
+                recordsCount: sourceResult.recordsCount,
+                sourceId: sourceResult.sourceId,
+                sourceName: sourceResult.sourceName,
+                status: sourceResult.status,
+            })),
+            status: syncRun.status,
+            successfulSources: syncRun.successfulSources,
+            syncRunId: syncRun.id,
+            totalNormalizedRecords: syncRun.totalNormalizedRecords,
+            totalRawRecords: syncRun.totalRawRecords,
+            totalRows,
+        });
     }
 }
 

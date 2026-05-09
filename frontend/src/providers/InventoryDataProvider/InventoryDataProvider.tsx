@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useInventorySocket } from "@/hooks/useInventorySocket";
 import { filterInventory } from "@/lib/filterInventory";
 import {
   calculateAggregatedStock,
@@ -24,6 +25,8 @@ import type {
   InventoryAlert,
   InventoryItem,
   InventoryMovementMatrixItem,
+  InventoryLiveStatus,
+  InventoryRefreshReason,
   InventorySummary,
   LogisticsStatus,
   MultiLocationReport,
@@ -40,9 +43,15 @@ interface InventoryDataContextValue {
   isRefreshing: boolean;
   isBusy: boolean;
   error: string | null;
+  hasSuccessfulData: boolean;
+  lastRefreshFailedAt: string | null;
+  lastRefreshStartedAt: string | null;
+  liveStatus: InventoryLiveStatus;
+  isSocketConnected: boolean;
+  syncStatus?: string;
   meta?: ApiMeta;
   lastUpdated?: string;
-  refreshData: () => Promise<void>;
+  refreshData: (reason?: InventoryRefreshReason) => Promise<void>;
   getFilteredData: (filters: InventoryFilters) => InventoryItem[];
   getInventorySummary: (filters: InventoryFilters) => InventorySummary;
   getDashboardSummary: (filters: InventoryFilters) => DashboardSummary;
@@ -56,6 +65,11 @@ interface InventoryDataContextValue {
   getMultiLocation: (filters: InventoryFilters) => MultiLocationReport;
 }
 
+interface InventoryRefreshRequest {
+  reason: InventoryRefreshReason;
+  triggerSync?: boolean;
+}
+
 const InventoryDataContext = createContext<InventoryDataContextValue | undefined>(undefined);
 
 export function InventoryDataProvider({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -66,9 +80,28 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasSuccessfulData, setHasSuccessfulData] = useState(false);
+  const [lastRefreshFailedAt, setLastRefreshFailedAt] = useState<string | null>(null);
+  const [lastRefreshStartedAt, setLastRefreshStartedAt] = useState<string | null>(null);
+  const hasSuccessfulDataRef = useRef(false);
+  const inFlightRefreshRef = useRef<Promise<void> | null>(null);
+  const latestRequestIdRef = useRef(0);
 
-  const loadData = useCallback(async (refresh = false) => {
-    if (refresh) {
+  const refreshInventoryData = useCallback(async ({ reason, triggerSync = false }: InventoryRefreshRequest) => {
+    if (inFlightRefreshRef.current) {
+      return inFlightRefreshRef.current;
+    }
+
+    const requestId = latestRequestIdRef.current + 1;
+    latestRequestIdRef.current = requestId;
+    const hasExistingData = hasSuccessfulDataRef.current;
+    const isBackgroundRefresh = reason !== "initial-load";
+    const shouldTriggerBackendSync = reason === "manual-refresh" && triggerSync;
+    const startedAt = new Date().toISOString();
+
+    setLastRefreshStartedAt(startedAt);
+
+    if (isBackgroundRefresh && hasExistingData) {
       setIsRefreshing(true);
     } else {
       setIsInitialLoading(true);
@@ -76,31 +109,83 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
 
     setError(null);
 
-    try {
-      const [inventoryResponse, sourceResponse, stockRulesResponse] = await Promise.all([
-        getInventory({ refresh }),
-        getSources(),
-        getStockRules().catch(() => []),
-      ]);
-      setInventoryItems(inventoryResponse.data);
-      setMeta(inventoryResponse.meta);
-      setSources(sourceResponse);
-      setStockRules(stockRulesResponse);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "API error");
-    } finally {
-      setIsInitialLoading(false);
-      setIsRefreshing(false);
-    }
+    const request = (async () => {
+      try {
+        const [inventoryResult, sourcesResult, stockRulesResult] = await Promise.allSettled([
+          getInventory(shouldTriggerBackendSync ? { refresh: true } : undefined),
+          getSources(),
+          getStockRules(),
+        ]);
+
+        if (requestId !== latestRequestIdRef.current) {
+          return;
+        }
+
+        if (inventoryResult.status === "rejected") {
+          throw inventoryResult.reason;
+        }
+
+        setInventoryItems(inventoryResult.value.data);
+        setMeta(inventoryResult.value.meta);
+
+        if (sourcesResult.status === "fulfilled") {
+          setSources(sourcesResult.value);
+        }
+
+        if (stockRulesResult.status === "fulfilled") {
+          setStockRules(stockRulesResult.value);
+        }
+
+        const supportingErrors = [sourcesResult, stockRulesResult]
+          .filter((result) => result.status === "rejected")
+          .map((result) => (result as PromiseRejectedResult).reason)
+          .map((reasonValue) => (reasonValue instanceof Error ? reasonValue.message : "Supporting API request failed."));
+
+        setError(supportingErrors[0] ?? null);
+        hasSuccessfulDataRef.current = true;
+        setHasSuccessfulData(true);
+        setLastRefreshFailedAt(null);
+      } catch (loadError) {
+        if (requestId !== latestRequestIdRef.current) {
+          return;
+        }
+
+        setError(loadError instanceof Error ? loadError.message : "API error");
+        setLastRefreshFailedAt(new Date().toISOString());
+      } finally {
+        if (requestId === latestRequestIdRef.current) {
+          setIsInitialLoading(false);
+          setIsRefreshing(false);
+          inFlightRefreshRef.current = null;
+        }
+      }
+    })();
+
+    inFlightRefreshRef.current = request;
+    return request;
   }, []);
 
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      void loadData(false);
-    });
+  const liveStatus = useInventorySocket({
+    onInventoryUpdated: () => {
+      void refreshInventoryData({ reason: "websocket-update", triggerSync: false });
+    },
+  });
 
-    return () => window.cancelAnimationFrame(frame);
-  }, [loadData]);
+  useEffect(() => {
+    void refreshInventoryData({ reason: "initial-load", triggerSync: false });
+  }, [refreshInventoryData]);
+
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible" && hasSuccessfulDataRef.current) {
+        void refreshInventoryData({ reason: "visibility-return", triggerSync: false });
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [refreshInventoryData]);
 
   const filteredDataCacheRef = useRef(new Map<string, InventoryItem[]>());
 
@@ -131,11 +216,17 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
       sources,
       isInitialLoading,
       isRefreshing,
-      isBusy: isInitialLoading || isRefreshing,
+      isBusy: isInitialLoading,
       error,
+      hasSuccessfulData,
+      lastRefreshFailedAt,
+      lastRefreshStartedAt,
+      liveStatus,
+      isSocketConnected: liveStatus.connected,
+      syncStatus: liveStatus.lastEvent?.status ?? meta?.syncStatus,
       meta,
       lastUpdated: meta?.generatedAt,
-      refreshData: () => loadData(true),
+      refreshData: (reason = "manual-refresh") => refreshInventoryData({ reason, triggerSync: reason === "manual-refresh" }),
       getFilteredData,
       getInventorySummary: (filters) => calculateInventorySummary(getFilteredData(filters)),
       getDashboardSummary: (filters) =>
@@ -149,7 +240,21 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
       getLogistics: (filters) => calculateLogistics(getFilteredData(filters)),
       getMultiLocation: (filters) => calculateMultiLocation(getFilteredData(filters), stockRules),
     }),
-    [error, getFilteredData, inventoryItems, isInitialLoading, isRefreshing, loadData, meta, sources, stockRules],
+    [
+      error,
+      getFilteredData,
+      hasSuccessfulData,
+      inventoryItems,
+      isInitialLoading,
+      isRefreshing,
+      lastRefreshFailedAt,
+      lastRefreshStartedAt,
+      liveStatus,
+      meta,
+      refreshInventoryData,
+      sources,
+      stockRules,
+    ],
   );
 
   return <InventoryDataContext.Provider value={value}>{children}</InventoryDataContext.Provider>;

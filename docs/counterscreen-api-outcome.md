@@ -240,7 +240,7 @@ The current Prisma model includes the normalized fields required by the frontend
 - `sourceCountry`
 - `sourceBaseUrl`
 
-Raw JSON is no longer stored permanently in PostgreSQL. When mapper or source-shape debugging is needed, use the inspection scripts to fetch live CounterScreen payloads directly.
+Raw JSON is no longer stored permanently in the reporting database. When mapper or source-shape debugging is needed, use the inspection scripts to fetch live CounterScreen payloads directly.
 
 The old raw-record storage was useful for audit and mapper evolution, but it retained too much full API payload data for the current reporting flow. Sync observability now comes from `InventorySyncRun.totalRawRecords` and `InventorySourceSyncResult.recordsCount`.
 

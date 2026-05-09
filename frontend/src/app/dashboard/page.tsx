@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ApiState } from "@/components/ApiState/ApiState";
 import { DashboardCard } from "@/components/DashboardCard/DashboardCard";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
@@ -17,8 +17,7 @@ import { formatMoneyBundle, formatMoneyTotalsCompact } from "@/lib/currency";
 import { exportExcel } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
-import { getDashboardSummary } from "@/services/dashboardApi";
-import type { DashboardMetric, DashboardSummary, InventoryAlert, InventoryItem, LocationStock, LogisticsStatus, SalesPerformanceItem, SlowStockSummaryItem } from "@/types/inventory";
+import type { DashboardMetric, InventoryAlert, InventoryItem, LocationStock, LogisticsStatus, SalesPerformanceItem, SlowStockSummaryItem } from "@/types/inventory";
 import styles from "./dashboard.module.css";
 
 export default function DashboardPage() {
@@ -26,18 +25,7 @@ export default function DashboardPage() {
   const { selectedCurrencies } = useCurrencyDisplay();
   const inventoryData = useInventoryData();
   const { filters, setFilters, resetFilters } = useGlobalFilters();
-  const [apiData, setApiData] = useState<DashboardSummary | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    getDashboardSummary(filters).then(res => {
-      if (active) setApiData(res);
-    }).catch(console.error);
-    return () => { active = false; };
-  }, [filters]);
-
-  const fallbackData = useMemo(() => inventoryData.getDashboardSummary(filters), [filters, inventoryData]);
-  const data = apiData || fallbackData;
+  const data = useMemo(() => inventoryData.getDashboardSummary(filters), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
   const selectedStatuses = useMemo(() => new Set(filters.statuses.map(normalizeStatusValue)), [filters.statuses]);
   const statusCounts = useMemo(
@@ -204,7 +192,7 @@ export default function DashboardPage() {
       <SectionCard title={t("dashboard.statusCards.title")} eyebrow={t("dashboard.statusCards.description")}>
         {filters.statuses.length > 0 ? (
           <div className="report-actions">
-            <button className="report-button" type="button" onClick={clearStatusFilter} disabled={inventoryData.isBusy}>
+            <button className="report-button" type="button" onClick={clearStatusFilter} disabled={inventoryData.isInitialLoading}>
               {t("dashboard.statusCards.clearStatusFilter")}
             </button>
           </div>
@@ -221,7 +209,7 @@ export default function DashboardPage() {
                 tone={card.tone}
                 onClick={() => applyStatusFilter(card.statusValue)}
                 isActive={isActive}
-                disabled={inventoryData.isBusy}
+                disabled={inventoryData.isInitialLoading}
               />
             );
           })}
@@ -261,7 +249,7 @@ export default function DashboardPage() {
         </SectionCard>
       </section>
       <div className="report-actions">
-        <button className="report-button primary" type="button" onClick={() => exportExcel("detailed-vehicle-list.xlsx", detailedExportRows)} disabled={inventoryData.isBusy}>
+        <button className="report-button primary" type="button" onClick={() => exportExcel("detailed-vehicle-list.xlsx", detailedExportRows)} disabled={inventoryData.isInitialLoading}>
           {t("actions.exportExcel")}
         </button>
       </div>
