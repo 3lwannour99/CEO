@@ -89,10 +89,6 @@ export interface InventoryItem {
     contractDate: string;
     reserveDate: string;
     customerNumber: string;
-    recipientName: string;
-    recipientNumber: string;
-    uTanazol: string;
-    uMobNum: string;
     soRemarks: string;
     additionalRemark: string;
     sourceId: string;
