@@ -14,6 +14,15 @@ pnpm dev
 bun dev
 ```
 
+For local development outside Docker, copy `.env.example` to `.env.local` and set:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api
+NEXT_PUBLIC_WS_BASE_URL=http://localhost:4000
+```
+
+The frontend uses Socket.IO only as a live update signal. It connects to the backend `/inventory` namespace, listens for `inventory.updated`, and refetches existing REST data when a sync finishes. If the socket is disconnected, normal REST loading still works.
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.

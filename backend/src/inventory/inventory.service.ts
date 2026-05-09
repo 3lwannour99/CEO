@@ -882,6 +882,8 @@ function toInventoryItem(row: InventoryItemRow): InventoryItem {
         quantity: row.quantity,
         rawStatus: row.rawStatus,
         ready: row.ready,
+        recipientName: row.recipientName,
+        recipientNumber: row.recipientNumber,
         reserveDate: row.reserveDate,
         salesMan: row.salesMan,
         soRemarks: row.soRemarks,
@@ -895,6 +897,8 @@ function toInventoryItem(row: InventoryItemRow): InventoryItem {
         rowHash: row.rowHash,
         syncRunId: row.syncRunId,
         type: row.type,
+        uMobNum: row.uMobNum,
+        uTanazol: row.uTanazol,
         vat: row.vat,
         warehouse: row.warehouse,
         wheel: row.wheel,
@@ -965,6 +969,7 @@ function searchMatches(item: InventoryItem, search?: string): boolean {
         item.branch,
         item.warehouse,
         item.customerName,
+        item.recipientName,
         item.salesMan,
     ].some((value) => value.toLowerCase().includes(needle));
 }

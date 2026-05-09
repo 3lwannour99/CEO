@@ -52,8 +52,13 @@ services:
         depends_on:
             database:
                 condition: service_healthy
+                required: false
+            mysql:
+                condition: service_healthy
+                required: false
         environment:
             PORT: ${BACKEND_PORT}
+            DATABASE_PROVIDER: ${DATABASE_PROVIDER}
             CHOKIDAR_USEPOLLING: ${BACKEND_CHOKIDAR_USEPOLLING}
             CHOKIDAR_INTERVAL: ${BACKEND_CHOKIDAR_INTERVAL}
             TSC_WATCHFILE: ${BACKEND_TSC_WATCHFILE}
@@ -79,6 +84,7 @@ services:
 
     database:
         image: postgres:18
+        profiles: ["postgresql"]
         env_file:
             - .env
         ports:
@@ -91,5 +97,27 @@ services:
             timeout: 5s
             retries: 10
 
+    mysql:
+        image: mysql:8.4
+        profiles: ["mysql"]
+        env_file:
+            - .env
+        environment:
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+            MYSQL_DATABASE: ${MYSQL_DATABASE}
+            MYSQL_USER: ${MYSQL_USER}
+            MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        ports:
+            - "${MYSQL_PORT}:3306"
+        volumes:
+            - mysql_data:/var/lib/mysql
+        healthcheck:
+            test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -u "$$MYSQL_USER" --password="$$MYSQL_PASSWORD" --silent']
+            interval: 15s
+            timeout: 5s
+            retries: 10
+            start_period: 30s
+
 volumes:
     pg_data_18:
+    mysql_data:

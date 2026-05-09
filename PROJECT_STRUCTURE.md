@@ -21,6 +21,7 @@ CEOReport/
   - `backend` on host port `4000`
   - Prisma Studio on host port `5555`
   - PostgreSQL on host port `5432`
+  - MySQL on host port `3306`
 - `PROJECT_STRUCTURE.md` is this file.
 
 ## Frontend
@@ -96,7 +97,7 @@ backend/
     └── jest-e2e.json
 ```
 
-The backend is a NestJS API using TypeScript, Prisma, and PostgreSQL.
+The backend is a NestJS API using TypeScript and Prisma. Local development can use PostgreSQL or MySQL, selected with `DATABASE_PROVIDER`; missing or empty `DATABASE_PROVIDER` defaults to PostgreSQL.
 
 ### Important backend files
 
@@ -109,8 +110,8 @@ The backend is a NestJS API using TypeScript, Prisma, and PostgreSQL.
 - `backend/src/app.controller.ts` and `backend/src/app.service.ts` are the current base API controller/service.
 - `backend/src/logger/logger.middleware.ts` logs incoming requests with colored HTTP methods.
 - `backend/src/prisma/prisma.module.ts` provides Prisma integration to the Nest app.
-- `backend/src/prisma/prisma.service.ts` creates the Prisma client using the PostgreSQL adapter and `TEMPLATE_DB_URL`.
-- `backend/prisma/schema/schema.prisma` is the main Prisma schema. It currently defines the client generator and PostgreSQL datasource; domain models still need to be added.
+- `backend/src/prisma/prisma.service.ts` creates the Prisma client using the adapter selected by `DATABASE_PROVIDER` (`postgresql` or `mysql`).
+- `backend/prisma/schema/schema.prisma` is the default PostgreSQL Prisma schema entry. Provider-specific development scripts compose generated schemas for PostgreSQL or MySQL.
 - `backend/prisma/seed.ts` is the database seed entry point.
 - `backend/test/` contains end-to-end test setup.
 
@@ -152,6 +153,7 @@ Browser
   -> Swagger docs:      http://localhost:4000/swagger
   -> Prisma Studio:     http://localhost:5555
   -> PostgreSQL:        localhost:5432
+  -> MySQL:             localhost:3306
 ```
 
 The intended data flow from the requirements is:
@@ -159,7 +161,7 @@ The intended data flow from the requirements is:
 ```text
 SAP / Carflow / External APIs
         -> Backend Integration Layer
-        -> PostgreSQL Reporting Database
+        -> Configured Reporting Database
         -> Next.js Inventory Intelligence Portal
         -> Optional exports and messaging integrations
 ```

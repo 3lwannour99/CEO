@@ -51,6 +51,33 @@ export interface ApiListResponse<T> {
   meta: ApiMeta;
 }
 
+export interface InventoryUpdatedEvent {
+  syncRunId: string;
+  status: "success" | "partial_success" | "failed";
+  lastSyncedAt: string;
+  totalRows: number;
+  totalRawRecords: number;
+  totalNormalizedRecords: number;
+  successfulSources: number;
+  failedSources: number;
+  sourceResults: Array<{
+    sourceId: string;
+    sourceName: string;
+    status: "success" | "failed";
+    recordsCount: number;
+    errorMessage?: string;
+  }>;
+}
+
+export interface InventoryLiveStatus {
+  connected: boolean;
+  lastEvent: InventoryUpdatedEvent | null;
+  lastUpdatedAt: string | null;
+  connectionError: string | null;
+}
+
+export type InventoryRefreshReason = "initial-load" | "websocket-update" | "manual-refresh" | "filter-change" | "visibility-return";
+
 export interface InventoryItem {
   inventoryKey?: string;
   businessStateKey?: string;
@@ -295,7 +322,7 @@ export interface SalesPerformanceResponse {
     country: string;
     unitsSold: number;
   }>;
-  soldRevenue: number;
+  soldRevenue: MoneyTotals;
   customerGroupBreakdown: Array<{ customerGroup: string; unitsSold: number }>;
   topSellingModels: SalesPerformanceItem[];
   lowestSellingModels: SalesPerformanceItem[];

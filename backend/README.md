@@ -4,17 +4,17 @@ NestJS API for CEOReport.
 
 ## Data Flow
 
-CounterScreen/SAP is the operational source of truth. PostgreSQL is the reporting source of truth.
+CounterScreen/SAP is the operational source of truth. The configured local database is the reporting source of truth.
 
 ```txt
 CounterScreen/SAP
 -> inventory sync job
--> PostgreSQL reporting tables
+-> database reporting tables
 -> API endpoints
 -> frontend dashboard
 ```
 
-Normal dashboard APIs read from PostgreSQL. CounterScreen is called only by backend sync logic, inspection scripts, or a manual `refresh=true` request.
+Normal dashboard APIs read from the configured reporting database. CounterScreen is called only by backend sync logic, inspection scripts, or a manual `refresh=true` request.
 
 `InventoryItem` is the reporting source of truth. Raw CounterScreen payloads are not persisted; sync counts remain available through `InventorySyncRun.totalRawRecords` and `InventorySourceSyncResult.recordsCount`. `GET /api/inventory/raw` is a disabled compatibility endpoint that returns an empty data array and an explanatory message.
 
@@ -35,11 +35,19 @@ Root Docker Compose uses service-prefixed names where useful:
 - `HOST_UID` and `HOST_GID`: host user and group used by the backend container in development so generated files under bind mounts are not created as root. Set them with `id -u` and `id -g`.
 - `FRONTEND_PORT`: host port for the frontend container.
 - `BACKEND_PORT`: host port for the backend container; mapped to `PORT` inside the backend container.
+- `NEXT_PUBLIC_API_BASE_URL`: browser REST API base URL.
+- `NEXT_PUBLIC_WS_BASE_URL`: browser Socket.IO base URL; the frontend connects to the `/inventory` namespace.
+- `FRONTEND_URL`: allowed browser origin for backend CORS and inventory WebSocket connections.
+- `DATABASE_PROVIDER`: active local Prisma/runtime provider. Defaults to `postgresql` when missing or empty. Use `mysql` only when explicitly selecting MySQL.
+- `COMPOSE_PROFILES`: active Docker database service. Use `postgresql` or `mysql`, and keep it aligned with `DATABASE_PROVIDER`.
 - `POSTGRES_PORT`: host port for PostgreSQL.
+- `POSTGRES_DATABASE_URL`: PostgreSQL connection string.
+- `MYSQL_PORT`: host port for MySQL.
+- `MYSQL_DATABASE_URL`: MySQL connection string.
 - `FRONTEND_WATCHPACK_POLLING`, `FRONTEND_CHOKIDAR_USEPOLLING`, `FRONTEND_CHOKIDAR_INTERVAL`: mapped to frontend tooling variable names.
 - `BACKEND_CHOKIDAR_USEPOLLING`, `BACKEND_CHOKIDAR_INTERVAL`, `BACKEND_TSC_WATCHFILE`, `BACKEND_TSC_WATCHDIRECTORY`, `BACKEND_WATCHPACK_POLLING`: mapped to backend tooling variable names.
-- `DATABASE_URL`: Prisma schema/database URL used by Prisma CLI commands.
-- `TEMPLATE_DB_URL`: PostgreSQL connection string used by the Prisma adapter at runtime.
+- `DATABASE_URL`: active database URL kept for compatibility with Prisma tooling.
+- `TEMPLATE_DB_URL`: legacy active database URL fallback.
 - `COUNTERSCREEN_TIMEOUT_MS`: timeout for each CounterScreen source request.
 - `COUNTERSCREEN_REJECT_UNAUTHORIZED`: set to `false` only when the source TLS setup requires it.
 - `INVENTORY_SYNC_ENABLED`: enables or disables scheduled inventory sync.
@@ -78,6 +86,39 @@ backend/prisma/schema
 
 Keep generator and datasource in `schema.prisma`, enums in `enums.prisma`, and each model in its own kebab-case `.prisma` file.
 
+Prisma datasource providers are fixed when the client is generated. This project supports PostgreSQL and MySQL in development by composing provider-specific generated schema files under `backend/prisma/.generated/`, which is ignored by Git.
+
+Use `DATABASE_PROVIDER` to select the runtime adapter. If it is missing or empty, PostgreSQL is used:
+
+```bash
+DATABASE_PROVIDER=postgresql
+COMPOSE_PROFILES=postgresql
+# or
+DATABASE_PROVIDER=mysql
+COMPOSE_PROFILES=mysql
+```
+
+Generate or push for a specific provider:
+
+```bash
+npm run prisma:generate:postgres
+npm run prisma:generate:mysql
+npm run prisma:push:postgres
+npm run prisma:push:mysql
+```
+
+Provider-neutral commands use `DATABASE_PROVIDER`:
+
+```bash
+npm run prisma:generate
+npm run prisma:push
+npm run db:sync
+```
+
+When switching providers, run the matching generate command before starting the backend so the generated Prisma client provider matches `DATABASE_PROVIDER`.
+
+Render deployments can omit `DATABASE_PROVIDER` while PostgreSQL is the active database, but `DATABASE_URL` must still be defined. MySQL deployments must explicitly set `DATABASE_PROVIDER=mysql` and provide a MySQL `DATABASE_URL` or `MYSQL_DATABASE_URL`.
+
 ## Prisma Development Policy
 
 During active development, do not commit Prisma migration files. Multiple developers are still changing the schema, so `backend/prisma/schema` is the source of truth until the database schema stabilizes.
@@ -91,7 +132,7 @@ Migration history is intentionally disabled/ignored for now:
 
 Existing migration files may still be present from earlier work. Leave them alone for now unless the team explicitly decides to reset or formalize migration history.
 
-Use these commands when changing or syncing the schema:
+Use these commands when changing or syncing the default PostgreSQL schema directly:
 
 ```bash
 npx prisma validate
@@ -99,6 +140,8 @@ npx prisma format
 npx prisma generate
 npx prisma db push
 ```
+
+For MySQL, use the provider-specific scripts above. Do not commit files from `backend/prisma/.generated/`.
 
 If the generated Prisma client has stale or permission-conflicted files, remove `backend/src/generated/prisma-client` and rerun `npx prisma generate`.
 
@@ -123,6 +166,8 @@ Recent runs:
 ```bash
 curl http://localhost:4000/api/inventory-sync/runs
 ```
+
+Inventory live updates use Socket.IO as a notification signal only. The backend emits `inventory.updated` on the `/inventory` namespace after an inventory sync run has finished writing database rows and sync logs. The event contains sync metadata, not inventory datasets. The frontend receives the event and refetches the existing REST APIs.
 
 ## Useful Commands
 

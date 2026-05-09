@@ -1,0 +1,25 @@
+// -----------------------------------------------------------------------------
+// Inventory snapshot item model
+// -----------------------------------------------------------------------------
+
+model InventorySnapshotItem {
+  id         String @id @default(cuid())
+  snapshotId String
+
+  sourceId      String?
+  brand         String?
+  model         String?
+  type          String?
+  exteriorColor String?
+  warehouse     String?
+
+  quantity Int
+  valueSar Float @default(0)
+  valueJod Float @default(0)
+  valueUsd Float @default(0)
+
+  snapshot InventorySnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@index([snapshotId])
+  @@index([sourceId, model, exteriorColor, warehouse])
+}

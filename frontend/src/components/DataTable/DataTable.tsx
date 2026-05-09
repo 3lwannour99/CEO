@@ -32,6 +32,7 @@ interface DataTableProps<T> {
   nonSortableColumns?: string[];
   enablePagination?: boolean;
   pageSize?: number;
+  getRowKey?: (row: T, rowIndex: number) => React.Key;
 }
 
 type SortDirection = "asc" | "desc";
@@ -120,6 +121,7 @@ export function DataTable<T>({
   nonSortableColumns,
   enablePagination = true,
   pageSize = 100,
+  getRowKey,
 }: DataTableProps<T>) {
   const { t } = useI18n();
   const [columnFilterDrafts, setColumnFilterDrafts] = useState<Record<string, string>>(columnFilters ?? {});
@@ -233,6 +235,22 @@ export function DataTable<T>({
     }
   }
 
+  function resolveRowKey(row: T, rowIndex: number) {
+    if (getRowKey) {
+      return getRowKey(row, rowIndex);
+    }
+
+    if (row && typeof row === "object") {
+      const value = (row as Record<string, unknown>).inventoryKey ?? (row as Record<string, unknown>).id;
+
+      if (typeof value === "string" || typeof value === "number") {
+        return value;
+      }
+    }
+
+    return rowIndex;
+  }
+
   return (
     <div className={styles.tableFrame}>
       {enableColumnSearch && hasColumnFilters ? (
@@ -303,7 +321,7 @@ export function DataTable<T>({
             </tr>
           ) : (
             renderedRows.map((row, rowIndex) => (
-              <tr key={rowIndex}>
+              <tr key={resolveRowKey(row, rowIndex)}>
                 {columns.map((column) => (
                   <td key={column.key}>{column.render(row) ?? formatValue(null)}</td>
                 ))}

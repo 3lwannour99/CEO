@@ -1,0 +1,29 @@
+// -----------------------------------------------------------------------------
+// Stock rule model
+// -----------------------------------------------------------------------------
+
+model StockRule {
+  id String @id @default(cuid())
+
+  sourceId      String?
+  brand         String?
+  model         String?
+  type          String?
+  exteriorColor String?
+  warehouse     String?
+
+  minStock             Int   @default(1)
+  maxStock             Int   @default(10)
+  reorderPoint         Int   @default(2)
+  targetCoverageMonths Float @default(3)
+  leadTimeDays         Int   @default(30)
+
+  supplierName String?
+  factoryName  String?
+  isActive     Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sourceId, model, exteriorColor, warehouse])
+}

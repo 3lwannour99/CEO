@@ -23,7 +23,7 @@ export function getSources() {
 }
 
 export function getInventory(filters?: InventoryFilters) {
-  return apiGet<ApiListResponse<InventoryItem>>("/inventory", filters);
+  return apiGet<ApiListResponse<InventoryItem>>("/inventory", filters).then(validateInventoryResponse);
 }
 
 export function getInventorySummary(filters?: InventoryFilters) {
@@ -80,4 +80,12 @@ export function runSnapshot() {
 
 export function getMonthlyComparison() {
   return apiGet<MonthlyComparison[]>("/snapshots/monthly-comparison");
+}
+
+function validateInventoryResponse(response: ApiListResponse<InventoryItem>) {
+  if (!response || typeof response !== "object" || !Array.isArray(response.data) || !response.meta || typeof response.meta !== "object") {
+    throw new Error("Invalid inventory API response shape.");
+  }
+
+  return response;
 }

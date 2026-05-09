@@ -1,0 +1,29 @@
+// -----------------------------------------------------------------------------
+// Inventory snapshot model
+// -----------------------------------------------------------------------------
+
+model InventorySnapshot {
+  id           String   @id @default(cuid())
+  snapshotDate DateTime
+
+  sourceId   String?
+  sourceName String?
+
+  totalUnits    Int
+  soldUnits     Int
+  reservedUnits Int
+  inStockUnits  Int
+  slowUnits     Int
+  mediumUnits   Int
+  fastUnits     Int
+
+  totalValueSar Float @default(0)
+  totalValueJod Float @default(0)
+  totalValueUsd Float @default(0)
+
+  createdAt DateTime                @default(now())
+  items     InventorySnapshotItem[]
+
+  @@index([snapshotDate])
+  @@index([sourceId])
+}
