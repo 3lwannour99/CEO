@@ -24,8 +24,12 @@ export default function AlertsPage() {
     { key: "id", header: t("table.id"), render: (row) => row.id },
     { key: "title", header: t("table.title"), render: (row) => row.title },
     { key: "message", header: t("table.message"), render: (row) => row.message },
+    { key: "chassis", header: t("alerts.chassis"), render: (row) => formatValue(row.chassis) },
+    { key: "model", header: t("table.model"), render: (row) => formatValue(row.model) },
+    { key: "affected", header: t("alerts.affectedCount"), render: (row) => formatValue(row.affectedCount) },
     { key: "branch", header: t("table.branch"), render: (row) => formatValue(row.branch) },
     { key: "severity", header: t("table.severity"), render: (row) => <StatusBadge tone={row.severity} /> },
+    { key: "action", header: t("alerts.recommendedAction"), render: (row) => formatValue(row.recommendedAction) },
     { key: "created", header: t("table.created"), render: (row) => row.createdAt },
   ];
 
@@ -39,7 +43,7 @@ export default function AlertsPage() {
         <button className="report-button" type="button" onClick={() => exportPdf("alerts.pdf", rows)}>{t("actions.exportPdf")}</button>
       </div>
       <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && filteredItems.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={resetFilters} />
-      <SectionCard title={t("sections.alertQueue")} eyebrow={t("summary.liveData")}>
+      <SectionCard title={t("sections.alertQueue")} eyebrow={t("summary.liveData")} action={String(rows.length)}>
         <DataTable columns={columns} rows={rows} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
       </SectionCard>
     </>

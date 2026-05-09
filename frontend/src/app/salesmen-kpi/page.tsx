@@ -23,6 +23,8 @@ function formatPercent(value: number) {
 }
 
 function BreakdownCell({ items }: { items: CountBreakdown[] }) {
+  const { language } = useI18n();
+  const { selectedCurrencies } = useCurrencyDisplay();
   return (
     <div className={styles.listCell}>
       {items.length === 0
@@ -30,6 +32,8 @@ function BreakdownCell({ items }: { items: CountBreakdown[] }) {
         : items.map((item) => (
             <span className={styles.pill} key={item.label}>
               {item.label} ({formatNumber(item.count)})
+              {item.salesmenCount ? ` · ${formatNumber(item.salesmenCount)}` : ""}
+              {item.revenueOpportunity ? ` · ${formatMoneyTotalsCompact(item.revenueOpportunity, language, selectedCurrencies)}` : ""}
             </span>
           ))}
     </div>
@@ -120,7 +124,7 @@ export default function SalesmenKpiPage() {
         <SectionCard title={t("salesmenKpi.soldCarsBreakdown")} eyebrow={t("salesmenKpi.carsTheySell")}>
           <DataTable columns={breakdownColumns} rows={report.salesmen} isLoading={inventoryData.isInitialLoading} emptyMessage={t("salesmenKpi.noSalesmenData")} />
         </SectionCard>
-        <SectionCard title={t("salesmenKpi.missedOpportunities")} eyebrow={t("salesmenKpi.carsTheyDoNotSell")}>
+        <SectionCard title={t("salesmenKpi.missedOpportunitiesReview")} eyebrow={t("salesmenKpi.carsTheyDoNotSell")}>
           <DataTable columns={missedColumns} rows={report.salesmen} isLoading={inventoryData.isInitialLoading} emptyMessage={t("salesmenKpi.noSalesmenData")} />
         </SectionCard>
         <div className={styles.wide}>

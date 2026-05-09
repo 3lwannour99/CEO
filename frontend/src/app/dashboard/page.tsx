@@ -17,7 +17,7 @@ import { formatMoneyBundle, formatMoneyTotalsCompact } from "@/lib/currency";
 import { exportExcel } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
-import type { DashboardMetric, InventoryAlert, InventoryItem, LocationStock, LogisticsStatus, SalesPerformanceItem } from "@/types/inventory";
+import type { DashboardMetric, InventoryAlert, InventoryItem, LocationStock, LogisticsStatus, SalesPerformanceItem, SlowStockSummaryItem } from "@/types/inventory";
 import styles from "./dashboard.module.css";
 
 export default function DashboardPage() {
@@ -73,17 +73,23 @@ export default function DashboardPage() {
     { label: t("metrics.reservedUnits"), value: formatNumber(data.metrics.reservedUnits), trend: `${formatNumber(data.metrics.reservedUnits)} ${t("table.reserved")}`, tone: "neutral" },
     { label: t("metrics.inTransitUnits"), value: formatNumber(data.metrics.inTransitUnits), trend: `${formatNumber(data.metrics.inTransitUnits)} ${t("table.inTransit")}`, tone: "warning" },
   ];
-  const inventoryColumns: DataTableColumn<InventoryItem>[] = [
+  const inventoryColumns: DataTableColumn<SlowStockSummaryItem>[] = [
     { key: "model", header: t("table.model"), render: (row) => `${row.brand} ${row.model}` },
-    { key: "branch", header: t("table.branch"), render: (row) => formatValue(row.branch) },
-    { key: "age", header: t("table.stockAgeDays"), render: (row) => formatValue(row.stockAgeDays) },
-    { key: "velocity", header: t("table.movementCategory"), render: (row) => <StatusBadge tone={row.movementCategory} /> },
-    { key: "source", header: t("table.source"), render: (row) => row.sourceName },
+    { key: "type", header: t("table.type"), render: (row) => formatValue(row.type) },
+    { key: "count", header: t("inventoryMovement.slowCount"), render: (row) => formatNumber(row.slowStockCount) },
+    { key: "averageAge", header: t("inventoryMovement.averageDaysInStock"), render: (row) => formatValue(row.averageStockAge) },
+    { key: "maxAge", header: t("table.stockAgeDays"), render: (row) => formatValue(row.maxStockAge) },
+    { key: "warehouse", header: t("table.warehouse"), render: (row) => row.warehouses.join(", ") || "-" },
+    { key: "branch", header: t("table.branch"), render: (row) => row.branches.join(", ") || "-" },
+    { key: "source", header: t("table.source"), render: (row) => row.sources.join(", ") || "-" },
   ];
   const alertColumns: DataTableColumn<InventoryAlert>[] = [
     { key: "title", header: t("table.alert"), render: (row) => row.title },
+    { key: "chassis", header: t("alerts.chassis"), render: (row) => formatValue(row.chassis) },
+    { key: "model", header: t("table.model"), render: (row) => formatValue(row.model) },
     { key: "branch", header: t("table.branch"), render: (row) => row.branch },
     { key: "severity", header: t("table.severity"), render: (row) => <StatusBadge tone={row.severity} /> },
+    { key: "action", header: t("alerts.recommendedAction"), render: (row) => formatValue(row.recommendedAction) },
     { key: "created", header: t("table.created"), render: (row) => row.createdAt },
   ];
   const locationColumns: DataTableColumn<LocationStock>[] = [
@@ -219,16 +225,16 @@ export default function DashboardPage() {
             <div className={styles.summaryItem}><span className={styles.summaryLabel}>{t("summary.averageCoverage")}</span><span className={styles.summaryValue}>{formatValue(data.inventoryStatusSummary.averageCoverageMonths)}</span></div>
           </div>
         </SectionCard>
-        <SectionCard title={t("sections.topSellingModels")} eyebrow={t("sections.sales")}>
+        <SectionCard title={t("sections.topSellingModels")} eyebrow={t("sections.sales")} action={t("sections.top10")}>
           <DataTable columns={salesColumns} rows={data.topSellingModels} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
         </SectionCard>
-        <SectionCard title={t("sections.bottomSellingModels")} eyebrow={t("sections.sales")}>
+        <SectionCard title={t("sections.bottomSellingModels")} eyebrow={t("sections.sales")} action={t("sections.top10")}>
           <DataTable columns={salesColumns} rows={data.bottomSellingModels ?? []} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
         </SectionCard>
-        <SectionCard title={t("sections.slowStockList")} eyebrow={t("sections.inventoryMovement")}>
+        <SectionCard title={t("sections.slowStockList")} eyebrow={t("sections.inventoryMovement")} action={formatNumber(data.slowStockList.length)}>
           <DataTable columns={inventoryColumns} rows={data.slowStockList} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
         </SectionCard>
-        <SectionCard title={t("sections.recentAlerts")} eyebrow={t("sections.autoAlerts")}>
+        <SectionCard title={t("sections.recentAlerts")} eyebrow={t("sections.autoAlerts")} action={formatNumber(data.recentAlerts.length)}>
           <DataTable columns={alertColumns} rows={data.recentAlerts} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
         </SectionCard>
         <SectionCard title={t("sections.stockByLocation")} eyebrow={t("sections.multiLocation")}>

@@ -4,6 +4,9 @@ import { createMoneyTotals, divideMoneyTotals, sumMoney, type MoneyTotals } from
 export interface CountBreakdown {
   label: string;
   count: number;
+  revenueOpportunity?: MoneyTotals;
+  salesmenCount?: number;
+  soldUnits?: number;
 }
 
 export interface SalesmanKpi {
@@ -66,6 +69,26 @@ function groupCounts(items: InventoryItem[], selector: (item: InventoryItem) => 
     .slice(0, limit);
 }
 
+function opportunityCounts(items: InventoryItem[], selector: (item: InventoryItem) => string, limit = 10): CountBreakdown[] {
+  const groups = items.reduce<Record<string, InventoryItem[]>>((acc, item) => {
+    const label = selector(item).trim() || "Unknown";
+    acc[label] = acc[label] ?? [];
+    acc[label].push(item);
+    return acc;
+  }, {});
+
+  return Object.entries(groups)
+    .map(([label, group]) => ({
+      label,
+      count: group.reduce((sum, item) => sum + quantity(item), 0),
+      revenueOpportunity: sumMoney(group, (item) => item.soldPrice),
+      salesmenCount: new Set(group.map((item) => item.salesMan.trim()).filter(validSalesman)).size,
+      soldUnits: 0,
+    }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+    .slice(0, limit);
+}
+
 function customerGroupCount(items: InventoryItem[], matcher: (value: string) => boolean) {
   return items.reduce((sum, item) => sum + (matcher(item.customerGroup.toLowerCase()) ? quantity(item) : 0), 0);
 }
@@ -112,8 +135,8 @@ function saleDateBounds(items: InventoryItem[]) {
   };
 }
 
-function missingBreakdown(overall: CountBreakdown[], salesmanValues: CountBreakdown[]) {
-  const soldLabels = new Set(salesmanValues.map((item) => item.label));
+function missingBreakdown(overall: CountBreakdown[], group: InventoryItem[], selector: (item: InventoryItem) => string) {
+  const soldLabels = new Set(group.map((item) => selector(item).trim() || "Unknown"));
   return overall.filter((item) => !soldLabels.has(item.label)).slice(0, 10);
 }
 
@@ -121,9 +144,9 @@ export function calculateSalesmenKpi(items: InventoryItem[]): SalesmenKpiReport 
   const sold = items.filter((item) => soldItem(item) && validSalesman(item.salesMan));
   const totalSoldUnits = sold.reduce((sum, item) => sum + quantity(item), 0);
   const totalRevenue = sumMoney(sold, (item) => item.soldPrice);
-  const overallModels = groupCounts(sold, (item) => item.model, 10);
-  const overallBrands = groupCounts(sold, (item) => item.brand, 10);
-  const overallColors = groupCounts(sold, (item) => item.exteriorColor, 10);
+  const overallModels = opportunityCounts(sold, (item) => item.model, 10);
+  const overallBrands = opportunityCounts(sold, (item) => item.brand, 10);
+  const overallColors = opportunityCounts(sold, (item) => item.exteriorColor, 10);
   const groups = sold.reduce<Record<string, InventoryItem[]>>((acc, item) => {
     const salesman = item.salesMan.trim();
     acc[salesman] = acc[salesman] ?? [];
@@ -154,9 +177,9 @@ export function calculateSalesmenKpi(items: InventoryItem[]): SalesmenKpiReport 
         topSoldColors,
         topSoldBranches: groupCounts(group, (item) => item.branch),
         topCustomerGroups: groupCounts(group, (item) => item.customerGroup),
-        missingModels: missingBreakdown(overallModels, topSoldModels),
-        missingBrands: missingBreakdown(overallBrands, topSoldBrands),
-        missingColors: missingBreakdown(overallColors, topSoldColors),
+        missingModels: missingBreakdown(overallModels, group, (item) => item.model),
+        missingBrands: missingBreakdown(overallBrands, group, (item) => item.brand),
+        missingColors: missingBreakdown(overallColors, group, (item) => item.exteriorColor),
         firstSaleDate: dates.firstSaleDate,
         lastSaleDate: dates.lastSaleDate,
         averageDaysToSell: averageDaysToSell(group),

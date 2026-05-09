@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { ApiState } from "@/components/ApiState/ApiState";
+import { DashboardCard } from "@/components/DashboardCard/DashboardCard";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
 import { FilterBar } from "@/components/FilterBar/FilterBar";
 import { MetaStrip } from "@/components/MetaStrip/MetaStrip";
@@ -16,6 +17,8 @@ import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
 import type { InventoryItem } from "@/types/inventory";
+import type { InventoryMovementMatrixItem } from "@/types/inventory";
+import styles from "@/app/dashboard/dashboard.module.css";
 
 export default function InventoryMovementPage() {
   const { language, t } = useI18n();
@@ -23,6 +26,17 @@ export default function InventoryMovementPage() {
   const inventoryData = useInventoryData();
   const { filters, setFilters, resetFilters } = useGlobalFilters();
   const rows = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
+  const currentStock = useMemo(() => rows.filter((row) => row.isInStock), [rows]);
+  const matrixRows = useMemo(() => inventoryData.getInventoryMovementMatrix(filters), [filters, inventoryData]);
+  const categoryCounts = useMemo(() => {
+    const counts = { fast: 0, medium: 0, slow: 0, unknown: 0 };
+    currentStock.forEach((item) => {
+      const category = item.stockAgeDays === null || item.stockAgeDays === undefined ? "unknown" : item.stockAgeDays > 90 ? "slow" : item.stockAgeDays >= 30 ? "medium" : "fast";
+      counts[category] += item.quantity || 1;
+    });
+    return counts;
+  }, [currentStock]);
+  const percent = (value: number) => (currentStock.length > 0 ? `${formatNumber(Math.round((value / currentStock.reduce((sum, item) => sum + (item.quantity || 1), 0)) * 100))}%` : "0%");
   const columns: DataTableColumn<InventoryItem>[] = [
     { key: "chassis", header: t("table.chassis"), render: (row) => formatValue(row.chassis) },
     { key: "model", header: t("table.model"), render: (row) => `${row.brand} ${row.model}` },
@@ -38,6 +52,18 @@ export default function InventoryMovementPage() {
     { key: "vat", header: t("table.vat"), render: (row) => formatMoneyBundle(row.vat, row, language, selectedCurrencies) },
     { key: "qty", header: t("table.qty"), render: (row) => formatNumber(row.quantity) },
   ];
+  const matrixColumns: DataTableColumn<InventoryMovementMatrixItem>[] = [
+    { key: "model", header: t("table.model"), render: (row) => row.model },
+    { key: "brand", header: t("table.brand"), render: (row) => row.brand },
+    { key: "type", header: t("table.type"), render: (row) => formatValue(row.type) },
+    { key: "fast", header: t("inventoryMovement.fastCount"), render: (row) => formatNumber(row.fastCount) },
+    { key: "medium", header: t("inventoryMovement.mediumCount"), render: (row) => formatNumber(row.mediumCount) },
+    { key: "slow", header: t("inventoryMovement.slowCount"), render: (row) => formatNumber(row.slowCount) },
+    { key: "unknown", header: t("inventoryMovement.unknownCount"), render: (row) => formatNumber(row.unknownCount) },
+    { key: "total", header: t("table.total"), render: (row) => formatNumber(row.totalCount) },
+    { key: "slowPercentage", header: t("inventoryMovement.slowPercentage"), render: (row) => `${formatNumber(row.slowPercentage)}%` },
+    { key: "averageDays", header: t("inventoryMovement.averageDaysInStock"), render: (row) => formatValue(row.averageDaysInStock) },
+  ];
 
   return (
     <>
@@ -50,6 +76,18 @@ export default function InventoryMovementPage() {
       </div>
       <MetaStrip meta={inventoryData.meta} />
       <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && rows.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={resetFilters} />
+      <SectionCard title={t("inventoryMovement.categoryCards")} eyebrow={t("sections.inventoryMovement")}>
+        <section className={styles.metricGrid}>
+          <DashboardCard label={t("table.total")} value={formatNumber(currentStock.reduce((sum, item) => sum + (item.quantity || 1), 0))} trend={t("table.currentStock")} />
+          <DashboardCard label={t("status.fast")} value={formatNumber(categoryCounts.fast)} trend={percent(categoryCounts.fast)} tone="positive" />
+          <DashboardCard label={t("status.medium")} value={formatNumber(categoryCounts.medium)} trend={percent(categoryCounts.medium)} />
+          <DashboardCard label={t("status.slow")} value={formatNumber(categoryCounts.slow)} trend={percent(categoryCounts.slow)} tone="warning" />
+          <DashboardCard label={t("status.unknown")} value={formatNumber(categoryCounts.unknown)} trend={percent(categoryCounts.unknown)} tone="neutral" />
+        </section>
+      </SectionCard>
+      <SectionCard title={t("inventoryMovement.modelCategoryMatrix")} eyebrow={t("sections.inventoryMovement")} action={formatNumber(matrixRows.length)}>
+        <DataTable columns={matrixColumns} rows={matrixRows} maxVisibleRows={15} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
+      </SectionCard>
       <SectionCard title={t("sections.movementRegister")} eyebrow={t("summary.liveData")} action={formatNumber(rows.length)}>
         <DataTable columns={columns} rows={rows} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
       </SectionCard>

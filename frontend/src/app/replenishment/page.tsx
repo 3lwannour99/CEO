@@ -18,14 +18,23 @@ export default function ReplenishmentPage() {
   const inventoryData = useInventoryData();
   const { filters, setFilters, resetFilters } = useGlobalFilters();
   const rows = useMemo(() => inventoryData.getReplenishment(filters), [filters, inventoryData]);
+  const modelOnlyRows = useMemo(() => inventoryData.getReplenishment(filters, "modelOnly"), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
   const columns: DataTableColumn<ReplenishmentSuggestion>[] = [
     { key: "model", header: t("table.model"), render: (row) => `${row.brand} ${row.model}` },
+    { key: "type", header: t("table.type"), render: (row) => row.type ?? "" },
     { key: "color", header: t("table.color"), render: (row) => row.exteriorColor },
     { key: "current", header: t("table.currentStock"), render: (row) => formatNumber(row.currentStock) },
+    { key: "sold30", header: t("table.soldLast30Days"), render: (row) => formatNumber(row.soldLast30Days) },
     { key: "sold90", header: t("table.soldLast90Days"), render: (row) => formatNumber(row.soldLast90Days) },
     { key: "avg", header: t("table.averageMonthlySales"), render: (row) => formatNumber(row.averageMonthlySales) },
+    { key: "min", header: t("table.minStock"), render: (row) => formatNumber(row.minStock) },
+    { key: "max", header: t("table.maxStock"), render: (row) => formatNumber(row.maxStock) },
+    { key: "reorderPoint", header: t("table.reorderPoint"), render: (row) => formatNumber(row.reorderPoint) },
+    { key: "leadTimeDays", header: t("table.leadTimeDays"), render: (row) => formatNumber(row.leadTimeDays) },
     { key: "suggested", header: t("table.suggestedOrderQuantity"), render: (row) => formatNumber(row.suggestedOrderQuantity) },
+    { key: "urgency", header: t("table.urgency"), render: (row) => row.urgency },
+    { key: "reason", header: t("table.suggestedAction"), render: (row) => row.reason },
   ];
 
   return (
@@ -38,8 +47,11 @@ export default function ReplenishmentPage() {
         <button className="report-button" type="button" onClick={() => exportPdf("replenishment.pdf", rows)}>{t("actions.exportPdf")}</button>
       </div>
       <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && filteredItems.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={resetFilters} />
-      <SectionCard title={t("sections.replenishmentSuggestions")} eyebrow={t("sections.planning")}>
+      <SectionCard title={t("sections.replenishmentSuggestions")} eyebrow={t("sections.planning")} action={formatNumber(rows.length)}>
         <DataTable columns={columns} rows={rows} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
+      </SectionCard>
+      <SectionCard title={t("replenishment.byModelOnly")} eyebrow={t("sections.planning")} action={formatNumber(modelOnlyRows.length)}>
+        <DataTable columns={columns.filter((column) => column.key !== "color")} rows={modelOnlyRows} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
       </SectionCard>
     </>
   );

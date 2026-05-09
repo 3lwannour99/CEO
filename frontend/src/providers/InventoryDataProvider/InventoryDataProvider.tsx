@@ -6,6 +6,7 @@ import {
   calculateAggregatedStock,
   calculateAlerts,
   calculateDashboardSummary,
+  calculateInventoryMovementMatrix,
   calculateInventorySummary,
   calculateLogistics,
   calculateMultiLocation,
@@ -16,12 +17,13 @@ import {
 import { getInventory, getSources, getStockRules } from "@/services/inventoryApi";
 import type { InventoryFilters } from "@/types/filters";
 import type {
-  AggregatedStockItem,
+  AggregatedStockResponse,
   ApiMeta,
   CounterScreenSource,
   DashboardSummary,
   InventoryAlert,
   InventoryItem,
+  InventoryMovementMatrixItem,
   InventorySummary,
   LogisticsStatus,
   MultiLocationReport,
@@ -45,10 +47,11 @@ interface InventoryDataContextValue {
   getInventorySummary: (filters: InventoryFilters) => InventorySummary;
   getDashboardSummary: (filters: InventoryFilters) => DashboardSummary;
   getAlerts: (filters: InventoryFilters) => InventoryAlert[];
-  getReplenishment: (filters: InventoryFilters) => ReplenishmentSuggestion[];
+  getReplenishment: (filters: InventoryFilters, groupingMode?: "modelColor" | "modelOnly") => ReplenishmentSuggestion[];
   getStockCoverage: (filters: InventoryFilters) => StockCoverageItem[];
   getSalesPerformance: (filters: InventoryFilters) => SalesPerformanceResponse;
-  getAggregatedStock: (filters: InventoryFilters) => AggregatedStockItem[];
+  getAggregatedStock: (filters: InventoryFilters) => AggregatedStockResponse;
+  getInventoryMovementMatrix: (filters: InventoryFilters) => InventoryMovementMatrixItem[];
   getLogistics: (filters: InventoryFilters) => LogisticsStatus[];
   getMultiLocation: (filters: InventoryFilters) => MultiLocationReport;
 }
@@ -138,10 +141,11 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
       getDashboardSummary: (filters) =>
         calculateDashboardSummary(getFilteredData(filters), meta?.generatedAt ?? new Date().toISOString(), meta?.errors ?? [], stockRules),
       getAlerts: (filters) => calculateAlerts(getFilteredData(filters), meta?.generatedAt ?? new Date().toISOString(), meta?.errors ?? [], stockRules),
-      getReplenishment: (filters) => calculateReplenishment(getFilteredData(filters), stockRules),
+      getReplenishment: (filters, groupingMode) => calculateReplenishment(getFilteredData(filters), stockRules, groupingMode),
       getStockCoverage: (filters) => calculateStockCoverage(getFilteredData(filters), stockRules),
       getSalesPerformance: (filters) => calculateSalesPerformance(getFilteredData(filters)),
       getAggregatedStock: (filters) => calculateAggregatedStock(getFilteredData(filters)),
+      getInventoryMovementMatrix: (filters) => calculateInventoryMovementMatrix(getFilteredData(filters)),
       getLogistics: (filters) => calculateLogistics(getFilteredData(filters)),
       getMultiLocation: (filters) => calculateMultiLocation(getFilteredData(filters), stockRules),
     }),

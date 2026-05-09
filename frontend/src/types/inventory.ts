@@ -172,10 +172,27 @@ export interface DashboardMetric {
 
 export interface InventoryAlert {
   id: string;
+  type?:
+    | "slowStock"
+    | "lowStock"
+    | "belowReorderPoint"
+    | "coverageDanger"
+    | "overstock"
+    | "sourceFailure"
+    | "oldReservation"
+    | "unknownAge";
   title: string;
   message: string;
   severity: AlertSeverity;
   branch: string;
+  sourceName?: string;
+  model?: string;
+  chassis?: string;
+  status?: string;
+  ageDays?: number | null;
+  affectedCount?: number;
+  sampleChassis?: string[];
+  recommendedAction?: string;
   createdAt: string;
 }
 
@@ -217,8 +234,16 @@ export interface MultiLocationReport {
 export interface SalesPerformanceItem {
   model: string;
   brand: string;
+  type?: string;
+  exteriorColor?: string;
   unitsSold: number;
   revenue: MoneyTotals;
+  averageSoldPrice?: MoneyTotals;
+  customerGroupBreakdown?: Array<{ customerGroup: string; unitsSold: number }>;
+  branch?: string;
+  sourceName?: string;
+  sellThroughRate?: number;
+  inventoryTurnover?: number;
   margin?: string;
 }
 
@@ -286,6 +311,31 @@ export interface AggregatedStockResponse {
   byWarehouseTypeColor: AggregatedStockItem[];
 }
 
+export interface SlowStockSummaryItem {
+  model: string;
+  brand: string;
+  type?: string;
+  slowStockCount: number;
+  averageStockAge: number | null;
+  maxStockAge: number | null;
+  warehouses: string[];
+  branches: string[];
+  sources: string[];
+}
+
+export interface InventoryMovementMatrixItem {
+  model: string;
+  brand: string;
+  type: string;
+  fastCount: number;
+  mediumCount: number;
+  slowCount: number;
+  unknownCount: number;
+  totalCount: number;
+  slowPercentage: number;
+  averageDaysInStock: number | null;
+}
+
 export interface SalesPerformanceResponse {
   soldUnitsByModel: SalesPerformanceItem[];
   soldUnitsByBranch: Array<{ branch: string; unitsSold: number }>;
@@ -295,7 +345,7 @@ export interface SalesPerformanceResponse {
     country: string;
     unitsSold: number;
   }>;
-  soldRevenue: number;
+  soldRevenue: MoneyTotals;
   customerGroupBreakdown: Array<{ customerGroup: string; unitsSold: number }>;
   topSellingModels: SalesPerformanceItem[];
   lowestSellingModels: SalesPerformanceItem[];
@@ -303,6 +353,9 @@ export interface SalesPerformanceResponse {
   breakdownByModel: SalesPerformanceItem[];
   breakdownByType: Array<{ type: string; unitsSold: number }>;
   breakdownByColor: Array<{ exteriorColor: string; unitsSold: number }>;
+  breakdownByModelColor?: SalesPerformanceItem[];
+  bestSellingColors?: Array<{ exteriorColor: string; unitsSold: number; revenue: MoneyTotals }>;
+  lowestSellingColors?: Array<{ exteriorColor: string; unitsSold: number; revenue: MoneyTotals }>;
   breakdownByBranch: Array<{ branch: string; unitsSold: number }>;
   breakdownByCountry: Array<{ country: string; unitsSold: number }>;
   sellThroughRate: number;
@@ -338,7 +391,7 @@ export interface DashboardSummary {
     averageCoverageMonths: number | null;
   };
   topSellingModels: SalesPerformanceItem[];
-  slowStockList: InventoryItem[];
+  slowStockList: SlowStockSummaryItem[];
   recentAlerts: InventoryAlert[];
   stockByLocation: LocationStock[];
   salesPerformanceSnapshot: SalesPerformanceItem[];

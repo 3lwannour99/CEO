@@ -68,14 +68,15 @@ export default function SnapshotsPage() {
       <PageHeader title={t("pages.snapshots.title")} description={t("pages.snapshots.description")} />
       <div className="report-actions">
         <button className="report-button primary" type="button" disabled={running} onClick={() => void runNow()}>{running ? t("filters.loadingData") : t("actions.runSnapshot")}</button>
+        <span>{t("snapshots.runSnapshotDescription")}</span>
         <button className="report-button" type="button" onClick={() => exportExcel("snapshots.xls", snapshots)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("snapshots.csv", snapshots)}>{t("actions.exportCsv")}</button>
       </div>
       <SectionCard title={t("sidebar.snapshots")} eyebrow={t("actions.dailySnapshot")}>
-        <DataTable columns={snapshotColumns} rows={snapshots} isLoading={loading} emptyMessage={t("filters.emptyFiltered")} />
+        <DataTable columns={snapshotColumns} rows={snapshots} isLoading={loading} emptyMessage={t("snapshots.noSnapshots")} />
       </SectionCard>
       <SectionCard title={t("actions.monthlyComparison")} eyebrow={t("sidebar.snapshots")}>
-        <DataTable columns={monthlyColumns} rows={monthly} isLoading={loading} emptyMessage={t("filters.emptyFiltered")} />
+        <DataTable columns={monthlyColumns} rows={monthly.length > 1 ? monthly : []} isLoading={loading} emptyMessage={monthly.length <= 1 && snapshots.length > 0 ? t("snapshots.notEnoughHistory") : t("snapshots.noSnapshots")} />
       </SectionCard>
     </>
   );
