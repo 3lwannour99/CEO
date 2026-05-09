@@ -48,12 +48,26 @@ function stockKey(item: InventoryItem) {
   return `${item.brand}|${item.model}|${item.exteriorColor}`;
 }
 
+function chassisGroupKey(item: InventoryItem) {
+  return `${item.sourceId}|${item.chassis}`;
+}
+
 export function calculateInventorySummary(items: InventoryItem[]): InventorySummary {
   const currentStock = items.filter((item) => item.isInStock);
   const soldLast90Days = sumQuantity(items.filter(soldInLast90Days));
   const averageMonthlySales = soldLast90Days / 3;
+  const chassisGroups = groupBy(
+    items.filter((item) => Boolean(item.chassis)),
+    chassisGroupKey,
+    (group) => group,
+  );
+  const multiStatusGroups = chassisGroups.filter((group) => group.length > 1);
 
   return {
+    totalRows: items.length,
+    uniqueChassisCount: chassisGroups.length,
+    multiStatusChassisCount: multiStatusGroups.length,
+    rowsInMultiStatusChassisGroups: multiStatusGroups.reduce((sum, group) => sum + group.length, 0),
     totalUnits: sumQuantity(items),
     currentStockUnits: sumQuantity(currentStock),
     soldUnits: sumQuantity(items.filter((item) => item.isSold)),
@@ -222,6 +236,10 @@ export function calculateDashboardSummary(items: InventoryItem[], generatedAt: s
 
   return {
     metrics: {
+      totalRows: summary.totalRows,
+      uniqueChassisCount: summary.uniqueChassisCount,
+      multiStatusChassisCount: summary.multiStatusChassisCount,
+      rowsInMultiStatusChassisGroups: summary.rowsInMultiStatusChassisGroups,
       totalUnits: summary.totalUnits,
       currentStockUnits: summary.currentStockUnits,
       soldUnits: summary.soldUnits,

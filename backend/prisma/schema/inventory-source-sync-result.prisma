@@ -1,0 +1,23 @@
+// -----------------------------------------------------------------------------
+// Inventory source sync result model
+// -----------------------------------------------------------------------------
+
+model InventorySourceSyncResult {
+  id        String           @id @default(cuid())
+  syncRunId String
+  syncRun   InventorySyncRun @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
+
+  sourceId     String
+  sourceName   String
+  status       InventorySourceSyncStatus
+  recordsCount Int                       @default(0)
+  errorMessage String?
+
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([syncRunId])
+  @@index([sourceId])
+  @@index([status])
+  @@index([startedAt])
+}

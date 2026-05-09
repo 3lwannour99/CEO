@@ -1,0 +1,129 @@
+// -----------------------------------------------------------------------------
+// Inventory reporting model
+// -----------------------------------------------------------------------------
+
+model InventoryItem {
+  id String @id @default(cuid())
+
+  /// Technical row identity for reporting sync. This is not a business identity.
+  /// It intentionally includes source row position and row hash so duplicate
+  /// chassis rows from one source are preserved.
+  inventoryKey String @unique
+
+  /// Fingerprint for comparing a row's business state/stage. This is a grouping
+  /// and change-detection aid, not a strict unique business identity.
+  businessStateKey String @default("")
+
+  /// Index of this row in the latest source API response.
+  sourceRowIndex Int?
+
+  /// Hash of the raw source row after excluding sensitive fields.
+  rowHash String?
+
+  /// Sync run that inserted this reporting row.
+  syncRunId String?
+
+  // Source metadata.
+  sourceId      String
+  sourceName    String
+  sourceCountry String
+  sourceBaseUrl String
+
+  // Vehicle and stock identity fields. `chassis` is a grouping field only.
+  absEntry      Int?
+  chassis       String
+  itemCode      String
+  model         String
+  itemGroupCode Int?
+  type          String
+  modelYear     String
+  brand         String
+  engineNo      String
+
+  // Vehicle attributes and location.
+  exteriorColor String
+  interiorColor String
+  wheel         String
+  branch        String
+  warehouse     String
+  notes         String
+  quantity      Int
+  ready         Boolean
+
+  // Pricing fields from the source payload.
+  price1    Float?
+  listNum1  Int?
+  listName1 String
+  price2    Float?
+  listNum2  Int?
+  listName2 String
+  price3    Float?
+  listNum3  Int?
+  listName3 String
+  price4    Float?
+  listNum4  Int?
+  listName4 String
+  soldPrice Float
+  vat       Float
+
+  // Documents, dates, and sales/customer details.
+  poNo             String
+  estimatedArrival String
+  grpoDate         String
+  apInvoiceDate    String
+  apInvoiceNo      String
+  arInvoiceDate    String
+  arInvoiceNo      String
+  createDate       String
+  contractDate     String
+  reserveDate      String
+  salesMan         String
+  customerName     String
+  customerGroup    String
+  customerNumber   String
+  cardCode         String
+  plateNumber      String
+  bank             String
+  bankCode         String
+  soRemarks        String
+  additionalRemark String
+
+  // Status and derived reporting fields.
+  chassisStatus    String
+  rawStatus        String
+  displayStatus    String
+  normalizedStatus String
+  stockAgeDays     Int?
+  movementCategory String
+  isSold           Boolean
+  isReserved       Boolean
+  isInStock        Boolean
+  isReadyForSale   Boolean
+
+  // Sync/audit timestamps.
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  /// When this row was last inserted from CounterScreen into reporting storage.
+  lastSyncedAt DateTime @default(now())
+
+  @@index([sourceId])
+  @@index([businessStateKey])
+  @@index([chassis])
+  @@index([sourceId, chassis])
+  @@index([sourceId, chassis, normalizedStatus])
+  @@index([itemCode])
+  @@index([model])
+  @@index([brand])
+  @@index([branch])
+  @@index([warehouse])
+  @@index([displayStatus])
+  @@index([rawStatus])
+  @@index([normalizedStatus])
+  @@index([movementCategory])
+  @@index([isSold])
+  @@index([isReserved])
+  @@index([isInStock])
+  @@index([isReadyForSale])
+  @@index([lastSyncedAt])
+}

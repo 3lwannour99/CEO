@@ -32,6 +32,11 @@ export type DisplayVehicleStatus =
     | 'Unknown';
 
 export interface InventoryItem {
+    inventoryKey?: string;
+    businessStateKey?: string;
+    sourceRowIndex?: number | null;
+    rowHash?: string | null;
+    syncRunId?: string | null;
     absEntry: number | null;
     chassis: string;
     itemCode: string;
@@ -114,7 +119,11 @@ export interface SourceFetchResult {
 export interface InventoryMeta {
     total: number;
     generatedAt: string;
+    lastSyncedAt?: string | null;
     fromCache: boolean;
+    fromDatabase?: boolean;
+    syncStatus?: string;
+    syncResult?: unknown;
     sourceCount: number;
     successfulSources: number;
     failedSources: number;
@@ -136,6 +145,10 @@ export interface RawInventoryResponse {
 }
 
 export interface InventorySummary {
+    totalRows: number;
+    uniqueChassisCount: number;
+    multiStatusChassisCount: number;
+    rowsInMultiStatusChassisGroups: number;
     totalUnits: number;
     currentStockUnits: number;
     soldUnits: number;

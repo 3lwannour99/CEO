@@ -2,28 +2,49 @@ services:
   backend:
     build: .
     container_name: template-backend
+    user: '${HOST_UID}:${HOST_GID}'
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     volumes:
       - .:/app
       - /app/node_modules
-    env_file: .env
+    env_file: ../.env
+    environment:
+      PORT: ${BACKEND_PORT}
+      CHOKIDAR_USEPOLLING: ${BACKEND_CHOKIDAR_USEPOLLING}
+      CHOKIDAR_INTERVAL: ${BACKEND_CHOKIDAR_INTERVAL}
+      TSC_WATCHFILE: ${BACKEND_TSC_WATCHFILE}
+      TSC_WATCHDIRECTORY: ${BACKEND_TSC_WATCHDIRECTORY}
+      WATCHPACK_POLLING: ${BACKEND_WATCHPACK_POLLING}
     command: ['npm', 'run', 'start:all']
     ports:
-      - '3000:3000'
-      - '5555:5555'
+      - '${BACKEND_PORT}:${BACKEND_PORT}'
+      - '${BACKEND_STUDIO_PORT}:5555'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(''http://127.0.0.1:'' + process.env.PORT + ''/api/health'').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
 
   database:
     image: postgres:18
     container_name: template-db
-    environment:
-      POSTGRES_USER: template_admin
-      POSTGRES_PASSWORD: '12345678'
-      POSTGRES_DB: template_db
+    env_file: ../.env
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT}:5432'
     volumes:
       - pg_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 15s
+      timeout: 5s
+      retries: 10
 
 volumes:
   pg_data:

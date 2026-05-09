@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { CounterScreenModule } from '../integrations/counterscreen/counterscreen.module';
+import { InventorySyncModule } from '../inventory-sync/inventory-sync.module';
 import { InventoryController } from './inventory.controller';
 import { InventoryService } from './inventory.service';
 
 @Module({
     controllers: [InventoryController],
-    imports: [CounterScreenModule],
+    imports: [InventorySyncModule],
     exports: [InventoryService],
     providers: [InventoryService],
 })

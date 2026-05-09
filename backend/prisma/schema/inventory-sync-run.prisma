@@ -1,0 +1,26 @@
+// -----------------------------------------------------------------------------
+// Inventory sync run model
+// -----------------------------------------------------------------------------
+
+model InventorySyncRun {
+  id         String              @id @default(cuid())
+  startedAt  DateTime            @default(now())
+  finishedAt DateTime?
+  status     InventorySyncStatus
+
+  totalSources      Int @default(0)
+  successfulSources Int @default(0)
+  failedSources     Int @default(0)
+
+  /// Number of raw rows fetched from CounterScreen during this run. Raw payloads
+  /// are not stored permanently in PostgreSQL.
+  totalRawRecords        Int @default(0)
+  totalNormalizedRecords Int @default(0)
+
+  errorMessage  String?
+  sourceResults InventorySourceSyncResult[]
+
+  @@index([startedAt])
+  @@index([finishedAt])
+  @@index([status])
+}

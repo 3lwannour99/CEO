@@ -1,29 +1,30 @@
 .shell {
-  display: flex;
-  min-height: 100vh;
-  background: var(--color-app-bg);
+    display: flex;
+    min-height: 100vh;
+    background: var(--color-app-bg);
 }
 
 .shell[data-busy="true"] button:not(:disabled) {
-  cursor: not-allowed;
+    cursor: not-allowed;
 }
 
 .contentArea {
-  min-width: 0;
-  flex: 1;
+    min-width: 0;
+    flex: 1;
+    margin-inline-start: var(--sidebar-width);
 }
 
 .main {
-  display: grid;
-  gap: var(--space-6);
-  width: 100%;
-  max-width: var(--content-max-width);
-  margin: 0 auto;
-  padding: var(--space-6);
+    display: grid;
+    gap: var(--space-6);
+    width: 100%;
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+    padding: var(--space-6);
 }
 
 @media (max-width: 768px) {
-  .main {
-    padding: var(--space-4);
-  }
+    .main {
+        padding: var(--space-4);
+    }
 }

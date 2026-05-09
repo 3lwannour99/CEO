@@ -33,7 +33,11 @@ export interface SourceError {
 export interface ApiMeta {
   total: number;
   generatedAt: string;
+  lastSyncedAt?: string | null;
   fromCache: boolean;
+  fromDatabase?: boolean;
+  syncStatus?: string;
+  syncResult?: unknown;
   sourceCount: number;
   successfulSources: number;
   failedSources: number;
@@ -46,6 +50,11 @@ export interface ApiListResponse<T> {
 }
 
 export interface InventoryItem {
+  inventoryKey?: string;
+  businessStateKey?: string;
+  sourceRowIndex?: number | null;
+  rowHash?: string | null;
+  syncRunId?: string | null;
   absEntry: number | null;
   chassis: string;
   itemCode: string;
@@ -114,6 +123,10 @@ export interface InventoryItem {
 }
 
 export interface InventorySummary {
+  totalRows: number;
+  uniqueChassisCount: number;
+  multiStatusChassisCount: number;
+  rowsInMultiStatusChassisGroups: number;
   totalUnits: number;
   currentStockUnits: number;
   soldUnits: number;
@@ -214,7 +227,12 @@ export interface AggregatedStockItem {
 export interface SalesPerformanceResponse {
   soldUnitsByModel: SalesPerformanceItem[];
   soldUnitsByBranch: Array<{ branch: string; unitsSold: number }>;
-  soldUnitsBySource: Array<{ sourceId: string; sourceName: string; country: string; unitsSold: number }>;
+  soldUnitsBySource: Array<{
+    sourceId: string;
+    sourceName: string;
+    country: string;
+    unitsSold: number;
+  }>;
   soldRevenue: number;
   customerGroupBreakdown: Array<{ customerGroup: string; unitsSold: number }>;
   topSellingModels: SalesPerformanceItem[];
@@ -223,6 +241,10 @@ export interface SalesPerformanceResponse {
 
 export interface DashboardSummary {
   metrics: {
+    totalRows: number;
+    uniqueChassisCount: number;
+    multiStatusChassisCount: number;
+    rowsInMultiStatusChassisGroups: number;
     totalUnits: number;
     currentStockUnits: number;
     soldUnits: number;

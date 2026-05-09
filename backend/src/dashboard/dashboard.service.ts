@@ -16,6 +16,11 @@ export class DashboardService {
 
         return {
             metrics: {
+                totalRows: summary.totalRows,
+                uniqueChassisCount: summary.uniqueChassisCount,
+                multiStatusChassisCount: summary.multiStatusChassisCount,
+                rowsInMultiStatusChassisGroups:
+                    summary.rowsInMultiStatusChassisGroups,
                 totalUnits: summary.totalUnits,
                 currentStockUnits: summary.currentStockUnits,
                 soldUnits: summary.soldUnits,
