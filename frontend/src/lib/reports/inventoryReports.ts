@@ -13,7 +13,7 @@ import type {
   SalesPerformanceResponse,
   StockCoverageItem,
 } from "@/types/inventory";
-import { sumMoney } from "@/lib/currency";
+import { createMoneyTotals, sumMoney } from "@/lib/currency";
 
 type Rule = {
   sourceId?: string | null;
@@ -80,20 +80,24 @@ function stockKey(item: InventoryItem) {
   return `${item.brand}|${item.model}|${item.exteriorColor}`;
 }
 
+function modelKey(item: InventoryItem) {
+  return `${item.brand}|${item.model}`;
+}
+
 export function calculateInventorySummary(items: InventoryItem[]): InventorySummary {
   const currentStock = items.filter((item) => item.isInStock);
   const soldLast90Days = sumQuantity(items.filter(soldInLast90Days));
   const averageMonthlySales = soldLast90Days / 3;
 
   return {
-    totalUnits: sumQuantity(items),
+    totalUnits: sumQuantity(currentStock),
     currentStockUnits: sumQuantity(currentStock),
     soldUnits: sumQuantity(items.filter((item) => item.isSold)),
     reservedUnits: sumQuantity(items.filter((item) => item.isReserved)),
-    fastMovingUnits: sumQuantity(items.filter((item) => item.movementCategory === "fast")),
-    mediumMovingUnits: sumQuantity(items.filter((item) => item.movementCategory === "medium")),
-    slowMovingUnits: sumQuantity(items.filter((item) => item.movementCategory === "slow")),
-    unknownAgeUnits: sumQuantity(items.filter((item) => item.movementCategory === "unknown")),
+    fastMovingUnits: sumQuantity(currentStock.filter((item) => item.movementCategory === "fast")),
+    mediumMovingUnits: sumQuantity(currentStock.filter((item) => item.movementCategory === "medium")),
+    slowMovingUnits: sumQuantity(currentStock.filter((item) => item.movementCategory === "slow")),
+    unknownAgeUnits: sumQuantity(currentStock.filter((item) => item.movementCategory === "unknown")),
     inTransitUnits: sumQuantity(items.filter((item) => item.estimatedArrival && !item.grpoDate && !item.isSold)),
     readyForSaleUnits: sumQuantity(items.filter((item) => item.isReadyForSale)),
     stockCoverageMonths: averageMonthlySales > 0 ? round(sumQuantity(currentStock) / averageMonthlySales) : null,
@@ -259,6 +263,19 @@ export function calculateSalesPerformance(items: InventoryItem[]): SalesPerforma
     unitsSold: sumQuantity(group),
     revenue: sumMoney(group, (item) => item.soldPrice),
   })).sort((a, b) => b.unitsSold - a.unitsSold || b.revenue.usd - a.revenue.usd);
+  const soldByModel = new Map(byModel.map((item) => [`${item.brand}|${item.model}`, item]));
+  const stockModels = groupBy(items.filter((item) => item.isInStock), modelKey, (group): SalesPerformanceItem => {
+    const soldModel = soldByModel.get(modelKey(group[0]));
+    return {
+      brand: group[0]?.brand ?? "",
+      model: group[0]?.model ?? "",
+      unitsSold: soldModel?.unitsSold ?? 0,
+      revenue: soldModel?.revenue ?? createMoneyTotals(),
+    };
+  });
+  const lowestSellingModels = [...new Map([...byModel, ...stockModels].map((item) => [`${item.brand}|${item.model}`, item])).values()]
+    .sort((a, b) => a.unitsSold - b.unitsSold || a.model.localeCompare(b.model))
+    .slice(0, 10);
 
   return {
     soldUnitsByModel: byModel,
@@ -278,7 +295,7 @@ export function calculateSalesPerformance(items: InventoryItem[]): SalesPerforma
       unitsSold: sumQuantity(group),
     })),
     topSellingModels: byModel.slice(0, 10),
-    lowestSellingModels: [...byModel].sort((a, b) => a.unitsSold - b.unitsSold).slice(0, 10),
+    lowestSellingModels,
     averageMovement: round(sumQuantity(sold) / Math.max(1, byModel.length)),
     breakdownByModel: byModel,
     breakdownByType: groupBy(sold, (item) => item.type || "Unknown", (group) => ({
@@ -353,16 +370,23 @@ export function calculateMultiLocation(items: InventoryItem[], rules: Rule[] = [
   const rebalancingRecommendations: RebalancingRecommendation[] = overstock.flatMap((from) =>
     understock
       .filter((to) => to.model === from.model && to.exteriorColor === from.exteriorColor && to.warehouse !== from.warehouse)
-      .map((to) => ({
-        brand: from.brand ?? "",
-        model: from.model ?? "",
-        exteriorColor: from.exteriorColor ?? "",
-        fromWarehouse: from.warehouse ?? "",
-        toWarehouse: to.warehouse ?? "",
-        fromSourceName: from.sourceName,
-        toSourceName: to.sourceName,
-        suggestedTransferQuantity: 1,
-      })),
+      .map((to) => {
+        const fromRule = resolveRuleFromLocation(from, rules);
+        const toRule = resolveRuleFromLocation(to, rules);
+        const surplus = Math.max(0, (from.currentStock ?? 0) - fromRule.maxStock);
+        const shortage = Math.max(0, toRule.minStock - (to.currentStock ?? 0));
+        return {
+          brand: from.brand ?? "",
+          model: from.model ?? "",
+          exteriorColor: from.exteriorColor ?? "",
+          fromWarehouse: from.warehouse ?? "",
+          toWarehouse: to.warehouse ?? "",
+          fromSourceName: from.sourceName,
+          toSourceName: to.sourceName,
+          suggestedTransferQuantity: Math.min(surplus, shortage),
+        };
+      })
+      .filter((item) => item.suggestedTransferQuantity > 0),
   );
 
   return {
@@ -422,11 +446,11 @@ export function calculateDashboardSummary(items: InventoryItem[], generatedAt: s
     salesPerformanceSnapshot: sales.topSellingModels.slice(0, 5),
     logisticsStatusSnapshot: logistics.slice(0, 10),
     meta: {
-      total: items.length,
+      total: summary.totalUnits,
       generatedAt,
       fromCache: true,
-      sourceCount: 0,
-      successfulSources: 0,
+      sourceCount: new Set(items.map((item) => item.sourceId).filter(Boolean)).size,
+      successfulSources: new Set(items.map((item) => item.sourceId).filter(Boolean)).size,
       failedSources: sourceErrors.length,
       errors: [],
     },

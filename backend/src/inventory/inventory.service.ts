@@ -7,7 +7,11 @@ import {
     InventorySummary,
 } from '../integrations/counterscreen/counterscreen.types';
 import { InventoryQueryDto } from './dto/inventory-query.dto';
-import { deriveLogisticsStatus, daysBetween, getOrderDate } from '../common/calculations/logistics';
+import {
+    deriveLogisticsStatus,
+    daysBetween,
+    getOrderDate,
+} from '../common/calculations/logistics';
 import { resolveStockRule } from '../common/calculations/stock-rules';
 import { getSalesKpis } from '../common/calculations/sales-metrics';
 import { StockRulesService } from '../stock-rules/stock-rules.service';
@@ -95,21 +99,25 @@ export class InventoryService {
         const averageMonthlySales = soldLast90Days / 3;
 
         return {
-            totalUnits: sumQuantity(data),
+            totalUnits: sumQuantity(currentStock),
             currentStockUnits: sumQuantity(currentStock),
             soldUnits: sumQuantity(sold),
             reservedUnits: sumQuantity(data.filter((item) => item.isReserved)),
             fastMovingUnits: sumQuantity(
-                data.filter((item) => item.movementCategory === 'fast'),
+                currentStock.filter((item) => item.movementCategory === 'fast'),
             ),
             mediumMovingUnits: sumQuantity(
-                data.filter((item) => item.movementCategory === 'medium'),
+                currentStock.filter(
+                    (item) => item.movementCategory === 'medium',
+                ),
             ),
             slowMovingUnits: sumQuantity(
-                data.filter((item) => item.movementCategory === 'slow'),
+                currentStock.filter((item) => item.movementCategory === 'slow'),
             ),
             unknownAgeUnits: sumQuantity(
-                data.filter((item) => item.movementCategory === 'unknown'),
+                currentStock.filter(
+                    (item) => item.movementCategory === 'unknown',
+                ),
             ),
             inTransitUnits: sumQuantity(
                 data.filter((item) => isInTransit(item)),
@@ -148,7 +156,19 @@ export class InventoryService {
         return Object.values(
             groupBy(data, stockKey, (items) => {
                 const sample = items[0];
-                const rule = sample ? resolveStockRule(sample, rules) : resolveStockRule({ sourceId: '', brand: '', model: '', type: '', exteriorColor: '', warehouse: '' }, rules);
+                const rule = sample
+                    ? resolveStockRule(sample, rules)
+                    : resolveStockRule(
+                          {
+                              sourceId: '',
+                              brand: '',
+                              model: '',
+                              type: '',
+                              exteriorColor: '',
+                              warehouse: '',
+                          },
+                          rules,
+                      );
                 const currentStock = sumQuantity(
                     items.filter((item) => item.isInStock),
                 );
@@ -247,11 +267,15 @@ export class InventoryService {
 
         return {
             byTypeColor: Object.values(
-                groupBy(inStock, (item) => `${item.type}|${item.exteriorColor}`, (items) => ({
-                    type: items[0]?.type ?? '',
-                    exteriorColor: items[0]?.exteriorColor ?? '',
-                    units: sumQuantity(items),
-                })),
+                groupBy(
+                    inStock,
+                    (item) => `${item.type}|${item.exteriorColor}`,
+                    (items) => ({
+                        type: items[0]?.type ?? '',
+                        exteriorColor: items[0]?.exteriorColor ?? '',
+                        units: sumQuantity(items),
+                    }),
+                ),
             ).sort((a, b) => b.units - a.units),
             byModelColor: Object.values(
                 groupBy(inStock, stockKey, (items) => ({
@@ -264,7 +288,8 @@ export class InventoryService {
             byWarehouseTypeColor: Object.values(
                 groupBy(
                     inStock,
-                    (item) => `${item.warehouse}|${item.type}|${item.exteriorColor}`,
+                    (item) =>
+                        `${item.warehouse}|${item.type}|${item.exteriorColor}`,
                     (items) => ({
                         warehouse: items[0]?.warehouse ?? '',
                         type: items[0]?.type ?? '',
@@ -292,6 +317,39 @@ export class InventoryService {
                 }),
             ),
         ).sort((a, b) => b.unitsSold - a.unitsSold);
+        const soldByModel = new Map(
+            byModel.map((item) => [`${item.brand}|${item.model}`, item]),
+        );
+        const stockedModels = Object.values(
+            groupBy(
+                data.filter((item) => item.isInStock),
+                (item) => `${item.brand}|${item.model}`,
+                (items) => {
+                    const soldModel = soldByModel.get(
+                        `${items[0]?.brand ?? ''}|${items[0]?.model ?? ''}`,
+                    );
+                    return {
+                        brand: items[0]?.brand ?? '',
+                        model: items[0]?.model ?? '',
+                        unitsSold: soldModel?.unitsSold ?? 0,
+                        revenue: soldModel?.revenue ?? 0,
+                    };
+                },
+            ),
+        );
+        const lowestSellingModels = [
+            ...new Map(
+                [...byModel, ...stockedModels].map((item) => [
+                    `${item.brand}|${item.model}`,
+                    item,
+                ]),
+            ).values(),
+        ]
+            .sort(
+                (a, b) =>
+                    a.unitsSold - b.unitsSold || a.model.localeCompare(b.model),
+            )
+            .slice(0, 10);
 
         return {
             soldUnitsByModel: byModel,
@@ -342,13 +400,51 @@ export class InventoryService {
             )
                 .sort((a, b) => b.unitsSold - a.unitsSold)
                 .slice(0, 10),
-            lowestSellingModels: [...byModel].sort((a, b) => a.unitsSold - b.unitsSold).slice(0, 10),
-            averageMovement: round(kpis.soldUnits / Math.max(1, byModel.length)),
+            lowestSellingModels,
+            averageMovement: round(
+                kpis.soldUnits / Math.max(1, byModel.length),
+            ),
             breakdownByModel: byModel,
-            breakdownByType: Object.values(groupBy(sold, (item) => item.type || 'Unknown', (items) => ({ type: items[0]?.type || 'Unknown', unitsSold: sumQuantity(items) }))),
-            breakdownByColor: Object.values(groupBy(sold, (item) => item.exteriorColor || 'Unknown', (items) => ({ exteriorColor: items[0]?.exteriorColor || 'Unknown', unitsSold: sumQuantity(items) }))),
-            breakdownByBranch: Object.values(groupBy(sold, (item) => item.branch || 'Unknown', (items) => ({ branch: items[0]?.branch || 'Unknown', unitsSold: sumQuantity(items) }))),
-            breakdownByCountry: Object.values(groupBy(sold, (item) => item.sourceCountry || 'Unknown', (items) => ({ country: items[0]?.sourceCountry || 'Unknown', unitsSold: sumQuantity(items) }))),
+            breakdownByType: Object.values(
+                groupBy(
+                    sold,
+                    (item) => item.type || 'Unknown',
+                    (items) => ({
+                        type: items[0]?.type || 'Unknown',
+                        unitsSold: sumQuantity(items),
+                    }),
+                ),
+            ),
+            breakdownByColor: Object.values(
+                groupBy(
+                    sold,
+                    (item) => item.exteriorColor || 'Unknown',
+                    (items) => ({
+                        exteriorColor: items[0]?.exteriorColor || 'Unknown',
+                        unitsSold: sumQuantity(items),
+                    }),
+                ),
+            ),
+            breakdownByBranch: Object.values(
+                groupBy(
+                    sold,
+                    (item) => item.branch || 'Unknown',
+                    (items) => ({
+                        branch: items[0]?.branch || 'Unknown',
+                        unitsSold: sumQuantity(items),
+                    }),
+                ),
+            ),
+            breakdownByCountry: Object.values(
+                groupBy(
+                    sold,
+                    (item) => item.sourceCountry || 'Unknown',
+                    (items) => ({
+                        country: items[0]?.sourceCountry || 'Unknown',
+                        unitsSold: sumQuantity(items),
+                    }),
+                ),
+            ),
             sellThroughRate: kpis.sellThroughRate,
             inventoryTurnover: kpis.inventoryTurnover,
         };
@@ -452,19 +548,53 @@ export class InventoryService {
                             to.exteriorColor === from.exteriorColor &&
                             to.warehouse !== from.warehouse,
                     )
-                    .map((to) => ({
-                        brand: from.brand,
-                        model: from.model,
-                        exteriorColor: from.exteriorColor,
-                        fromWarehouse: from.warehouse,
-                        toWarehouse: to.warehouse,
-                        fromSourceName: from.sourceName,
-                        toSourceName: to.sourceName,
-                        suggestedTransferQuantity: Math.max(
-                            1,
-                            Math.min(from.currentStock - 1, 1),
-                        ),
-                    })),
+                    .map((to) => {
+                        const fromRule = resolveStockRule(
+                            {
+                                sourceId: from.sourceId,
+                                brand: from.brand,
+                                model: from.model,
+                                type: '',
+                                exteriorColor: from.exteriorColor,
+                                warehouse: from.warehouse,
+                            },
+                            rules,
+                        );
+                        const toRule = resolveStockRule(
+                            {
+                                sourceId: to.sourceId,
+                                brand: to.brand,
+                                model: to.model,
+                                type: '',
+                                exteriorColor: to.exteriorColor,
+                                warehouse: to.warehouse,
+                            },
+                            rules,
+                        );
+                        const surplus = Math.max(
+                            0,
+                            from.currentStock - fromRule.maxStock,
+                        );
+                        const shortage = Math.max(
+                            0,
+                            toRule.minStock - to.currentStock,
+                        );
+
+                        return {
+                            brand: from.brand,
+                            model: from.model,
+                            exteriorColor: from.exteriorColor,
+                            fromWarehouse: from.warehouse,
+                            toWarehouse: to.warehouse,
+                            fromSourceName: from.sourceName,
+                            toSourceName: to.sourceName,
+                            suggestedTransferQuantity: Math.min(
+                                surplus,
+                                shortage,
+                            ),
+                        };
+                    })
+                    .filter((item) => item.suggestedTransferQuantity > 0),
             ),
         };
     }
@@ -531,17 +661,25 @@ export class InventoryService {
                     createdAt: response.meta.generatedAt,
                 })),
             ...coverage
-                .filter((item) => item.status === 'danger' || item.status === 'overstock')
+                .filter(
+                    (item) =>
+                        item.status === 'danger' || item.status === 'overstock',
+                )
                 .map((item) => ({
                     id: `coverage-${item.status}-${item.sourceId}-${item.model}-${item.exteriorColor}-${item.warehouse}`,
-                    title: item.status === 'danger' ? 'Coverage Danger' : 'Overstock',
+                    title:
+                        item.status === 'danger'
+                            ? 'Coverage Danger'
+                            : 'Overstock',
                     message: `${item.brand} ${item.model} coverage is ${item.coverageMonths ?? 'not available'} months.`,
                     severity: item.status === 'danger' ? 'critical' : 'warning',
                     branch: item.warehouse || item.sourceName || '',
                     createdAt: response.meta.generatedAt,
                 })),
             ...response.data
-                .filter((item) => item.isReserved && reservationAgeDays(item) > 30)
+                .filter(
+                    (item) => item.isReserved && reservationAgeDays(item) > 30,
+                )
                 .slice(0, 25)
                 .map((item) => ({
                     id: `old-reservation-${item.sourceId}-${item.chassis || item.itemCode}`,

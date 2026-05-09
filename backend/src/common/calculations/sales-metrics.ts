@@ -23,7 +23,9 @@ export function soldInLastDays(item: InventoryItem, days: number): boolean {
 
 export function getSalesKpis(items: InventoryItem[]) {
     const soldUnits = sumQuantity(items.filter((item) => item.isSold));
-    const currentStockUnits = sumQuantity(items.filter((item) => item.isInStock));
+    const currentStockUnits = sumQuantity(
+        items.filter((item) => item.isInStock),
+    );
     const denominator = soldUnits + currentStockUnits;
     // Until enough snapshots exist, current inventory is used as average inventory fallback.
     const averageInventory = currentStockUnits || denominator || 1;

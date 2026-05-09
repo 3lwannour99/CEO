@@ -9,10 +9,12 @@ import { MetaStrip } from "@/components/MetaStrip/MetaStrip";
 import { PageHeader } from "@/components/PageHeader/PageHeader";
 import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { StatusBadge } from "@/components/StatusBadge/StatusBadge";
+import { DASHBOARD_STATUS_CARDS } from "@/constants/statusCards";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
-import { formatNumber, formatValue } from "@/lib/apiClient";
-import { formatMoneyTotalsCompact } from "@/lib/currency";
+import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
+import { formatMoneyBundle, formatMoneyTotalsCompact } from "@/lib/currency";
+import { exportExcel } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
 import type { DashboardMetric, InventoryAlert, InventoryItem, LocationStock, LogisticsStatus, SalesPerformanceItem } from "@/types/inventory";
@@ -25,20 +27,51 @@ export default function DashboardPage() {
   const { filters, setFilters, resetFilters } = useGlobalFilters();
   const data = useMemo(() => inventoryData.getDashboardSummary(filters), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
+  const selectedStatuses = useMemo(() => new Set(filters.statuses.map(normalizeStatusValue)), [filters.statuses]);
+  const statusCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        DASHBOARD_STATUS_CARDS.map((card) => [
+          card.statusValue,
+          filteredItems
+            .filter((item) => itemMatchesStatusCard(item, card.statusValue))
+            .reduce((sum, item) => sum + (item.quantity || 1), 0),
+        ]),
+      ),
+    [filteredItems],
+  );
+
+  function applyStatusFilter(statusValue: string) {
+    const normalized = normalizeStatusValue(statusValue);
+    const alreadySelected = selectedStatuses.has(normalized);
+
+    const nextStatuses = alreadySelected
+      ? filters.statuses.filter((status) => normalizeStatusValue(status) !== normalized)
+      : [...filters.statuses, statusValue];
+
+    setFilters({ ...filters, statuses: nextStatuses });
+  }
+
+  function clearStatusFilter() {
+    setFilters({ ...filters, statuses: [] });
+  }
+
+  const percentOfStock = (value: number | undefined) =>
+    data.metrics.currentStockUnits > 0 ? `${formatNumber(Math.round(((value ?? 0) / data.metrics.currentStockUnits) * 100))}% ${t("table.currentStock")}` : formatValue(null);
   const metrics: DashboardMetric[] = [
-    { label: t("metrics.totalStockUnits"), value: formatNumber(data.metrics.totalUnits), trend: t("metrics.totalTrend"), tone: "positive" },
-    { label: t("table.currentStock"), value: formatNumber(data.metrics.currentStockUnits), trend: t("summary.liveData"), tone: "neutral" },
-    { label: t("metrics.fastMovingStock"), value: formatNumber(data.metrics.fastMovingUnits), trend: t("metrics.fastTrend"), tone: "positive" },
-    { label: t("metrics.mediumMovingStock"), value: formatNumber(data.metrics.mediumMovingUnits), trend: t("metrics.mediumTrend"), tone: "neutral" },
-    { label: t("metrics.slowMovingStock"), value: formatNumber(data.metrics.slowMovingUnits), trend: t("metrics.slowTrend"), tone: "warning" },
-    { label: t("metrics.stockCoverageMonths"), value: formatValue(data.metrics.stockCoverageMonths), trend: t("metrics.coverageTrend"), tone: "positive" },
+    { label: t("metrics.totalStockUnits"), value: formatNumber(data.metrics.currentStockUnits), trend: `${formatNumber(filteredItems.length)} ${t("table.total")} ${t("table.units")}`, tone: "positive" },
+    { label: t("table.currentStock"), value: formatNumber(data.metrics.currentStockUnits), trend: percentOfStock(data.metrics.currentStockUnits), tone: "neutral" },
+    { label: t("metrics.fastMovingStock"), value: formatNumber(data.metrics.fastMovingUnits), trend: percentOfStock(data.metrics.fastMovingUnits), tone: "positive" },
+    { label: t("metrics.mediumMovingStock"), value: formatNumber(data.metrics.mediumMovingUnits), trend: percentOfStock(data.metrics.mediumMovingUnits), tone: "neutral" },
+    { label: t("metrics.slowMovingStock"), value: formatNumber(data.metrics.slowMovingUnits), trend: percentOfStock(data.metrics.slowMovingUnits), tone: "warning" },
+    { label: t("metrics.stockCoverageMonths"), value: formatValue(data.metrics.stockCoverageMonths), trend: data.metrics.stockCoverageMonths === null ? t("status.unknown") : `${formatNumber(data.metrics.soldUnits)} ${t("table.soldUnits")}`, tone: "positive" },
     { label: t("table.sellThroughRate"), value: `${formatNumber(data.metrics.sellThroughRate)}%`, trend: t("sections.sales"), tone: "positive" },
     { label: t("table.inventoryTurnover"), value: formatNumber(data.metrics.inventoryTurnover), trend: t("sections.sales"), tone: "neutral" },
     { label: t("sections.autoAlerts"), value: formatNumber(data.metrics.alertCount), trend: t("sections.recentAlerts"), tone: "warning" },
     { label: t("sections.replenishmentSuggestions"), value: formatNumber(data.metrics.urgentReplenishmentCount), trend: t("table.urgency"), tone: "danger" },
     { label: t("table.delayedShipments"), value: formatNumber(data.metrics.delayedLogisticsCount), trend: t("sections.inbound"), tone: "warning" },
-    { label: t("metrics.reservedUnits"), value: formatNumber(data.metrics.reservedUnits), trend: t("metrics.reservedTrend"), tone: "neutral" },
-    { label: t("metrics.inTransitUnits"), value: formatNumber(data.metrics.inTransitUnits), trend: t("metrics.transitTrend"), tone: "warning" },
+    { label: t("metrics.reservedUnits"), value: formatNumber(data.metrics.reservedUnits), trend: `${formatNumber(data.metrics.reservedUnits)} ${t("table.reserved")}`, tone: "neutral" },
+    { label: t("metrics.inTransitUnits"), value: formatNumber(data.metrics.inTransitUnits), trend: `${formatNumber(data.metrics.inTransitUnits)} ${t("table.inTransit")}`, tone: "warning" },
   ];
   const inventoryColumns: DataTableColumn<InventoryItem>[] = [
     { key: "model", header: t("table.model"), render: (row) => `${row.brand} ${row.model}` },
@@ -71,6 +104,66 @@ export default function DashboardPage() {
     { key: "eta", header: t("table.eta"), render: (row) => formatValue(row.estimatedArrival ?? row.eta) },
     { key: "units", header: t("table.units"), render: (row) => formatNumber(row.units) },
   ];
+  const detailedColumns: DataTableColumn<InventoryItem>[] = [
+    { key: "status", header: t("table.columns.status"), render: (row) => <StatusBadge tone={row.normalizedStatus || "unknown"} />, searchValue: (row) => row.displayStatus || row.rawStatus || row.normalizedStatus, sortValue: (row) => row.displayStatus || row.rawStatus || row.normalizedStatus },
+    { key: "model", header: t("table.columns.model"), render: (row) => formatValue(row.model) },
+    { key: "type", header: t("table.columns.type"), render: (row) => formatValue(row.type) },
+    { key: "chassis", header: t("table.columns.chassis"), render: (row) => formatValue(row.chassis) },
+    { key: "exteriorColor", header: t("table.columns.exteriorColor"), render: (row) => formatValue(row.exteriorColor) },
+    { key: "interiorColor", header: t("table.columns.interiorColor"), render: (row) => formatValue(row.interiorColor) },
+    { key: "modelYear", header: t("table.columns.modelYear"), render: (row) => formatValue(row.modelYear) },
+    { key: "company", header: t("table.columns.company"), render: (row) => formatValue(row.sourceName), searchValue: (row) => row.sourceName, sortValue: (row) => row.sourceName },
+    { key: "warehouse", header: t("table.columns.warehouse"), render: (row) => formatValue(row.warehouse) },
+    { key: "branch", header: t("table.columns.branch"), render: (row) => formatValue(row.branch) },
+    { key: "customer", header: t("table.columns.customer"), render: (row) => formatValue(row.customerName) },
+    { key: "customerNumber", header: t("table.columns.customerNumber"), render: (row) => formatValue(row.customerNumber) },
+    { key: "recipientName", header: t("table.columns.recipientName"), render: (row) => formatValue(row.recipientName || row.uTanazol) },
+    { key: "recipientNumber", header: t("table.columns.recipientNumber"), render: (row) => formatValue(row.recipientNumber || row.uMobNum) },
+    { key: "salesman", header: t("table.columns.salesman"), render: (row) => formatValue(row.salesMan) },
+    { key: "customerGroup", header: t("table.columns.customerGroup"), render: (row) => formatValue(row.customerGroup) },
+    { key: "price", header: t("table.columns.price"), render: (row) => formatPrice(row, language, selectedCurrencies), searchValue: (row) => row.soldPrice || row.price1 || "", sortValue: (row) => row.soldPrice || row.price1 || 0 },
+    { key: "bank", header: t("table.columns.bank"), render: (row) => formatValue(row.bank) },
+    { key: "reserveDate", header: t("table.columns.reserveDate"), render: (row) => formatDate(row.reserveDate), sortValue: (row) => row.reserveDate },
+    { key: "reservationAge", header: t("table.columns.reservationAge"), render: (row) => formatReservationAge(row.reserveDate, language, t), sortValue: (row) => reservationAgeDays(row.reserveDate) ?? -1 },
+    { key: "salesDate", header: t("table.columns.salesDate"), render: (row) => formatDate(row.arInvoiceDate), sortValue: (row) => row.arInvoiceDate },
+    { key: "brand", header: t("table.columns.brand"), render: (row) => formatValue(row.brand) },
+    { key: "itemCode", header: t("table.columns.itemCode"), render: (row) => formatValue(row.itemCode) },
+    { key: "ready", header: t("table.columns.ready"), render: (row) => row.isReadyForSale ? t("summary.yes") : t("summary.no"), searchValue: (row) => row.isReadyForSale ? t("summary.yes") : t("summary.no"), sortValue: (row) => row.isReadyForSale },
+    { key: "arInvoiceNo", header: t("table.columns.arInvoiceNo"), render: (row) => formatValue(row.arInvoiceNo) },
+    { key: "daysInStock", header: t("table.columns.daysInStock"), render: (row) => formatValue(row.stockAgeDays), sortValue: (row) => row.stockAgeDays ?? -1 },
+  ];
+  const detailedExportRows = useMemo(
+    () =>
+      filteredItems.map((row) => ({
+        [t("table.columns.status")]: row.displayStatus || row.rawStatus || row.normalizedStatus,
+        [t("table.columns.model")]: row.model,
+        [t("table.columns.type")]: row.type,
+        [t("table.columns.chassis")]: row.chassis,
+        [t("table.columns.exteriorColor")]: row.exteriorColor,
+        [t("table.columns.interiorColor")]: row.interiorColor,
+        [t("table.columns.modelYear")]: row.modelYear,
+        [t("table.columns.company")]: row.sourceName,
+        [t("table.columns.warehouse")]: row.warehouse,
+        [t("table.columns.branch")]: row.branch,
+        [t("table.columns.customer")]: row.customerName,
+        [t("table.columns.customerNumber")]: row.customerNumber,
+        [t("table.columns.recipientName")]: row.recipientName || row.uTanazol,
+        [t("table.columns.recipientNumber")]: row.recipientNumber || row.uMobNum,
+        [t("table.columns.salesman")]: row.salesMan,
+        [t("table.columns.customerGroup")]: row.customerGroup,
+        [t("table.columns.price")]: formatPrice(row, language, selectedCurrencies),
+        [t("table.columns.bank")]: row.bank,
+        [t("table.columns.reserveDate")]: formatDate(row.reserveDate),
+        [t("table.columns.reservationAge")]: formatReservationAge(row.reserveDate, language, t),
+        [t("table.columns.salesDate")]: formatDate(row.arInvoiceDate),
+        [t("table.columns.brand")]: row.brand,
+        [t("table.columns.itemCode")]: row.itemCode,
+        [t("table.columns.ready")]: row.isReadyForSale ? t("summary.yes") : t("summary.no"),
+        [t("table.columns.arInvoiceNo")]: row.arInvoiceNo,
+        [t("table.columns.daysInStock")]: row.stockAgeDays ?? "",
+      })),
+    [filteredItems, language, selectedCurrencies, t],
+  );
 
   return (
     <>
@@ -86,6 +179,32 @@ export default function DashboardPage() {
         onRetry={() => void inventoryData.refreshData()}
         onReset={resetFilters}
       />
+      <SectionCard title={t("dashboard.statusCards.title")} eyebrow={t("dashboard.statusCards.description")}>
+        {filters.statuses.length > 0 ? (
+          <div className="report-actions">
+            <button className="report-button" type="button" onClick={clearStatusFilter} disabled={inventoryData.isBusy}>
+              {t("dashboard.statusCards.clearStatusFilter")}
+            </button>
+          </div>
+        ) : null}
+        <section className={styles.metricGrid} aria-label={t("dashboard.statusCards.title")}>
+          {DASHBOARD_STATUS_CARDS.map((card) => {
+            const isActive = selectedStatuses.has(normalizeStatusValue(card.statusValue));
+            return (
+              <DashboardCard
+                key={card.key}
+                label={t(card.labelKey)}
+                value={formatNumber(statusCounts[card.statusValue] ?? 0)}
+                trend={isActive ? t("dashboard.statusCards.activeFilter") : t("dashboard.statusCards.description")}
+                tone={card.tone}
+                onClick={() => applyStatusFilter(card.statusValue)}
+                isActive={isActive}
+                disabled={inventoryData.isBusy}
+              />
+            );
+          })}
+        </section>
+      </SectionCard>
       <section className={styles.metricGrid}>
         {metrics.map((metric) => (
           <DashboardCard key={metric.label} {...metric} />
@@ -119,9 +238,48 @@ export default function DashboardPage() {
           <DataTable columns={logisticsColumns} rows={data.logisticsStatusSnapshot} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
         </SectionCard>
       </section>
+      <div className="report-actions">
+        <button className="report-button primary" type="button" onClick={() => exportExcel("detailed-vehicle-list.xlsx", detailedExportRows)} disabled={inventoryData.isBusy}>
+          {t("actions.exportExcel")}
+        </button>
+      </div>
+      <SectionCard title={t("dashboard.detailedVehicleList.title")} eyebrow={t("dashboard.detailedVehicleList.description")} action={formatNumber(filteredItems.length)}>
+        <DataTable columns={detailedColumns} rows={filteredItems} maxVisibleRows={15} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
+      </SectionCard>
     </>
   );
 }
 
+function normalizeStatusValue(value: string | null | undefined) {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-")
+    .replace(/[^a-z-]/g, "")
+    .replace(/-/g, "");
+}
+
+function itemMatchesStatusCard(item: InventoryItem, statusValue: string) {
+  const target = normalizeStatusValue(statusValue);
+  return [item.normalizedStatus, item.rawStatus, item.displayStatus, item.chassisStatus].some((value) => normalizeStatusValue(String(value ?? "")) === target);
+}
+
+function reservationAgeDays(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : Math.max(0, Math.floor((Date.now() - date.getTime()) / 86_400_000));
+}
+
+function formatReservationAge(value: string | null | undefined, language: string, t: (key: string) => string) {
+  const days = reservationAgeDays(value);
+  return days === null ? "-" : `${new Intl.NumberFormat(language).format(days)} ${t("table.days")}`;
+}
+
+function formatPrice(row: InventoryItem, language: string, selectedCurrencies: Parameters<typeof formatMoneyTotalsCompact>[2]) {
+  const amount = row.soldPrice > 0 ? row.soldPrice : row.price1;
+  return formatMoneyBundle(amount, row, language, selectedCurrencies);
+}
 
 

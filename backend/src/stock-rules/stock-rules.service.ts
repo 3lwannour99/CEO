@@ -17,7 +17,10 @@ export class StockRulesService {
     }
 
     update(id: string, dto: StockRuleDto) {
-        return this.prisma.stockRule.update({ where: { id }, data: sanitize(dto) });
+        return this.prisma.stockRule.update({
+            where: { id },
+            data: sanitize(dto),
+        });
     }
 
     remove(id: string) {

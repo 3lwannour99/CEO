@@ -19,16 +19,28 @@
   font-size: 0.76rem;
   font-weight: 900;
   cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
 }
 
 .option:last-child {
   border-inline-end: 0;
 }
 
-.option:hover,
+.option:hover:not(:disabled) {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
 .active {
   color: var(--color-accent-contrast);
   background: var(--color-accent);
+}
+
+.active:hover:not(:disabled) {
+  color: var(--color-accent-contrast);
+  background: color-mix(in srgb, var(--color-accent) 82%, white);
 }
 
 .option:disabled {
@@ -41,4 +53,3 @@
     min-width: 42px;
   }
 }
-

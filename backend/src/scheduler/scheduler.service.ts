@@ -34,7 +34,9 @@ export class SchedulerService {
             });
         } catch (error) {
             const message =
-                error instanceof Error ? error.message : 'Unknown scheduler error';
+                error instanceof Error
+                    ? error.message
+                    : 'Unknown scheduler error';
             this.logger.error(message);
             await this.prisma.scheduledReportRun.update({
                 where: { id: run.id },

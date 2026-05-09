@@ -24,7 +24,8 @@ export class SnapshotsService {
                     `${item.sourceId}|${item.brand}|${item.model}|${item.type}|${item.exteriorColor}|${item.warehouse}`,
                 (group) => {
                     const valueSar = group.reduce(
-                        (sum, item) => sum + (item.price1 ?? item.soldPrice ?? 0),
+                        (sum, item) =>
+                            sum + (item.price1 ?? item.soldPrice ?? 0),
                         0,
                     );
                     return {
@@ -72,26 +73,32 @@ export class SnapshotsService {
         });
 
         return Object.values(
-            groupBy(snapshots, (snapshot) => toMonth(snapshot.snapshotDate), (group, month) => {
-                const latest = group[group.length - 1];
-                return {
-                    month,
-                    totalUnits: latest?.totalUnits ?? 0,
-                    slowUnits: latest?.slowUnits ?? 0,
-                    mediumUnits: latest?.mediumUnits ?? 0,
-                    fastUnits: latest?.fastUnits ?? 0,
-                    soldUnits: latest?.soldUnits ?? 0,
-                    reservedUnits: latest?.reservedUnits ?? 0,
-                    stockValueSar: latest?.totalValueSar ?? 0,
-                    stockValueJod: latest?.totalValueJod ?? 0,
-                    stockValueUsd: latest?.totalValueUsd ?? 0,
-                };
-            }),
+            groupBy(
+                snapshots,
+                (snapshot) => toMonth(snapshot.snapshotDate),
+                (group, month) => {
+                    const latest = group[group.length - 1];
+                    return {
+                        month,
+                        totalUnits: latest?.totalUnits ?? 0,
+                        slowUnits: latest?.slowUnits ?? 0,
+                        mediumUnits: latest?.mediumUnits ?? 0,
+                        fastUnits: latest?.fastUnits ?? 0,
+                        soldUnits: latest?.soldUnits ?? 0,
+                        reservedUnits: latest?.reservedUnits ?? 0,
+                        stockValueSar: latest?.totalValueSar ?? 0,
+                        stockValueJod: latest?.totalValueJod ?? 0,
+                        stockValueUsd: latest?.totalValueUsd ?? 0,
+                    };
+                },
+            ),
         );
     }
 }
 
-function buildTotals(items: Awaited<ReturnType<InventoryService['findAll']>>['data']) {
+function buildTotals(
+    items: Awaited<ReturnType<InventoryService['findAll']>>['data'],
+) {
     const totalValueSar = items
         .filter((item) => item.isInStock)
         .reduce((sum, item) => sum + (item.price1 ?? item.soldPrice ?? 0), 0);
@@ -101,9 +108,15 @@ function buildTotals(items: Awaited<ReturnType<InventoryService['findAll']>>['da
         soldUnits: sumUnits(items.filter((item) => item.isSold)),
         reservedUnits: sumUnits(items.filter((item) => item.isReserved)),
         inStockUnits: sumUnits(items.filter((item) => item.isInStock)),
-        slowUnits: sumUnits(items.filter((item) => item.movementCategory === 'slow')),
-        mediumUnits: sumUnits(items.filter((item) => item.movementCategory === 'medium')),
-        fastUnits: sumUnits(items.filter((item) => item.movementCategory === 'fast')),
+        slowUnits: sumUnits(
+            items.filter((item) => item.movementCategory === 'slow'),
+        ),
+        mediumUnits: sumUnits(
+            items.filter((item) => item.movementCategory === 'medium'),
+        ),
+        fastUnits: sumUnits(
+            items.filter((item) => item.movementCategory === 'fast'),
+        ),
         totalValueSar,
         totalValueJod: totalValueSar * SAR_TO_JOD,
         totalValueUsd: totalValueSar * SAR_TO_USD,

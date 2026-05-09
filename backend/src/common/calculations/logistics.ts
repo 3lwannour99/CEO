@@ -8,12 +8,15 @@ export type LogisticsDerivedStatus =
     | 'Sold'
     | 'Unknown';
 
-export function deriveLogisticsStatus(item: InventoryItem): LogisticsDerivedStatus {
+export function deriveLogisticsStatus(
+    item: InventoryItem,
+): LogisticsDerivedStatus {
     if (item.normalizedStatus === 'sold') {
         return 'Sold';
     }
 
-    const haystack = `${item.notes} ${item.warehouse} ${item.rawStatus} ${item.displayStatus} ${item.soRemarks} ${item.additionalRemark}`.toLowerCase();
+    const haystack =
+        `${item.notes} ${item.warehouse} ${item.rawStatus} ${item.displayStatus} ${item.soRemarks} ${item.additionalRemark}`.toLowerCase();
 
     if (haystack.includes('custom')) {
         return 'Customs';

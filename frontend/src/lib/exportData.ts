@@ -1,3 +1,5 @@
+import * as XLSX from "xlsx";
+
 type ExportRow = object;
 
 export function exportCsv(filename: string, rows: ExportRow[]) {
@@ -6,8 +8,10 @@ export function exportCsv(filename: string, rows: ExportRow[]) {
 }
 
 export function exportExcel(filename: string, rows: ExportRow[]) {
-  const table = `<table>${rowsToHtml(rows)}</table>`;
-  downloadBlob(filename.endsWith(".xls") ? filename : `${filename}.xls`, new Blob([table], { type: "application/vnd.ms-excel;charset=utf-8" }));
+  const worksheet = XLSX.utils.json_to_sheet(rows.map(flattenRow));
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+  XLSX.writeFile(workbook, normalizeExcelFilename(filename));
 }
 
 export function exportPdf(filename: string, rows: ExportRow[]) {
@@ -36,8 +40,37 @@ function toCsv(rows: ExportRow[]) {
 }
 
 function csvCell(value: unknown) {
-  const text = value === null || value === undefined ? "" : String(value);
+  const text = value === null || value === undefined ? "" : cleanExportText(String(value));
   return `"${text.replace(/"/g, '""')}"`;
+}
+
+function normalizeExcelFilename(filename: string) {
+  return filename.replace(/\.xls$/i, ".xlsx").replace(/(\.xlsx)?$/i, ".xlsx");
+}
+
+function flattenRow(row: ExportRow) {
+  return Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [key, exportValue(value)]),
+  );
+}
+
+function exportValue(value: unknown): string | number | boolean | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return typeof value === "string" ? cleanExportText(value) : value;
+  }
+
+  return cleanExportText(JSON.stringify(value));
+}
+
+function cleanExportText(value: string) {
+  return value
+    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "")
+    .replace(/\s*Â·\s*/g, " · ")
+    .trim();
 }
 
 function rowsToHtml(rows: ExportRow[]) {

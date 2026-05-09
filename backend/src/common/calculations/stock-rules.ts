@@ -79,6 +79,7 @@ export function resolveStockRule(
 
 function matches(ruleValue: string | null | undefined, itemValue: string) {
     return (
-        !ruleValue || ruleValue.toLowerCase() === (itemValue || '').toLowerCase()
+        !ruleValue ||
+        ruleValue.toLowerCase() === (itemValue || '').toLowerCase()
     );
 }

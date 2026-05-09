@@ -100,6 +100,10 @@ export interface InventoryItem {
   contractDate: string;
   reserveDate: string;
   customerNumber: string;
+  recipientName: string;
+  recipientNumber: string;
+  uTanazol: string;
+  uMobNum: string;
   soRemarks: string;
   additionalRemark: string;
   sourceId: string;
@@ -140,7 +144,7 @@ export interface DashboardMetric {
   label: string;
   value: string;
   trend: string;
-  tone: "neutral" | "positive" | "warning" | "danger";
+  tone: "neutral" | "positive" | "warning" | "danger" | "green" | "yellow" | "blue" | "purple" | "red" | "pink";
 }
 
 export interface InventoryAlert {

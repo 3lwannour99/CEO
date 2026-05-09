@@ -46,6 +46,8 @@ function buildSearchableText(item: InventoryItem) {
     item.warehouse,
     item.customerName,
     item.customerGroup,
+    item.recipientName,
+    item.recipientNumber,
     item.salesMan,
     item.poNo,
     item.arInvoiceNo,
