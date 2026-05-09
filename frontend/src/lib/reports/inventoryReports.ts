@@ -133,7 +133,7 @@ export function calculateInventorySummary(items: InventoryItem[]): InventorySumm
     uniqueChassisCount: chassisGroups.length,
     multiStatusChassisCount: multiStatusGroups.length,
     rowsInMultiStatusChassisGroups: multiStatusGroups.reduce((sum, group) => sum + group.length, 0),
-    totalUnits: sumQuantity(items),
+    totalUnits: sumQuantity(currentStock),
     currentStockUnits: sumQuantity(currentStock),
     soldUnits: sumQuantity(items.filter((item) => item.isSold)),
     reservedUnits: sumQuantity(items.filter((item) => item.isReserved)),

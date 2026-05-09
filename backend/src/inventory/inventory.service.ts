@@ -110,7 +110,7 @@ export class InventoryService {
                 (sum, items) => sum + items.length,
                 0,
             ),
-            totalUnits: sumQuantity(data),
+            totalUnits: sumQuantity(currentStock),
             currentStockUnits: sumQuantity(currentStock),
             soldUnits: sumQuantity(sold),
             reservedUnits: sumQuantity(data.filter((item) => item.isReserved)),

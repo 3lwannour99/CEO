@@ -288,4 +288,3 @@ function formatPrice(row: InventoryItem, language: string, selectedCurrencies: P
   return formatMoneyBundle(amount, row, language, selectedCurrencies);
 }
 
-
