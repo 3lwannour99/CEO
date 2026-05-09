@@ -55,8 +55,6 @@ export class InventoryService {
         private readonly stockRulesService: StockRulesService,
         private readonly inventorySyncService: InventorySyncService,
         private readonly prisma: PrismaService,
-        private readonly stockRulesService: StockRulesService,
-        private readonly counterScreenService: CounterScreenService,
     ) {}
 
     async findAll(query: InventoryQueryDto): Promise<InventoryResponse> {
@@ -113,7 +111,6 @@ export class InventoryService {
                 (sum, items) => sum + items.length,
                 0,
             ),
-            totalUnits: sumQuantity(currentStock),
             currentStockUnits: sumQuantity(currentStock),
             soldUnits: sumQuantity(sold),
             reservedUnits: sumQuantity(data.filter((item) => item.isReserved)),
