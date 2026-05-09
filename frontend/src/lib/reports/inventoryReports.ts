@@ -47,7 +47,11 @@ function round(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-function groupBy<T, R>(items: T[], keyFactory: (item: T) => string, mapper: (items: T[]) => R): R[] {
+function groupBy<T, R>(
+  items: T[],
+  keyFactory: (item: T) => string,
+  mapper: (items: T[]) => R,
+): R[] {
   const groups = items.reduce<Record<string, T[]>>((acc, item) => {
     const key = keyFactory(item) || "Unknown";
     acc[key] = acc[key] ?? [];
@@ -84,34 +88,64 @@ function modelKey(item: InventoryItem) {
   return `${item.brand}|${item.model}`;
 }
 
+function chassisGroupKey(item: InventoryItem) {
+  return `${item.sourceId}|${item.chassis}`;
+}
+
 export function calculateInventorySummary(items: InventoryItem[]): InventorySummary {
   const currentStock = items.filter((item) => item.isInStock);
   const soldLast90Days = sumQuantity(items.filter(soldInLast90Days));
   const averageMonthlySales = soldLast90Days / 3;
+  const chassisGroups = groupBy(
+    items.filter((item) => Boolean(item.chassis)),
+    chassisGroupKey,
+    (group) => group,
+  );
+  const multiStatusGroups = chassisGroups.filter((group) => group.length > 1);
 
   return {
+    totalRows: items.length,
+    uniqueChassisCount: chassisGroups.length,
+    multiStatusChassisCount: multiStatusGroups.length,
+    rowsInMultiStatusChassisGroups: multiStatusGroups.reduce((sum, group) => sum + group.length, 0),
     totalUnits: sumQuantity(currentStock),
     currentStockUnits: sumQuantity(currentStock),
     soldUnits: sumQuantity(items.filter((item) => item.isSold)),
     reservedUnits: sumQuantity(items.filter((item) => item.isReserved)),
     fastMovingUnits: sumQuantity(currentStock.filter((item) => item.movementCategory === "fast")),
-    mediumMovingUnits: sumQuantity(currentStock.filter((item) => item.movementCategory === "medium")),
+    mediumMovingUnits: sumQuantity(
+      currentStock.filter((item) => item.movementCategory === "medium"),
+    ),
     slowMovingUnits: sumQuantity(currentStock.filter((item) => item.movementCategory === "slow")),
-    unknownAgeUnits: sumQuantity(currentStock.filter((item) => item.movementCategory === "unknown")),
-    inTransitUnits: sumQuantity(items.filter((item) => item.estimatedArrival && !item.grpoDate && !item.isSold)),
+    unknownAgeUnits: sumQuantity(
+      currentStock.filter((item) => item.movementCategory === "unknown"),
+    ),
+    inTransitUnits: sumQuantity(
+      items.filter((item) => item.estimatedArrival && !item.grpoDate && !item.isSold),
+    ),
     readyForSaleUnits: sumQuantity(items.filter((item) => item.isReadyForSale)),
-    stockCoverageMonths: averageMonthlySales > 0 ? round(sumQuantity(currentStock) / averageMonthlySales) : null,
-    sources: groupBy(items, (item) => item.sourceId, (group) => ({
-      sourceId: group[0]?.sourceId ?? "",
-      sourceName: group[0]?.sourceName ?? "",
-      country: group[0]?.sourceCountry ?? "",
-      totalUnits: sumQuantity(group),
-      currentStockUnits: sumQuantity(group.filter((item) => item.isInStock)),
-    })),
+    stockCoverageMonths:
+      averageMonthlySales > 0 ? round(sumQuantity(currentStock) / averageMonthlySales) : null,
+    sources: groupBy(
+      items,
+      (item) => item.sourceId,
+      (group) => ({
+        sourceId: group[0]?.sourceId ?? "",
+        sourceName: group[0]?.sourceName ?? "",
+        country: group[0]?.sourceCountry ?? "",
+        totalUnits: sumQuantity(group),
+        currentStockUnits: sumQuantity(group.filter((item) => item.isInStock)),
+      }),
+    ),
   };
 }
 
-export function calculateAlerts(items: InventoryItem[], generatedAt: string, sourceErrors = [] as { sourceId: string; sourceName: string }[], rules: Rule[] = []): InventoryAlert[] {
+export function calculateAlerts(
+  items: InventoryItem[],
+  generatedAt: string,
+  sourceErrors = [] as { sourceId: string; sourceName: string }[],
+  rules: Rule[] = [],
+): InventoryAlert[] {
   const replenishment = calculateReplenishment(items, rules);
   const coverage = calculateStockCoverage(items, rules);
   return [
@@ -189,7 +223,10 @@ export function calculateAlerts(items: InventoryItem[], generatedAt: string, sou
   ];
 }
 
-export function calculateReplenishment(items: InventoryItem[], rules: Rule[] = []): ReplenishmentSuggestion[] {
+export function calculateReplenishment(
+  items: InventoryItem[],
+  rules: Rule[] = [],
+): ReplenishmentSuggestion[] {
   return groupBy(items, stockKey, (group) => {
     const sample = group[0];
     const rule = sample ? resolveRule(sample, rules) : defaultRule;
@@ -201,7 +238,13 @@ export function calculateReplenishment(items: InventoryItem[], rules: Rule[] = [
     const leadTimeDemand = averageDailySales * rule.leadTimeDays;
     const suggestedOrderQuantity = Math.max(0, rule.maxStock - currentStock);
     const urgency: ReplenishmentSuggestion["urgency"] =
-      currentStock <= rule.minStock ? "critical" : currentStock <= rule.reorderPoint ? "high" : suggestedOrderQuantity > 0 ? "medium" : "low";
+      currentStock <= rule.minStock
+        ? "critical"
+        : currentStock <= rule.reorderPoint
+          ? "high"
+          : suggestedOrderQuantity > 0
+            ? "medium"
+            : "low";
 
     return {
       brand: group[0]?.brand ?? "",
@@ -232,13 +275,28 @@ export function calculateReplenishment(items: InventoryItem[], rules: Rule[] = [
               ? "Stock is below max target."
               : "Stock is within configured range.",
     };
-  }).sort((a, b) => urgencyRank(b.urgency) - urgencyRank(a.urgency) || b.suggestedOrderQuantity - a.suggestedOrderQuantity);
+  }).sort(
+    (a, b) =>
+      urgencyRank(b.urgency) - urgencyRank(a.urgency) ||
+      b.suggestedOrderQuantity - a.suggestedOrderQuantity,
+  );
 }
 
-export function calculateStockCoverage(items: InventoryItem[], rules: Rule[] = []): StockCoverageItem[] {
+export function calculateStockCoverage(
+  items: InventoryItem[],
+  rules: Rule[] = [],
+): StockCoverageItem[] {
   return calculateReplenishment(items, rules).map((item) => {
-    const coverageMonths = item.averageMonthlySales > 0 ? round(item.currentStock / item.averageMonthlySales) : null;
-    const status = coverageMonths === null ? "noSalesData" : coverageMonths < 1 ? "danger" : coverageMonths > 4 ? "overstock" : "healthy";
+    const coverageMonths =
+      item.averageMonthlySales > 0 ? round(item.currentStock / item.averageMonthlySales) : null;
+    const status =
+      coverageMonths === null
+        ? "noSalesData"
+        : coverageMonths < 1
+          ? "danger"
+          : coverageMonths > 4
+            ? "overstock"
+            : "healthy";
     return {
       ...item,
       coverageMonths,
@@ -257,75 +315,119 @@ export function calculateStockCoverage(items: InventoryItem[], rules: Rule[] = [
 
 export function calculateSalesPerformance(items: InventoryItem[]): SalesPerformanceResponse {
   const sold = items.filter((item) => item.isSold);
-  const byModel = groupBy(sold, (item) => `${item.brand}|${item.model}`, (group): SalesPerformanceItem => ({
-    brand: group[0]?.brand ?? "",
-    model: group[0]?.model ?? "",
-    unitsSold: sumQuantity(group),
-    revenue: sumMoney(group, (item) => item.soldPrice),
-  })).sort((a, b) => b.unitsSold - a.unitsSold || b.revenue.usd - a.revenue.usd);
-  const soldByModel = new Map(byModel.map((item) => [`${item.brand}|${item.model}`, item]));
-  const stockModels = groupBy(items.filter((item) => item.isInStock), modelKey, (group): SalesPerformanceItem => {
-    const soldModel = soldByModel.get(modelKey(group[0]));
-    return {
+  const byModel = groupBy(
+    sold,
+    (item) => `${item.brand}|${item.model}`,
+    (group): SalesPerformanceItem => ({
       brand: group[0]?.brand ?? "",
       model: group[0]?.model ?? "",
-      unitsSold: soldModel?.unitsSold ?? 0,
-      revenue: soldModel?.revenue ?? createMoneyTotals(),
-    };
-  });
-  const lowestSellingModels = [...new Map([...byModel, ...stockModels].map((item) => [`${item.brand}|${item.model}`, item])).values()]
+      unitsSold: sumQuantity(group),
+      revenue: sumMoney(group, (item) => item.soldPrice),
+    }),
+  ).sort((a, b) => b.unitsSold - a.unitsSold || b.revenue.usd - a.revenue.usd);
+  const soldByModel = new Map(byModel.map((item) => [`${item.brand}|${item.model}`, item]));
+  const stockModels = groupBy(
+    items.filter((item) => item.isInStock),
+    modelKey,
+    (group): SalesPerformanceItem => {
+      const soldModel = soldByModel.get(modelKey(group[0]));
+      return {
+        brand: group[0]?.brand ?? "",
+        model: group[0]?.model ?? "",
+        unitsSold: soldModel?.unitsSold ?? 0,
+        revenue: soldModel?.revenue ?? createMoneyTotals(),
+      };
+    },
+  );
+  const lowestSellingModels = [
+    ...new Map(
+      [...byModel, ...stockModels].map((item) => [`${item.brand}|${item.model}`, item]),
+    ).values(),
+  ]
     .sort((a, b) => a.unitsSold - b.unitsSold || a.model.localeCompare(b.model))
     .slice(0, 10);
 
   return {
     soldUnitsByModel: byModel,
-    soldUnitsByBranch: groupBy(sold, (item) => item.branch || "Unknown", (group) => ({
-      branch: group[0]?.branch || "Unknown",
-      unitsSold: sumQuantity(group),
-    })),
-    soldUnitsBySource: groupBy(sold, (item) => item.sourceId, (group) => ({
-      sourceId: group[0]?.sourceId ?? "",
-      sourceName: group[0]?.sourceName ?? "",
-      country: group[0]?.sourceCountry ?? "",
-      unitsSold: sumQuantity(group),
-    })),
+    soldUnitsByBranch: groupBy(
+      sold,
+      (item) => item.branch || "Unknown",
+      (group) => ({
+        branch: group[0]?.branch || "Unknown",
+        unitsSold: sumQuantity(group),
+      }),
+    ),
+    soldUnitsBySource: groupBy(
+      sold,
+      (item) => item.sourceId,
+      (group) => ({
+        sourceId: group[0]?.sourceId ?? "",
+        sourceName: group[0]?.sourceName ?? "",
+        country: group[0]?.sourceCountry ?? "",
+        unitsSold: sumQuantity(group),
+      }),
+    ),
     soldRevenue: sumMoney(sold, (item) => item.soldPrice),
-    customerGroupBreakdown: groupBy(sold, (item) => item.customerGroup || "Unknown", (group) => ({
-      customerGroup: group[0]?.customerGroup || "Unknown",
-      unitsSold: sumQuantity(group),
-    })),
+    customerGroupBreakdown: groupBy(
+      sold,
+      (item) => item.customerGroup || "Unknown",
+      (group) => ({
+        customerGroup: group[0]?.customerGroup || "Unknown",
+        unitsSold: sumQuantity(group),
+      }),
+    ),
     topSellingModels: byModel.slice(0, 10),
     lowestSellingModels,
     averageMovement: round(sumQuantity(sold) / Math.max(1, byModel.length)),
     breakdownByModel: byModel,
-    breakdownByType: groupBy(sold, (item) => item.type || "Unknown", (group) => ({
-      type: group[0]?.type || "Unknown",
-      unitsSold: sumQuantity(group),
-    })),
-    breakdownByColor: groupBy(sold, (item) => item.exteriorColor || "Unknown", (group) => ({
-      exteriorColor: group[0]?.exteriorColor || "Unknown",
-      unitsSold: sumQuantity(group),
-    })),
-    breakdownByBranch: groupBy(sold, (item) => item.branch || "Unknown", (group) => ({
-      branch: group[0]?.branch || "Unknown",
-      unitsSold: sumQuantity(group),
-    })),
-    breakdownByCountry: groupBy(sold, (item) => item.sourceCountry || "Unknown", (group) => ({
-      country: group[0]?.sourceCountry || "Unknown",
-      unitsSold: sumQuantity(group),
-    })),
+    breakdownByType: groupBy(
+      sold,
+      (item) => item.type || "Unknown",
+      (group) => ({
+        type: group[0]?.type || "Unknown",
+        unitsSold: sumQuantity(group),
+      }),
+    ),
+    breakdownByColor: groupBy(
+      sold,
+      (item) => item.exteriorColor || "Unknown",
+      (group) => ({
+        exteriorColor: group[0]?.exteriorColor || "Unknown",
+        unitsSold: sumQuantity(group),
+      }),
+    ),
+    breakdownByBranch: groupBy(
+      sold,
+      (item) => item.branch || "Unknown",
+      (group) => ({
+        branch: group[0]?.branch || "Unknown",
+        unitsSold: sumQuantity(group),
+      }),
+    ),
+    breakdownByCountry: groupBy(
+      sold,
+      (item) => item.sourceCountry || "Unknown",
+      (group) => ({
+        country: group[0]?.sourceCountry || "Unknown",
+        unitsSold: sumQuantity(group),
+      }),
+    ),
     sellThroughRate: sellThroughRate(items),
     inventoryTurnover: inventoryTurnover(items),
   };
 }
 
 export function calculateAggregatedStock(items: InventoryItem[]): AggregatedStockItem[] {
-  return groupBy(items.filter((item) => item.isInStock), stockKey, (group) => ({
-    brand: group[0]?.brand ?? "",
-    model: group[0]?.model ?? "",
-    exteriorColor: group[0]?.exteriorColor ?? "",
-    units: sumQuantity(group),
-  })).sort((a, b) => b.units - a.units);
+  return groupBy(
+    items.filter((item) => item.isInStock),
+    stockKey,
+    (group) => ({
+      brand: group[0]?.brand ?? "",
+      model: group[0]?.model ?? "",
+      exteriorColor: group[0]?.exteriorColor ?? "",
+      units: sumQuantity(group),
+    }),
+  ).sort((a, b) => b.units - a.units);
 }
 
 export function calculateLogistics(items: InventoryItem[]): LogisticsStatus[] {
@@ -350,10 +452,14 @@ export function calculateLogistics(items: InventoryItem[]): LogisticsStatus[] {
     }));
 }
 
-export function calculateMultiLocation(items: InventoryItem[], rules: Rule[] = []): MultiLocationReport {
+export function calculateMultiLocation(
+  items: InventoryItem[],
+  rules: Rule[] = [],
+): MultiLocationReport {
   const stockByLocation = groupBy(
     items.filter((item) => item.isInStock),
-    (item) => `${item.sourceId}|${item.branch}|${item.warehouse}|${item.brand}|${item.model}|${item.exteriorColor}`,
+    (item) =>
+      `${item.sourceId}|${item.branch}|${item.warehouse}|${item.brand}|${item.model}|${item.exteriorColor}`,
     (group) => ({
       sourceName: group[0]?.sourceName ?? "",
       country: group[0]?.sourceCountry ?? "",
@@ -365,11 +471,20 @@ export function calculateMultiLocation(items: InventoryItem[], rules: Rule[] = [
       currentStock: sumQuantity(group),
     }),
   );
-  const overstock = stockByLocation.filter((location) => (location.currentStock ?? 0) > resolveRuleFromLocation(location, rules).maxStock);
-  const understock = stockByLocation.filter((location) => (location.currentStock ?? 0) < resolveRuleFromLocation(location, rules).minStock);
+  const overstock = stockByLocation.filter(
+    (location) => (location.currentStock ?? 0) > resolveRuleFromLocation(location, rules).maxStock,
+  );
+  const understock = stockByLocation.filter(
+    (location) => (location.currentStock ?? 0) < resolveRuleFromLocation(location, rules).minStock,
+  );
   const rebalancingRecommendations: RebalancingRecommendation[] = overstock.flatMap((from) =>
     understock
-      .filter((to) => to.model === from.model && to.exteriorColor === from.exteriorColor && to.warehouse !== from.warehouse)
+      .filter(
+        (to) =>
+          to.model === from.model &&
+          to.exteriorColor === from.exteriorColor &&
+          to.warehouse !== from.warehouse,
+      )
       .map((to) => {
         const fromRule = resolveRuleFromLocation(from, rules);
         const toRule = resolveRuleFromLocation(to, rules);
@@ -397,7 +512,12 @@ export function calculateMultiLocation(items: InventoryItem[], rules: Rule[] = [
   };
 }
 
-export function calculateDashboardSummary(items: InventoryItem[], generatedAt: string, sourceErrors = [] as { sourceId: string; sourceName: string }[], rules: Rule[] = []): DashboardSummary {
+export function calculateDashboardSummary(
+  items: InventoryItem[],
+  generatedAt: string,
+  sourceErrors = [] as { sourceId: string; sourceName: string }[],
+  rules: Rule[] = [],
+): DashboardSummary {
   const summary = calculateInventorySummary(items);
   const sales = calculateSalesPerformance(items);
   const alerts = calculateAlerts(items, generatedAt, sourceErrors, rules);
@@ -407,6 +527,10 @@ export function calculateDashboardSummary(items: InventoryItem[], generatedAt: s
 
   return {
     metrics: {
+      totalRows: summary.totalRows,
+      uniqueChassisCount: summary.uniqueChassisCount,
+      multiStatusChassisCount: summary.multiStatusChassisCount,
+      rowsInMultiStatusChassisGroups: summary.rowsInMultiStatusChassisGroups,
       totalUnits: summary.totalUnits,
       currentStockUnits: summary.currentStockUnits,
       soldUnits: summary.soldUnits,
@@ -420,13 +544,20 @@ export function calculateDashboardSummary(items: InventoryItem[], generatedAt: s
       sellThroughRate: sales.sellThroughRate,
       inventoryTurnover: sales.inventoryTurnover,
       alertCount: alerts.length,
-      urgentReplenishmentCount: replenishment.filter((item) => item.urgency === "critical" || item.urgency === "high").length,
+      urgentReplenishmentCount: replenishment.filter(
+        (item) => item.urgency === "critical" || item.urgency === "high",
+      ).length,
       delayedLogisticsCount: logistics.filter((item) => item.isDelayed).length,
     },
     inventoryStatusSummary: {
-      readyPercent: summary.currentStockUnits > 0 ? Math.round((summary.readyForSaleUnits / summary.currentStockUnits) * 100) : 0,
+      readyPercent:
+        summary.currentStockUnits > 0
+          ? Math.round((summary.readyForSaleUnits / summary.currentStockUnits) * 100)
+          : 0,
       reservedUnits: summary.reservedUnits,
-      serviceHoldUnits: items.filter((item) => ["notAvailable", "cession", "contract", "error"].includes(item.normalizedStatus)).length,
+      serviceHoldUnits: items.filter((item) =>
+        ["notAvailable", "cession", "contract", "error"].includes(item.normalizedStatus),
+      ).length,
       averageCoverageMonths: summary.stockCoverageMonths,
     },
     topSellingModels: sales.topSellingModels.slice(0, 5),
@@ -436,13 +567,17 @@ export function calculateDashboardSummary(items: InventoryItem[], generatedAt: s
       .sort((a, b) => (b.stockAgeDays ?? 0) - (a.stockAgeDays ?? 0))
       .slice(0, 10),
     recentAlerts: alerts.slice(0, 10),
-    stockByLocation: groupBy(currentStock, (item) => item.branch || item.sourceName || "Unknown", (group) => ({
-      location: group[0]?.branch || group[0]?.sourceName || "Unknown",
-      available: sumQuantity(group),
-      reserved: sumQuantity(group.filter((item) => item.isReserved)),
-      inTransit: sumQuantity(group.filter((item) => item.estimatedArrival && !item.grpoDate)),
-      slowMoving: sumQuantity(group.filter((item) => item.movementCategory === "slow")),
-    })),
+    stockByLocation: groupBy(
+      currentStock,
+      (item) => item.branch || item.sourceName || "Unknown",
+      (group) => ({
+        location: group[0]?.branch || group[0]?.sourceName || "Unknown",
+        available: sumQuantity(group),
+        reserved: sumQuantity(group.filter((item) => item.isReserved)),
+        inTransit: sumQuantity(group.filter((item) => item.estimatedArrival && !item.grpoDate)),
+        slowMoving: sumQuantity(group.filter((item) => item.movementCategory === "slow")),
+      }),
+    ),
     salesPerformanceSnapshot: sales.topSellingModels.slice(0, 5),
     logisticsStatusSnapshot: logistics.slice(0, 10),
     meta: {
@@ -460,11 +595,32 @@ export function calculateDashboardSummary(items: InventoryItem[], generatedAt: s
 function resolveRule(item: InventoryItem, rules: Rule[]) {
   const active = rules.filter((rule) => rule.isActive !== false);
   const candidates = [
-    (rule: Rule) => match(rule.sourceId, item.sourceId) && match(rule.brand, item.brand) && match(rule.model, item.model) && match(rule.type, item.type) && match(rule.exteriorColor, item.exteriorColor) && match(rule.warehouse, item.warehouse),
-    (rule: Rule) => match(rule.sourceId, item.sourceId) && match(rule.model, item.model) && match(rule.exteriorColor, item.exteriorColor) && !rule.warehouse,
-    (rule: Rule) => match(rule.model, item.model) && match(rule.exteriorColor, item.exteriorColor) && !rule.sourceId && !rule.warehouse,
-    (rule: Rule) => match(rule.model, item.model) && !rule.sourceId && !rule.exteriorColor && !rule.warehouse,
-    (rule: Rule) => !rule.sourceId && !rule.brand && !rule.model && !rule.type && !rule.exteriorColor && !rule.warehouse,
+    (rule: Rule) =>
+      match(rule.sourceId, item.sourceId) &&
+      match(rule.brand, item.brand) &&
+      match(rule.model, item.model) &&
+      match(rule.type, item.type) &&
+      match(rule.exteriorColor, item.exteriorColor) &&
+      match(rule.warehouse, item.warehouse),
+    (rule: Rule) =>
+      match(rule.sourceId, item.sourceId) &&
+      match(rule.model, item.model) &&
+      match(rule.exteriorColor, item.exteriorColor) &&
+      !rule.warehouse,
+    (rule: Rule) =>
+      match(rule.model, item.model) &&
+      match(rule.exteriorColor, item.exteriorColor) &&
+      !rule.sourceId &&
+      !rule.warehouse,
+    (rule: Rule) =>
+      match(rule.model, item.model) && !rule.sourceId && !rule.exteriorColor && !rule.warehouse,
+    (rule: Rule) =>
+      !rule.sourceId &&
+      !rule.brand &&
+      !rule.model &&
+      !rule.type &&
+      !rule.exteriorColor &&
+      !rule.warehouse,
   ];
 
   return candidates.map((candidate) => active.find(candidate)).find(Boolean) ?? defaultRule;
@@ -509,7 +665,8 @@ function deriveLogisticsStatus(item: InventoryItem) {
     return "Sold";
   }
 
-  const haystack = `${item.notes} ${item.warehouse} ${item.rawStatus} ${item.displayStatus} ${item.soRemarks} ${item.additionalRemark}`.toLowerCase();
+  const haystack =
+    `${item.notes} ${item.warehouse} ${item.rawStatus} ${item.displayStatus} ${item.soRemarks} ${item.additionalRemark}`.toLowerCase();
   if (haystack.includes("custom")) {
     return "Customs";
   }
@@ -536,11 +693,15 @@ function daysBetween(from?: string, to?: string) {
 
   const fromDate = new Date(from);
   const toDate = new Date(to);
-  return Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime()) ? null : Math.round((toDate.getTime() - fromDate.getTime()) / 86_400_000);
+  return Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())
+    ? null
+    : Math.round((toDate.getTime() - fromDate.getTime()) / 86_400_000);
 }
 
 function reservationAgeDays(item: InventoryItem) {
   const rawDate = item.reserveDate || item.contractDate || item.createDate;
   const date = new Date(rawDate);
-  return !rawDate || Number.isNaN(date.getTime()) ? 0 : Math.floor((Date.now() - date.getTime()) / 86_400_000);
+  return !rawDate || Number.isNaN(date.getTime())
+    ? 0
+    : Math.floor((Date.now() - date.getTime()) / 86_400_000);
 }

@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { CounterScreenService } from '../integrations/counterscreen/counterscreen.service';
+import type { InventoryItem as InventoryItemRow } from '../generated/prisma-client/client.js';
 import {
     InventoryItem,
     InventoryMeta,
     InventoryResponse,
     InventorySummary,
 } from '../integrations/counterscreen/counterscreen.types';
+import { InventorySyncService } from '../inventory-sync/inventory-sync.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { InventoryQueryDto } from './dto/inventory-query.dto';
 import {
     deriveLogisticsStatus,
@@ -15,6 +17,7 @@ import {
 import { resolveStockRule } from '../common/calculations/stock-rules';
 import { getSalesKpis } from '../common/calculations/sales-metrics';
 import { StockRulesService } from '../stock-rules/stock-rules.service';
+import { CounterScreenService } from '../integrations/counterscreen/counterscreen.service.js';
 
 export interface ReplenishmentSuggestion {
     brand: string;
@@ -50,43 +53,34 @@ export class InventoryService {
     constructor(
         private readonly counterScreenService: CounterScreenService,
         private readonly stockRulesService: StockRulesService,
+        private readonly inventorySyncService: InventorySyncService,
+        private readonly prisma: PrismaService,
     ) {}
 
     async findAll(query: InventoryQueryDto): Promise<InventoryResponse> {
-        const response = await this.counterScreenService.getInventory(
-            isRefresh(query.refresh),
-        );
-        const data = this.applyFilters(response.data, query);
+        const syncResult = await this.syncIfRequested(query);
+        const rows = await this.prisma.inventoryItem.findMany({
+            orderBy: [{ sourceId: 'asc' }, { brand: 'asc' }, { model: 'asc' }],
+        });
+        const data = this.applyFilters(rows.map(toInventoryItem), query);
 
         return {
             data,
-            meta: {
-                ...response.meta,
-                total: data.length,
-            },
+            meta: await this.buildMeta(data.length, syncResult),
         };
     }
 
     async findRaw(query: Pick<InventoryQueryDto, 'sourceId' | 'refresh'>) {
-        const response = await this.counterScreenService.getRawInventory(
-            isRefresh(query.refresh),
-        );
-        const data = query.sourceId
-            ? response.data.filter(
-                  (item) =>
-                      item.source.id.toLowerCase() ===
-                      query.sourceId?.toLowerCase(),
-              )
-            : response.data;
+        const syncResult = await this.syncIfRequested(query);
+        const meta = await this.buildMeta(0, syncResult);
 
         return {
-            data,
+            data: [],
+            message:
+                'Raw inventory record storage is disabled. InventoryItem is the reporting source of truth; use inspection scripts to fetch live CounterScreen API payloads when debugging.',
             meta: {
-                ...response.meta,
-                totalRawRecords: data.reduce(
-                    (sum, item) => sum + item.records.length,
-                    0,
-                ),
+                ...meta,
+                totalRawRecords: 0,
             },
         };
     }
@@ -97,9 +91,27 @@ export class InventoryService {
         const sold = data.filter((item) => item.isSold);
         const soldLast90Days = getSoldLast90Days(data);
         const averageMonthlySales = soldLast90Days / 3;
+        const chassisGroups = Object.values(
+            groupBy(
+                data.filter((item) => Boolean(item.chassis)),
+                (item) => `${item.sourceId}|${item.chassis}`,
+                (items) => items,
+            ),
+        );
+        const multiStatusGroups = chassisGroups.filter(
+            (items) => items.length > 1,
+        );
 
         return {
             totalUnits: sumQuantity(currentStock),
+            totalRows: data.length,
+            uniqueChassisCount: chassisGroups.length,
+            multiStatusChassisCount: multiStatusGroups.length,
+            rowsInMultiStatusChassisGroups: multiStatusGroups.reduce(
+                (sum, items) => sum + items.length,
+                0,
+            ),
+            totalUnits: sumQuantity(data),
             currentStockUnits: sumQuantity(currentStock),
             soldUnits: sumQuantity(sold),
             reservedUnits: sumQuantity(data.filter((item) => item.isReserved)),
@@ -144,6 +156,55 @@ export class InventoryService {
                     }),
                 ),
             ),
+        };
+    }
+
+    async getMultiStatusChassis(query: InventoryQueryDto = {}) {
+        const { data } = await this.findAll(query);
+        const groups = Object.values(
+            groupBy(
+                data.filter((item) => Boolean(item.chassis)),
+                (item) => `${item.sourceId}|${item.chassis}`,
+                (items) => items,
+            ),
+        ).filter((items) => items.length > 1);
+
+        const sorted = groups
+            .map((rows) => ({
+                sourceId: rows[0]?.sourceId ?? '',
+                sourceName: rows[0]?.sourceName ?? '',
+                chassis: rows[0]?.chassis ?? '',
+                rowCount: rows.length,
+                statuses: Array.from(
+                    new Set(
+                        rows.map(
+                            (row) =>
+                                row.rawStatus ||
+                                row.displayStatus ||
+                                row.normalizedStatus,
+                        ),
+                    ),
+                ).filter(Boolean),
+                rows,
+            }))
+            .sort((left, right) => right.rowCount - left.rowCount);
+
+        return {
+            data: sorted,
+            meta: {
+                totalGroups: sorted.length,
+                totalRows: sorted.reduce(
+                    (sum, group) => sum + group.rowCount,
+                    0,
+                ),
+                generatedAt: new Date().toISOString(),
+                lastSyncedAt:
+                    (
+                        await this.prisma.inventoryItem.aggregate({
+                            _max: { lastSyncedAt: true },
+                        })
+                    )._max.lastSyncedAt?.toISOString() ?? null,
+            },
         };
     }
 
@@ -695,7 +756,49 @@ export class InventoryService {
     }
 
     async getMeta(query: InventoryQueryDto = {}): Promise<InventoryMeta> {
-        return (await this.findAll(query)).meta;
+        const syncResult = await this.syncIfRequested(query);
+        const count = await this.prisma.inventoryItem.count();
+        return this.buildMeta(count, syncResult);
+    }
+
+    private async syncIfRequested(query: Pick<InventoryQueryDto, 'refresh'>) {
+        if (!isRefresh(query.refresh)) {
+            return null;
+        }
+
+        return this.inventorySyncService.runSync('refresh');
+    }
+
+    private async buildMeta(
+        total: number,
+        syncResult?: unknown,
+    ): Promise<InventoryMeta> {
+        const latestRun = await this.inventorySyncService.getLatestRun();
+        const lastSyncedAt = await this.prisma.inventoryItem.aggregate({
+            _max: { lastSyncedAt: true },
+        });
+        const sourceResults = latestRun?.sourceResults ?? [];
+        const errors = sourceResults
+            .filter((result) => result.status === 'failed')
+            .map((result) => ({
+                sourceId: result.sourceId,
+                sourceName: result.sourceName,
+                message: result.errorMessage ?? 'Source API unavailable',
+            }));
+
+        return {
+            errors,
+            failedSources: latestRun?.failedSources ?? errors.length,
+            fromCache: false,
+            fromDatabase: true,
+            generatedAt: new Date().toISOString(),
+            lastSyncedAt: lastSyncedAt._max.lastSyncedAt?.toISOString() ?? null,
+            sourceCount: latestRun?.totalSources ?? sourceResults.length,
+            successfulSources: latestRun?.successfulSources ?? 0,
+            syncResult,
+            syncStatus: latestRun?.status ?? 'unknown',
+            total,
+        };
     }
 
     applyFilters(
@@ -720,6 +823,83 @@ export class InventoryService {
             );
         });
     }
+}
+
+function toInventoryItem(row: InventoryItemRow): InventoryItem {
+    return {
+        absEntry: row.absEntry,
+        additionalRemark: row.additionalRemark,
+        apInvoiceDate: row.apInvoiceDate,
+        apInvoiceNo: row.apInvoiceNo,
+        arInvoiceDate: row.arInvoiceDate,
+        arInvoiceNo: row.arInvoiceNo,
+        bank: row.bank,
+        bankCode: row.bankCode,
+        branch: row.branch,
+        brand: row.brand,
+        cardCode: row.cardCode,
+        chassis: row.chassis,
+        chassisStatus: row.chassisStatus,
+        contractDate: row.contractDate,
+        createDate: row.createDate,
+        customerGroup: row.customerGroup,
+        customerName: row.customerName,
+        customerNumber: row.customerNumber,
+        displayStatus: row.displayStatus as InventoryItem['displayStatus'],
+        engineNo: row.engineNo,
+        estimatedArrival: row.estimatedArrival,
+        exteriorColor: row.exteriorColor,
+        grpoDate: row.grpoDate,
+        interiorColor: row.interiorColor,
+        isInStock: row.isInStock,
+        isReadyForSale: row.isReadyForSale,
+        isReserved: row.isReserved,
+        isSold: row.isSold,
+        itemCode: row.itemCode,
+        itemGroupCode: row.itemGroupCode,
+        listName1: row.listName1,
+        listName2: row.listName2,
+        listName3: row.listName3,
+        listName4: row.listName4,
+        listNum1: row.listNum1,
+        listNum2: row.listNum2,
+        listNum3: row.listNum3,
+        listNum4: row.listNum4,
+        model: row.model,
+        modelYear: row.modelYear,
+        movementCategory:
+            row.movementCategory as InventoryItem['movementCategory'],
+        normalizedStatus:
+            row.normalizedStatus as InventoryItem['normalizedStatus'],
+        notes: row.notes,
+        businessStateKey: row.businessStateKey,
+        inventoryKey: row.inventoryKey,
+        plateNumber: row.plateNumber,
+        poNo: row.poNo,
+        price1: row.price1,
+        price2: row.price2,
+        price3: row.price3,
+        price4: row.price4,
+        quantity: row.quantity,
+        rawStatus: row.rawStatus,
+        ready: row.ready,
+        reserveDate: row.reserveDate,
+        salesMan: row.salesMan,
+        soRemarks: row.soRemarks,
+        soldPrice: row.soldPrice,
+        sourceBaseUrl: row.sourceBaseUrl,
+        sourceCountry: row.sourceCountry,
+        sourceId: row.sourceId,
+        sourceRowIndex: row.sourceRowIndex,
+        sourceName: row.sourceName,
+        stockAgeDays: row.stockAgeDays,
+        rowHash: row.rowHash,
+        syncRunId: row.syncRunId,
+        type: row.type,
+        vat: row.vat,
+        warehouse: row.warehouse,
+        wheel: row.wheel,
+    };
 }
 
 export function isRefresh(value?: string): boolean {

@@ -20,4 +20,9 @@ export class InventoryController {
     getSummary(@Query() query: InventoryQueryDto) {
         return this.inventoryService.getSummary(query);
     }
+
+    @Get('multi-status-chassis')
+    getMultiStatusChassis(@Query() query: InventoryQueryDto) {
+        return this.inventoryService.getMultiStatusChassis(query);
+    }
 }

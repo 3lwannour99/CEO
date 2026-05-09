@@ -88,7 +88,7 @@ export class CounterScreenService {
         );
     }
 
-    private async fetchAllSources(): Promise<SourceFetchResult[]> {
+    async fetchAllSources(): Promise<SourceFetchResult[]> {
         return Promise.all(
             COUNTERSCREEN_SOURCES.map((source) => this.fetchSource(source)),
         );

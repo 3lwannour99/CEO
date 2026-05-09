@@ -1,68 +1,95 @@
 services:
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: development
-      NEXT_PUBLIC_API_BASE_URL: "http://localhost:4000/api"
-      NEXT_TELEMETRY_DISABLED: "1"
-      WATCHPACK_POLLING: "true"
-      CHOKIDAR_USEPOLLING: "true"
-      CHOKIDAR_INTERVAL: "1000"
-    command: ["npm", "run", "dev", "--", "--webpack", "--hostname", "0.0.0.0", "--port", "3000"]
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    depends_on:
-      - backend
+    frontend:
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+        env_file:
+            - .env
+        ports:
+            - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+        environment:
+            PORT: ${FRONTEND_PORT}
+            WATCHPACK_POLLING: ${FRONTEND_WATCHPACK_POLLING}
+            CHOKIDAR_USEPOLLING: ${FRONTEND_CHOKIDAR_USEPOLLING}
+            CHOKIDAR_INTERVAL: ${FRONTEND_CHOKIDAR_INTERVAL}
+        command:
+            [
+                "npm",
+                "run",
+                "dev",
+                "--",
+                "--webpack",
+                "--hostname",
+                "0.0.0.0",
+                "--port",
+                "${FRONTEND_PORT}",
+            ]
+        volumes:
+            - ./frontend:/app
+            - /app/node_modules
+            - /app/.next
+        depends_on:
+            backend:
+                condition: service_started
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    'node -e "fetch(''http://127.0.0.1:'' + process.env.PORT).then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+                ]
+            interval: 30s
+            timeout: 5s
+            retries: 10
+            start_period: 30s
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    depends_on:
-      database:
-        condition: service_healthy
-    environment:
-      NODE_ENV: development
-      PORT: "4000"
-      FRONTEND_URL: "http://localhost:3000"
-      TEMPLATE_DB_URL: "postgresql://admin:12345678@database:5432/db"
-      COUNTERSCREEN_TIMEOUT_MS: "30000"
-      COUNTERSCREEN_REJECT_UNAUTHORIZED: "false"
-      COUNTERSCREEN_CACHE_TTL_SECONDS: "300"
-      CHOKIDAR_USEPOLLING: "true"
-      CHOKIDAR_INTERVAL: "1000"
-      TSC_WATCHFILE: "PriorityPollingInterval"
-      TSC_WATCHDIRECTORY: "RecursiveDirectoryUsingPolling"
-      WATCHPACK_POLLING: "true"
-    command: ["npm", "run", "start:all"]
-    ports:
-      - "4000:4000"
-      - "5555:5555"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+    backend:
+        build:
+            context: ./backend
+            dockerfile: Dockerfile
+        user: "${HOST_UID}:${HOST_GID}"
+        env_file:
+            - .env
+        depends_on:
+            database:
+                condition: service_healthy
+        environment:
+            PORT: ${BACKEND_PORT}
+            CHOKIDAR_USEPOLLING: ${BACKEND_CHOKIDAR_USEPOLLING}
+            CHOKIDAR_INTERVAL: ${BACKEND_CHOKIDAR_INTERVAL}
+            TSC_WATCHFILE: ${BACKEND_TSC_WATCHFILE}
+            TSC_WATCHDIRECTORY: ${BACKEND_TSC_WATCHDIRECTORY}
+            WATCHPACK_POLLING: ${BACKEND_WATCHPACK_POLLING}
+        command: ["npm", "run", "start:all"]
+        ports:
+            - "${BACKEND_PORT}:${BACKEND_PORT}"
+            - "${BACKEND_STUDIO_PORT}:5555"
+        volumes:
+            - ./backend:/app
+            - /app/node_modules
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    'node -e "fetch(''http://127.0.0.1:'' + process.env.PORT + ''/api/health'').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+                ]
+            interval: 30s
+            timeout: 5s
+            retries: 10
+            start_period: 45s
 
-  database:
-    image: postgres:18
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: "12345678"
-      POSTGRES_DB: db
-    ports:
-      - "5432:5432"
-    volumes:
-      - pg_data_18:/var/lib/postgresql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d db"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    database:
+        image: postgres:18
+        env_file:
+            - .env
+        ports:
+            - "${POSTGRES_PORT}:5432"
+        volumes:
+            - pg_data_18:/var/lib/postgresql
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+            interval: 15s
+            timeout: 5s
+            retries: 10
 
 volumes:
-  pg_data_18:
+    pg_data_18:

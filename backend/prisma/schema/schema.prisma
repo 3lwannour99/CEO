@@ -1,12 +1,14 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// CEOReport Prisma schema.
+// During active development, schema.prisma is the source of truth and local
+// databases are synced with `prisma db push`; migration files stay ignored.
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// -----------------------------------------------------------------------------
+// Generator and datasource
+// -----------------------------------------------------------------------------
 
 generator client {
   provider     = "prisma-client"
-  output       = "../../src/generated/prisma"
+  output       = "../../src/generated/prisma-client"
   moduleFormat = "cjs"
 }
 

@@ -1,0 +1,15 @@
+// -----------------------------------------------------------------------------
+// Shared enums
+// -----------------------------------------------------------------------------
+
+enum InventorySyncStatus {
+  running
+  success
+  partial_success
+  failed
+}
+
+enum InventorySourceSyncStatus {
+  success
+  failed
+}
