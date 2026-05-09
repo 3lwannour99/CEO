@@ -1,13 +1,19 @@
-import { apiGet } from "@/lib/apiClient";
+import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/apiClient";
 import type {
   AggregatedStockItem,
+  AggregatedStockResponse,
   ApiListResponse,
   CounterScreenSource,
   InventoryFilters,
   InventoryItem,
   InventorySummary,
   LocationStock,
+  MonthlyComparison,
+  MultiLocationReport,
   SalesPerformanceResponse,
+  StockRule,
+  StockRuleInput,
+  InventorySnapshot,
   StockCoverageItem,
 } from "@/types/inventory";
 
@@ -32,9 +38,37 @@ export function getSalesPerformance(filters?: InventoryFilters) {
 }
 
 export function getAggregatedStock(filters?: InventoryFilters) {
-  return apiGet<AggregatedStockItem[]>("/aggregated-stock", filters);
+  return apiGet<AggregatedStockResponse | AggregatedStockItem[]>("/aggregated-stock", filters);
 }
 
 export function getMultiLocation(filters?: InventoryFilters) {
-  return apiGet<LocationStock[]>("/multi-location", filters);
+  return apiGet<MultiLocationReport | LocationStock[]>("/multi-location", filters);
+}
+
+export function getStockRules() {
+  return apiGet<StockRule[]>("/stock-rules");
+}
+
+export function createStockRule(rule: StockRuleInput) {
+  return apiPost<StockRule>("/stock-rules", rule);
+}
+
+export function updateStockRule(id: string, rule: StockRuleInput) {
+  return apiPut<StockRule>(`/stock-rules/${id}`, rule);
+}
+
+export function deleteStockRule(id: string) {
+  return apiDelete<StockRule>(`/stock-rules/${id}`);
+}
+
+export function getSnapshots() {
+  return apiGet<InventorySnapshot[]>("/snapshots");
+}
+
+export function runSnapshot() {
+  return apiPost<InventorySnapshot>("/snapshots/run");
+}
+
+export function getMonthlyComparison() {
+  return apiGet<MonthlyComparison[]>("/snapshots/monthly-comparison");
 }

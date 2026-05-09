@@ -12,6 +12,7 @@ import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
 import { formatMoneyBundle } from "@/lib/currency";
+import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
 import type { InventoryItem } from "@/types/inventory";
@@ -45,6 +46,11 @@ export default function InventoryMovementPage() {
     <>
       <PageHeader title={t("pages.inventoryMovement.title")} description={t("pages.inventoryMovement.description")} />
       <FilterBar filters={filters} inventoryItems={inventoryData.inventoryItems} sources={inventoryData.sources} onChange={setFilters} />
+      <div className="report-actions">
+        <button className="report-button primary" type="button" onClick={() => exportExcel("inventory-movement.xls", rows)}>{t("actions.exportExcel")}</button>
+        <button className="report-button" type="button" onClick={() => exportCsv("inventory-movement.csv", rows)}>{t("actions.exportCsv")}</button>
+        <button className="report-button" type="button" onClick={() => exportPdf("inventory-movement.pdf", rows)}>{t("actions.exportPdf")}</button>
+      </div>
       <MetaStrip meta={inventoryData.meta} />
       <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && rows.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={resetFilters} />
       <SectionCard title={t("sections.movementRegister")} eyebrow={t("summary.liveData")} action={formatNumber(rows.length)}>

@@ -10,6 +10,7 @@ import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatNumber } from "@/lib/apiClient";
 import { formatMoneyTotalsCompact } from "@/lib/currency";
+import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
 import type { SalesPerformanceItem } from "@/types/inventory";
@@ -32,9 +33,22 @@ export default function SalesPerformancePage() {
     <>
       <PageHeader title={t("pages.salesPerformance.title")} description={t("pages.salesPerformance.description")} />
       <FilterBar filters={filters} inventoryItems={inventoryData.inventoryItems} sources={inventoryData.sources} onChange={setFilters} />
+      <div className="report-actions">
+        <button className="report-button primary" type="button" onClick={() => exportExcel("sales-performance.xls", data.breakdownByModel)}>{t("actions.exportExcel")}</button>
+        <button className="report-button" type="button" onClick={() => exportCsv("sales-performance.csv", data.breakdownByModel)}>{t("actions.exportCsv")}</button>
+        <button className="report-button" type="button" onClick={() => exportPdf("sales-performance.pdf", data.breakdownByModel)}>{t("actions.exportPdf")}</button>
+      </div>
+      <section className="report-actions" aria-label={t("sections.sales")}>
+        <span>{t("table.sellThroughRate")}: {formatNumber(data.sellThroughRate)}%</span>
+        <span>{t("table.inventoryTurnover")}: {formatNumber(data.inventoryTurnover)}</span>
+        <span>{t("table.averageMovement")}: {formatNumber(data.averageMovement)}</span>
+      </section>
       <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && filteredItems.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={resetFilters} />
       <SectionCard title={t("sections.salesPerformanceTable")} eyebrow={t("sections.commercial")}>
         <DataTable columns={columns} rows={data.topSellingModels} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
+      </SectionCard>
+      <SectionCard title={t("sections.bottomSellingModels")} eyebrow={t("sections.commercial")}>
+        <DataTable columns={columns} rows={data.lowestSellingModels} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
       </SectionCard>
     </>
   );

@@ -13,3 +13,78 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model StockRule {
+  id                   String   @id @default(cuid())
+  sourceId             String?
+  brand                String?
+  model                String?
+  type                 String?
+  exteriorColor        String?
+  warehouse            String?
+  minStock             Int      @default(1)
+  maxStock             Int      @default(10)
+  reorderPoint         Int      @default(2)
+  targetCoverageMonths Float    @default(3)
+  leadTimeDays         Int      @default(30)
+  supplierName         String?
+  factoryName          String?
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([sourceId, model, exteriorColor, warehouse])
+}
+
+model InventorySnapshot {
+  id             String                  @id @default(cuid())
+  snapshotDate   DateTime
+  sourceId       String?
+  sourceName     String?
+  totalUnits     Int
+  soldUnits      Int
+  reservedUnits  Int
+  inStockUnits   Int
+  slowUnits      Int
+  mediumUnits    Int
+  fastUnits      Int
+  totalValueSar  Float                   @default(0)
+  totalValueJod  Float                   @default(0)
+  totalValueUsd  Float                   @default(0)
+  createdAt      DateTime                @default(now())
+  items          InventorySnapshotItem[]
+
+  @@index([snapshotDate])
+  @@index([sourceId])
+}
+
+model InventorySnapshotItem {
+  id          String            @id @default(cuid())
+  snapshotId  String
+  sourceId    String?
+  brand       String?
+  model       String?
+  type        String?
+  exteriorColor String?
+  warehouse   String?
+  quantity    Int
+  valueSar    Float             @default(0)
+  valueJod    Float             @default(0)
+  valueUsd    Float             @default(0)
+  snapshot    InventorySnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@index([snapshotId])
+  @@index([sourceId, model, exteriorColor, warehouse])
+}
+
+model ScheduledReportRun {
+  id           String    @id @default(cuid())
+  reportType   String
+  status       String
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+  errorMessage String?
+  metadata     Json?
+
+  @@index([reportType, startedAt])
+}

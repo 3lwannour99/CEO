@@ -13,7 +13,7 @@ import {
   calculateSalesPerformance,
   calculateStockCoverage,
 } from "@/lib/reports/inventoryReports";
-import { getInventory, getSources } from "@/services/inventoryApi";
+import { getInventory, getSources, getStockRules } from "@/services/inventoryApi";
 import type { InventoryFilters } from "@/types/filters";
 import type {
   AggregatedStockItem,
@@ -23,10 +23,11 @@ import type {
   InventoryAlert,
   InventoryItem,
   InventorySummary,
-  LocationStock,
   LogisticsStatus,
+  MultiLocationReport,
   ReplenishmentSuggestion,
   SalesPerformanceResponse,
+  StockRule,
   StockCoverageItem,
 } from "@/types/inventory";
 
@@ -49,7 +50,7 @@ interface InventoryDataContextValue {
   getSalesPerformance: (filters: InventoryFilters) => SalesPerformanceResponse;
   getAggregatedStock: (filters: InventoryFilters) => AggregatedStockItem[];
   getLogistics: (filters: InventoryFilters) => LogisticsStatus[];
-  getMultiLocation: (filters: InventoryFilters) => LocationStock[];
+  getMultiLocation: (filters: InventoryFilters) => MultiLocationReport;
 }
 
 const InventoryDataContext = createContext<InventoryDataContextValue | undefined>(undefined);
@@ -57,6 +58,7 @@ const InventoryDataContext = createContext<InventoryDataContextValue | undefined
 export function InventoryDataProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [sources, setSources] = useState<CounterScreenSource[]>([]);
+  const [stockRules, setStockRules] = useState<StockRule[]>([]);
   const [meta, setMeta] = useState<ApiMeta | undefined>();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -72,13 +74,15 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
     setError(null);
 
     try {
-      const [inventoryResponse, sourceResponse] = await Promise.all([
+      const [inventoryResponse, sourceResponse, stockRulesResponse] = await Promise.all([
         getInventory({ refresh }),
         getSources(),
+        getStockRules().catch(() => []),
       ]);
       setInventoryItems(inventoryResponse.data);
       setMeta(inventoryResponse.meta);
       setSources(sourceResponse);
+      setStockRules(stockRulesResponse);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "API error");
     } finally {
@@ -132,16 +136,16 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
       getFilteredData,
       getInventorySummary: (filters) => calculateInventorySummary(getFilteredData(filters)),
       getDashboardSummary: (filters) =>
-        calculateDashboardSummary(getFilteredData(filters), meta?.generatedAt ?? new Date().toISOString(), meta?.errors ?? []),
-      getAlerts: (filters) => calculateAlerts(getFilteredData(filters), meta?.generatedAt ?? new Date().toISOString(), meta?.errors ?? []),
-      getReplenishment: (filters) => calculateReplenishment(getFilteredData(filters)),
-      getStockCoverage: (filters) => calculateStockCoverage(getFilteredData(filters)),
+        calculateDashboardSummary(getFilteredData(filters), meta?.generatedAt ?? new Date().toISOString(), meta?.errors ?? [], stockRules),
+      getAlerts: (filters) => calculateAlerts(getFilteredData(filters), meta?.generatedAt ?? new Date().toISOString(), meta?.errors ?? [], stockRules),
+      getReplenishment: (filters) => calculateReplenishment(getFilteredData(filters), stockRules),
+      getStockCoverage: (filters) => calculateStockCoverage(getFilteredData(filters), stockRules),
       getSalesPerformance: (filters) => calculateSalesPerformance(getFilteredData(filters)),
       getAggregatedStock: (filters) => calculateAggregatedStock(getFilteredData(filters)),
       getLogistics: (filters) => calculateLogistics(getFilteredData(filters)),
-      getMultiLocation: (filters) => calculateMultiLocation(getFilteredData(filters)),
+      getMultiLocation: (filters) => calculateMultiLocation(getFilteredData(filters), stockRules),
     }),
-    [error, getFilteredData, inventoryItems, isInitialLoading, isRefreshing, loadData, meta, sources],
+    [error, getFilteredData, inventoryItems, isInitialLoading, isRefreshing, loadData, meta, sources, stockRules],
   );
 
   return <InventoryDataContext.Provider value={value}>{children}</InventoryDataContext.Provider>;

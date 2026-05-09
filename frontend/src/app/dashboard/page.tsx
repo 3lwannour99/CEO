@@ -32,6 +32,11 @@ export default function DashboardPage() {
     { label: t("metrics.mediumMovingStock"), value: formatNumber(data.metrics.mediumMovingUnits), trend: t("metrics.mediumTrend"), tone: "neutral" },
     { label: t("metrics.slowMovingStock"), value: formatNumber(data.metrics.slowMovingUnits), trend: t("metrics.slowTrend"), tone: "warning" },
     { label: t("metrics.stockCoverageMonths"), value: formatValue(data.metrics.stockCoverageMonths), trend: t("metrics.coverageTrend"), tone: "positive" },
+    { label: t("table.sellThroughRate"), value: `${formatNumber(data.metrics.sellThroughRate)}%`, trend: t("sections.sales"), tone: "positive" },
+    { label: t("table.inventoryTurnover"), value: formatNumber(data.metrics.inventoryTurnover), trend: t("sections.sales"), tone: "neutral" },
+    { label: t("sections.autoAlerts"), value: formatNumber(data.metrics.alertCount), trend: t("sections.recentAlerts"), tone: "warning" },
+    { label: t("sections.replenishmentSuggestions"), value: formatNumber(data.metrics.urgentReplenishmentCount), trend: t("table.urgency"), tone: "danger" },
+    { label: t("table.delayedShipments"), value: formatNumber(data.metrics.delayedLogisticsCount), trend: t("sections.inbound"), tone: "warning" },
     { label: t("metrics.reservedUnits"), value: formatNumber(data.metrics.reservedUnits), trend: t("metrics.reservedTrend"), tone: "neutral" },
     { label: t("metrics.inTransitUnits"), value: formatNumber(data.metrics.inTransitUnits), trend: t("metrics.transitTrend"), tone: "warning" },
   ];
@@ -97,6 +102,9 @@ export default function DashboardPage() {
         </SectionCard>
         <SectionCard title={t("sections.topSellingModels")} eyebrow={t("sections.sales")}>
           <DataTable columns={salesColumns} rows={data.topSellingModels} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
+        </SectionCard>
+        <SectionCard title={t("sections.bottomSellingModels")} eyebrow={t("sections.sales")}>
+          <DataTable columns={salesColumns} rows={data.bottomSellingModels ?? []} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
         </SectionCard>
         <SectionCard title={t("sections.slowStockList")} eyebrow={t("sections.inventoryMovement")}>
           <DataTable columns={inventoryColumns} rows={data.slowStockList} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />

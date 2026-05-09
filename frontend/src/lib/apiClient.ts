@@ -33,6 +33,44 @@ export async function apiGet<T>(path: string, params?: QueryParams): Promise<T> 
   return (await response.json()) as T;
 }
 
+export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(`API request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+export async function apiPut<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(`API request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+export async function apiDelete<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, { method: "DELETE" });
+
+  if (!response.ok) {
+    throw new ApiError(`API request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as T;
+}
+
 export function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === "") {
     return "-";

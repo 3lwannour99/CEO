@@ -153,6 +153,7 @@ export interface InventoryAlert {
 }
 
 export interface LocationStock {
+  sourceId?: string;
   location?: string;
   sourceName?: string;
   country?: string;
@@ -168,6 +169,24 @@ export interface LocationStock {
   currentStock?: number;
 }
 
+export interface RebalancingRecommendation {
+  brand: string;
+  model: string;
+  exteriorColor: string;
+  fromWarehouse: string;
+  toWarehouse: string;
+  fromSourceName?: string;
+  toSourceName?: string;
+  suggestedTransferQuantity: number;
+}
+
+export interface MultiLocationReport {
+  stockByLocation: LocationStock[];
+  transferTracking: unknown[];
+  transferTrackingMessage: string;
+  rebalancingRecommendations: RebalancingRecommendation[];
+}
+
 export interface SalesPerformanceItem {
   model: string;
   brand: string;
@@ -178,12 +197,18 @@ export interface SalesPerformanceItem {
 
 export interface LogisticsStatus {
   shipment?: string;
+  chassis?: string;
   poNo: string;
   status: string;
   eta?: string;
   estimatedArrival?: string;
   grpoDate?: string;
   apInvoiceDate?: string;
+  orderDate?: string;
+  cycleTimeDays?: number | null;
+  supplierDelayDays?: number | null;
+  isDelayed?: boolean;
+  shippingCost?: number | null;
   units: number;
   branch: string;
   warehouse?: string;
@@ -193,24 +218,45 @@ export interface LogisticsStatus {
 export interface ReplenishmentSuggestion {
   brand: string;
   model: string;
+  type?: string;
   exteriorColor: string;
+  warehouse?: string;
+  sourceId?: string;
+  sourceName?: string;
   currentStock: number;
+  minStock: number;
+  maxStock: number;
   soldLast90Days: number;
+  soldLast30Days: number;
   averageMonthlySales: number;
+  leadTimeDays: number;
+  leadTimeDemand: number;
   suggestedOrderQuantity: number;
   reorderPoint: number;
+  targetCoverageMonths: number;
+  urgency: "critical" | "high" | "medium" | "low";
+  reason: string;
 }
 
 export interface StockCoverageItem extends ReplenishmentSuggestion {
   coverageMonths: number | null;
-  status: "danger" | "healthy" | "overstock" | "unknown";
+  status: "danger" | "healthy" | "overstock" | "noSalesData";
+  recommendedAction: string;
 }
 
 export interface AggregatedStockItem {
   brand: string;
   model: string;
+  type?: string;
+  warehouse?: string;
   exteriorColor: string;
   units: number;
+}
+
+export interface AggregatedStockResponse {
+  byTypeColor: AggregatedStockItem[];
+  byModelColor: AggregatedStockItem[];
+  byWarehouseTypeColor: AggregatedStockItem[];
 }
 
 export interface SalesPerformanceResponse {
@@ -221,6 +267,14 @@ export interface SalesPerformanceResponse {
   customerGroupBreakdown: Array<{ customerGroup: string; unitsSold: number }>;
   topSellingModels: SalesPerformanceItem[];
   lowestSellingModels: SalesPerformanceItem[];
+  averageMovement: number;
+  breakdownByModel: SalesPerformanceItem[];
+  breakdownByType: Array<{ type: string; unitsSold: number }>;
+  breakdownByColor: Array<{ exteriorColor: string; unitsSold: number }>;
+  breakdownByBranch: Array<{ branch: string; unitsSold: number }>;
+  breakdownByCountry: Array<{ country: string; unitsSold: number }>;
+  sellThroughRate: number;
+  inventoryTurnover: number;
 }
 
 export interface DashboardSummary {
@@ -235,6 +289,11 @@ export interface DashboardSummary {
     inTransitUnits: number;
     readyForSaleUnits: number;
     stockCoverageMonths: number | null;
+    sellThroughRate?: number;
+    inventoryTurnover?: number;
+    alertCount?: number;
+    urgentReplenishmentCount?: number;
+    delayedLogisticsCount?: number;
   };
   inventoryStatusSummary: {
     readyPercent: number;
@@ -248,7 +307,59 @@ export interface DashboardSummary {
   stockByLocation: LocationStock[];
   salesPerformanceSnapshot: SalesPerformanceItem[];
   logisticsStatusSnapshot: LogisticsStatus[];
+  bottomSellingModels?: SalesPerformanceItem[];
   meta: ApiMeta;
+}
+
+export interface StockRule {
+  id: string;
+  sourceId: string | null;
+  brand: string | null;
+  model: string | null;
+  type: string | null;
+  exteriorColor: string | null;
+  warehouse: string | null;
+  minStock: number;
+  maxStock: number;
+  reorderPoint: number;
+  targetCoverageMonths: number;
+  leadTimeDays: number;
+  supplierName: string | null;
+  factoryName: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type StockRuleInput = Omit<StockRule, "id" | "createdAt" | "updatedAt">;
+
+export interface InventorySnapshot {
+  id: string;
+  snapshotDate: string;
+  sourceName: string | null;
+  totalUnits: number;
+  soldUnits: number;
+  reservedUnits: number;
+  inStockUnits: number;
+  slowUnits: number;
+  mediumUnits: number;
+  fastUnits: number;
+  totalValueSar: number;
+  totalValueJod: number;
+  totalValueUsd: number;
+}
+
+export interface MonthlyComparison {
+  month: string;
+  totalUnits: number;
+  slowUnits: number;
+  mediumUnits: number;
+  fastUnits: number;
+  soldUnits: number;
+  reservedUnits: number;
+  stockValueSar: number;
+  stockValueJod: number;
+  stockValueUsd: number;
 }
 
 export interface InventoryFilters {

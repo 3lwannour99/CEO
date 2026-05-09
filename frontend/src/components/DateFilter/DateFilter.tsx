@@ -1,6 +1,6 @@
 "use client";
 
-import { dateFields, datePresets } from "@/lib/dateFilters";
+import { dateFields, datePresets, getPresetRange } from "@/lib/dateFilters";
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { useI18n } from "@/i18n/useI18n";
 import type { DateField, DatePreset, InventoryFilters } from "@/types/filters";
@@ -19,6 +19,16 @@ export function DateFilter({ filters, onChange }: DateFilterProps) {
     onChange({ ...filters, ...patch });
   }
 
+  function updatePreset(value: DatePreset) {
+    const range = getPresetRange(value);
+    update({
+      datePreset: value,
+      exactDate: "",
+      fromDate: range.fromDate ?? "",
+      toDate: range.toDate ?? "",
+    });
+  }
+
   return (
     <div className={styles.dateFilter}>
       <label className={styles.field}>
@@ -33,7 +43,7 @@ export function DateFilter({ filters, onChange }: DateFilterProps) {
       </label>
       <label className={styles.field}>
         <span>{t("filters.datePreset")}</span>
-        <select value={filters.datePreset ?? ""} onChange={(event) => update({ datePreset: event.target.value as DatePreset, exactDate: "" })} disabled={isBusy}>
+        <select value={filters.datePreset ?? ""} onChange={(event) => updatePreset(event.target.value as DatePreset)} disabled={isBusy}>
           {datePresets.map((preset) => (
             <option value={preset.value} key={preset.value}>
               {t(preset.key)}

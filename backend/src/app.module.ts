@@ -10,6 +10,9 @@ import { LoggerMiddleware } from './logger/logger.middleware';
 import { LogisticsModule } from './logistics/logistics.module';
 import { ReplenishmentModule } from './replenishment/replenishment.module';
 import { ReportsModule } from './reports/reports.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
+import { SnapshotsModule } from './snapshots/snapshots.module';
+import { StockRulesModule } from './stock-rules/stock-rules.module';
 
 @Module({
     imports: [
@@ -21,6 +24,9 @@ import { ReportsModule } from './reports/reports.module';
         ReplenishmentModule,
         LogisticsModule,
         ReportsModule,
+        StockRulesModule,
+        SnapshotsModule,
+        SchedulerModule,
     ],
     controllers: [AppController],
     providers: [AppService],
