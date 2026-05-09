@@ -1,4 +1,4 @@
-﻿import type { LanguageCode } from "./locales";
+import type { LanguageCode } from "./locales";
 
 type TranslationTree = {
   [key: string]: string | TranslationTree;
@@ -56,6 +56,7 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       aggregatedStock: "Aggregated Stock",
       logistics: "Logistics",
       multiLocation: "Multi-Location",
+      multiStatusChassis: "Multi-Status Chassis",
       stockRules: "Stock Rules",
       snapshots: "Snapshots",
       settings: "Settings",
@@ -593,6 +594,7 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       aggregatedStock: "تجميع المخزون",
       logistics: "اللوجستيات",
       multiLocation: "توزيع المخزون",
+      multiStatusChassis: "هياكل متعددة الحالات",
       stockRules: "قواعد المخزون",
       snapshots: "اللقطات اليومية",
       settings: "الإعدادات",

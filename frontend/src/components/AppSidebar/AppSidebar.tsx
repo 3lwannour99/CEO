@@ -18,6 +18,7 @@ const navItems = [
   { labelKey: "sidebar.snapshots", href: "/snapshots", marker: "SN" },
   { labelKey: "sidebar.logistics", href: "/logistics", marker: "LG" },
   { labelKey: "sidebar.multiLocation", href: "/multi-location", marker: "ML" },
+  { labelKey: "sidebar.multiStatusChassis", href: "/multi-status-chassis", marker: "MC" },
   { labelKey: "sidebar.settings", href: "/settings", marker: "ST" },
 ];
 

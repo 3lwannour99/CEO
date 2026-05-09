@@ -469,3 +469,22 @@ export interface PageFilterOption {
   label: string;
   value: string;
 }
+
+export interface MultiStatusChassisGroup {
+  sourceId: string;
+  sourceName: string;
+  chassis: string;
+  rowCount: number;
+  statuses: string[];
+  rows: InventoryItem[];
+}
+
+export interface MultiStatusChassisResponse {
+  data: MultiStatusChassisGroup[];
+  meta: {
+    totalGroups: number;
+    totalRows: number;
+    generatedAt: string;
+    lastSyncedAt: string | null;
+  };
+}
