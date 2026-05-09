@@ -12,4 +12,4 @@ RUN npx prisma generate
 
 RUN npm run build
 
-CMD ["npm","run","start:prod"]
+CMD ["node","dist/src/main"]
