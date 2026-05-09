@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ApiState } from "@/components/ApiState/ApiState";
 import { DashboardCard } from "@/components/DashboardCard/DashboardCard";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
@@ -17,7 +17,8 @@ import { formatMoneyBundle, formatMoneyTotalsCompact } from "@/lib/currency";
 import { exportExcel } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
-import type { DashboardMetric, InventoryAlert, InventoryItem, LocationStock, LogisticsStatus, SalesPerformanceItem } from "@/types/inventory";
+import type { DashboardMetric, DashboardSummary, InventoryAlert, InventoryItem, LocationStock, LogisticsStatus, SalesPerformanceItem } from "@/types/inventory";
+import { getDashboardSummary } from "@/services/dashboardApi";
 import styles from "./dashboard.module.css";
 
 export default function DashboardPage() {
@@ -25,7 +26,18 @@ export default function DashboardPage() {
   const { selectedCurrencies } = useCurrencyDisplay();
   const inventoryData = useInventoryData();
   const { filters, setFilters, resetFilters } = useGlobalFilters();
-  const data = useMemo(() => inventoryData.getDashboardSummary(filters), [filters, inventoryData]);
+  const [apiData, setApiData] = useState<DashboardSummary | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getDashboardSummary(filters).then(res => {
+      if (active) setApiData(res);
+    }).catch(console.error);
+    return () => { active = false; };
+  }, [filters]);
+
+  const fallbackData = useMemo(() => inventoryData.getDashboardSummary(filters), [filters, inventoryData]);
+  const data = apiData || fallbackData;
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
   const selectedStatuses = useMemo(() => new Set(filters.statuses.map(normalizeStatusValue)), [filters.statuses]);
   const statusCounts = useMemo(
@@ -59,6 +71,10 @@ export default function DashboardPage() {
   const percentOfStock = (value: number | undefined) =>
     data.metrics.currentStockUnits > 0 ? `${formatNumber(Math.round(((value ?? 0) / data.metrics.currentStockUnits) * 100))}% ${t("table.currentStock")}` : formatValue(null);
   const metrics: DashboardMetric[] = [
+    { label: "Total Report Rows", value: formatNumber(data.metrics.totalRows), trend: "All rows including duplicates", tone: "neutral" },
+    { label: "Unique Chassis", value: formatNumber(data.metrics.uniqueChassisCount), trend: "Distinct physical vehicles", tone: "positive" },
+    { label: "Multi-Status Chassis", value: formatNumber(data.metrics.multiStatusChassisCount), trend: "Chassis with multiple records", tone: "warning" },
+    { label: "Rows in Multi-Status Groups", value: formatNumber(data.metrics.rowsInMultiStatusChassisGroups), trend: "Impact of duplicates", tone: "warning" },
     { label: t("metrics.totalStockUnits"), value: formatNumber(data.metrics.currentStockUnits), trend: `${formatNumber(filteredItems.length)} ${t("table.total")} ${t("table.units")}`, tone: "positive" },
     { label: t("table.currentStock"), value: formatNumber(data.metrics.currentStockUnits), trend: percentOfStock(data.metrics.currentStockUnits), tone: "neutral" },
     { label: t("metrics.fastMovingStock"), value: formatNumber(data.metrics.fastMovingUnits), trend: percentOfStock(data.metrics.fastMovingUnits), tone: "positive" },

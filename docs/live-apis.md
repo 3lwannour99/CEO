@@ -542,6 +542,25 @@ interface LogisticsStatus {
 }
 ```
 
+### Multi Status Chassis
+
+```txt
+GET /api/inventory/multi-status-chassis
+```
+
+Returns grouped rows where a single chassis within a single source has multiple distinct raw or normalized statuses.
+
+```ts
+interface MultiStatusChassisGroup {
+  sourceId: string;
+  sourceName: string;
+  chassis: string;
+  rowCount: number;
+  statuses: string[];
+  rows: InventoryItem[];
+}
+```
+
 ## Where The Code Lives
 
 | Concern | File |

@@ -15,6 +15,7 @@ import type {
   StockRuleInput,
   InventorySnapshot,
   StockCoverageItem,
+  MultiStatusChassisResponse,
 } from "@/types/inventory";
 
 export function getSources() {
@@ -31,6 +32,14 @@ export function getInventorySummary(filters?: InventoryFilters) {
 
 export function getStockCoverage(filters?: InventoryFilters) {
   return apiGet<StockCoverageItem[]>("/stock-coverage", filters);
+}
+
+export function getMultiStatusChassis(filters?: InventoryFilters) {
+  return apiGet<MultiStatusChassisResponse>("/inventory/multi-status-chassis", filters);
+}
+
+export function getRawInventory(filters?: InventoryFilters) {
+  return apiGet<unknown>("/inventory/raw", filters);
 }
 
 export function getSalesPerformance(filters?: InventoryFilters) {
