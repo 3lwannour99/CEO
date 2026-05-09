@@ -17,13 +17,31 @@
 }
 
 .reserved,
-.reserve,
-.reservationForCompanies,
 .info,
 .medium,
 .intransit {
   color: var(--color-info);
   background: var(--color-info-soft);
+}
+
+.reserve {
+  color: #9a6500;
+  background: rgba(154, 101, 0, 0.15);
+}
+
+.contract {
+  color: #1f5f99;
+  background: rgba(31, 95, 153, 0.13);
+}
+
+.cession {
+  color: #7a3db8;
+  background: rgba(122, 61, 184, 0.15);
+}
+
+.reservationForCompanies {
+  color: #b83280;
+  background: rgba(184, 50, 128, 0.15);
 }
 
 .sold,
@@ -35,13 +53,31 @@
 
 .servicehold,
 .notAvailable,
-.cession,
-.contract,
 .error,
 .warning,
 .slow {
   color: var(--color-warning);
   background: var(--color-warning-soft);
+}
+
+:global(body[data-theme="dark"]) .reserve {
+  color: #f2c45c;
+  background: rgba(242, 196, 92, 0.16);
+}
+
+:global(body[data-theme="dark"]) .contract {
+  color: #93c9ff;
+  background: rgba(147, 201, 255, 0.16);
+}
+
+:global(body[data-theme="dark"]) .cession {
+  color: #d3a2ff;
+  background: rgba(211, 162, 255, 0.16);
+}
+
+:global(body[data-theme="dark"]) .reservationForCompanies {
+  color: #ff9fd0;
+  background: rgba(255, 159, 208, 0.16);
 }
 
 .neutral {

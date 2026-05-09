@@ -2,6 +2,13 @@ import { itemMatchesDateFilters } from "@/lib/dateFilters";
 import type { InventoryFilters } from "@/types/filters";
 import type { InventoryItem } from "@/types/inventory";
 
+interface FilterIndex {
+  searchText: string;
+  normalizedStatuses: string[];
+}
+
+const filterIndexCache = new WeakMap<InventoryItem, FilterIndex>();
+
 function matchesAny(value: string | boolean | null | undefined, selected: string[]) {
   if (selected.length === 0) {
     return true;
@@ -23,11 +30,11 @@ function matchesStatus(item: InventoryItem, selected: string[]) {
     return true;
   }
 
-  const itemStatuses = [item.normalizedStatus, item.rawStatus, item.displayStatus, item.chassisStatus].map((value) => normalizeStatusValue(String(value ?? "")));
+  const itemStatuses = getFilterIndex(item).normalizedStatuses;
   return selected.some((status) => itemStatuses.includes(normalizeStatusValue(status)));
 }
 
-function searchableText(item: InventoryItem) {
+function buildSearchableText(item: InventoryItem) {
   return [
     item.chassis,
     item.itemCode,
@@ -39,6 +46,8 @@ function searchableText(item: InventoryItem) {
     item.warehouse,
     item.customerName,
     item.customerGroup,
+    item.recipientName,
+    item.recipientNumber,
     item.salesMan,
     item.poNo,
     item.arInvoiceNo,
@@ -47,6 +56,22 @@ function searchableText(item: InventoryItem) {
   ]
     .join(" ")
     .toLowerCase();
+}
+
+function getFilterIndex(item: InventoryItem) {
+  const cached = filterIndexCache.get(item);
+
+  if (cached) {
+    return cached;
+  }
+
+  const index = {
+    searchText: buildSearchableText(item),
+    normalizedStatuses: [item.normalizedStatus, item.rawStatus, item.displayStatus, item.chassisStatus].map((value) => normalizeStatusValue(String(value ?? ""))),
+  };
+
+  filterIndexCache.set(item, index);
+  return index;
 }
 
 export function filterInventory(items: InventoryItem[], filters: InventoryFilters): InventoryItem[] {
@@ -72,7 +97,7 @@ export function filterInventory(items: InventoryItem[], filters: InventoryFilter
       matchesAny(readyStatus, filters.readyStatuses) &&
       matchesAny(item.customerGroup, filters.customerGroups) &&
       matchesAny(item.salesMan, filters.salesmen) &&
-      (!search || searchableText(item).includes(search)) &&
+      (!search || getFilterIndex(item).searchText.includes(search)) &&
       itemMatchesDateFilters(item, filters)
     );
   });

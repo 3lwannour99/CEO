@@ -1,30 +1,42 @@
 .shell {
-    display: flex;
-    min-height: 100vh;
-    background: var(--color-app-bg);
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-app-bg);
 }
 
 .shell[data-busy="true"] button:not(:disabled) {
-    cursor: not-allowed;
+  cursor: not-allowed;
 }
 
 .contentArea {
-    min-width: 0;
-    flex: 1;
-    margin-inline-start: var(--sidebar-width);
+  min-width: 0;
+  flex: 1;
+  margin-inline-start: var(--sidebar-width);
+  padding-block-start: var(--topbar-height);
 }
 
 .main {
-    display: grid;
-    gap: var(--space-6);
-    width: 100%;
-    max-width: var(--content-max-width);
-    margin: 0 auto;
-    padding: var(--space-6);
+  display: grid;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-6);
 }
 
 @media (max-width: 768px) {
-    .main {
-        padding: var(--space-4);
-    }
+  .contentArea {
+    margin-inline-start: 0;
+    padding-block-start: calc(var(--topbar-height) + 56px);
+  }
+
+  .main {
+    padding: var(--space-4);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .contentArea {
+    margin-inline-start: var(--sidebar-compact-width);
+  }
 }

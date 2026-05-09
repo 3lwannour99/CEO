@@ -1,7 +1,9 @@
 .topbar {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 10;
+  inset-inline-start: var(--sidebar-width);
+  inset-inline-end: 0;
+  z-index: 70;
   display: flex;
   align-items: center;
   gap: var(--space-4);
@@ -150,6 +152,7 @@
 
 @media (max-width: 1024px) {
   .topbar {
+    inset-inline-start: var(--sidebar-compact-width);
     padding-inline: var(--space-4);
   }
 
@@ -162,9 +165,10 @@
 
 @media (max-width: 768px) {
   .topbar {
+    inset-inline-start: 0;
     flex-wrap: wrap;
     align-content: center;
-    min-height: auto;
+    min-height: calc(var(--topbar-height) + 56px);
     padding: var(--space-3);
     padding-inline: var(--space-3);
   }

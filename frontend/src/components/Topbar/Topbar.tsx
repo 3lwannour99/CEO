@@ -2,8 +2,11 @@
 
 import { LanguageToggle } from "@/components/LanguageToggle/LanguageToggle";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
+import { CurrencySelector } from "@/components/CurrencySelector/CurrencySelector";
 import { useI18n } from "@/i18n/useI18n";
 import { useInventoryData } from "@/hooks/useInventoryData";
+import { useGlobalFilters } from "@/hooks/useGlobalFilters";
+import { formatDate } from "@/lib/apiClient";
 import styles from "./Topbar.module.css";
 
 interface TopbarProps {
@@ -11,14 +14,12 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenuClick }: TopbarProps) {
-  const { language, t } = useI18n();
-  const { refreshData, isRefreshing, isBusy } = useInventoryData();
-  const currentDate = new Intl.DateTimeFormat(language, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date());
+  const { t } = useI18n();
+  const { filters } = useGlobalFilters();
+  const inventoryData = useInventoryData();
+  const { refreshData, isRefreshing, isBusy } = inventoryData;
+  const alertCount = inventoryData.getAlerts(filters).length;
+  const currentDate = formatDate(new Date());
 
   return (
     <header className={styles.topbar}>
@@ -34,12 +35,13 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       <div className={styles.actions}>
         <span className={styles.date}>{currentDate}</span>
         <button className={styles.iconButton} type="button" aria-label={t("app.notifications")} title={t("app.notifications")} disabled={isBusy}>
-          3
+          {alertCount}
         </button>
         <button className={styles.refreshButton} type="button" onClick={() => void refreshData()} disabled={isBusy}>
           {isRefreshing ? t("filters.refreshingData") : t("summary.refresh")}
         </button>
         <LanguageToggle />
+        <CurrencySelector />
         <ThemeToggle />
         <div className={styles.company}>
           <span className={styles.avatar}>CR</span>

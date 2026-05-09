@@ -1,22 +1,108 @@
+.tableFrame {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  width: 100%;
+}
+
+.tableTools {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.clearFiltersButton {
+  min-height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.pageActions {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.pageButton {
+  min-height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pageButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.pageInfo {
+  white-space: nowrap;
+}
+
 .tableWrap {
   width: 100%;
-  overflow-x: auto;
+  min-width: 0;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+  overscroll-behavior-inline: contain;
   --table-row-height: 49px;
+  --table-header-height: 44px;
+  --table-search-height: 52px;
 }
 
 .scrollArea {
-  max-height: calc((var(--table-row-height) * 15) + 44px);
-  overflow: auto;
+  max-height: calc((var(--table-row-height) * 15) + var(--table-header-height) + var(--table-search-height));
+  overflow-x: scroll;
+  overflow-y: auto;
 }
 
 .tableWrap[data-max-rows="10"] {
-  max-height: calc((var(--table-row-height) * 10) + 44px);
+  max-height: calc((var(--table-row-height) * 10) + var(--table-header-height) + var(--table-search-height));
 }
 
 .table {
-  width: 100%;
-  min-width: 760px;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
+}
+
+.tableWrap::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.tableWrap::-webkit-scrollbar-track {
+  background: var(--color-soft);
+}
+
+.tableWrap::-webkit-scrollbar-thumb {
+  border: 3px solid var(--color-soft);
+  border-radius: 999px;
+  background: var(--color-border-strong);
+}
+
+.tableWrap::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
 }
 
 .table th {
@@ -27,9 +113,67 @@
   text-transform: uppercase;
 }
 
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: inherit;
+  text-align: start;
+  text-transform: inherit;
+}
+
+.sortButton:hover,
+.sortButton:focus-visible {
+  color: var(--color-text);
+}
+
+.sortButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-xs);
+}
+
+.sortIcon {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-muted);
+  background: var(--color-surface);
+  direction: ltr;
+  font-size: 0.72rem;
+  line-height: 1;
+  opacity: 0.52;
+  text-transform: none;
+  unicode-bidi: isolate;
+}
+
+.sorted {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  opacity: 1;
+}
+
 .stickyHeader th {
   position: sticky;
   inset-block-start: 0;
+  z-index: 2;
+}
+
+.stickyHeader .searchRow th {
+  inset-block-start: var(--table-header-height);
   z-index: 2;
 }
 
@@ -45,6 +189,28 @@
 .table td {
   color: var(--color-text);
   font-size: 0.9rem;
+}
+
+.searchRow th {
+  padding-block: 8px;
+  background: var(--color-table-head);
+}
+
+.columnSearch {
+  width: 100%;
+  min-width: 120px;
+  min-height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-2);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.columnSearch::placeholder {
+  color: var(--color-muted);
 }
 
 .table tr:last-child td {

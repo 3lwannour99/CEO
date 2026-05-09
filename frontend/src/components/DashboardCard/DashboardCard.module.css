@@ -1,10 +1,44 @@
 .card {
   min-height: 132px;
+  width: 100%;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-card);
   padding: var(--space-5);
   box-shadow: var(--shadow-sm);
+  text-align: start;
+}
+
+button.card {
+  color: inherit;
+  font: inherit;
+}
+
+.clickable {
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.clickable:hover:not(:disabled),
+.clickable:focus-visible {
+  border-color: var(--metric-color);
+  box-shadow: 0 0 0 3px var(--metric-soft), var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.clickable:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.active {
+  border-color: var(--metric-color);
+  background: linear-gradient(0deg, var(--metric-soft), var(--metric-soft)), var(--color-card);
+  box-shadow: 0 0 0 3px var(--metric-soft), var(--shadow-sm);
 }
 
 .label {
@@ -60,4 +94,64 @@
 .danger {
   --metric-color: var(--color-danger);
   --metric-soft: var(--color-danger-soft);
+}
+
+.green {
+  --metric-color: #16794f;
+  --metric-soft: rgba(22, 121, 79, 0.14);
+}
+
+.yellow {
+  --metric-color: #9a6500;
+  --metric-soft: rgba(154, 101, 0, 0.15);
+}
+
+.blue {
+  --metric-color: #1f5f99;
+  --metric-soft: rgba(31, 95, 153, 0.13);
+}
+
+.purple {
+  --metric-color: #7a3db8;
+  --metric-soft: rgba(122, 61, 184, 0.15);
+}
+
+.red {
+  --metric-color: #b42318;
+  --metric-soft: rgba(180, 35, 24, 0.13);
+}
+
+.pink {
+  --metric-color: #b83280;
+  --metric-soft: rgba(184, 50, 128, 0.15);
+}
+
+:global(body[data-theme="dark"]) .green {
+  --metric-color: #78d9a7;
+  --metric-soft: rgba(120, 217, 167, 0.16);
+}
+
+:global(body[data-theme="dark"]) .yellow {
+  --metric-color: #f2c45c;
+  --metric-soft: rgba(242, 196, 92, 0.16);
+}
+
+:global(body[data-theme="dark"]) .blue {
+  --metric-color: #93c9ff;
+  --metric-soft: rgba(147, 201, 255, 0.16);
+}
+
+:global(body[data-theme="dark"]) .purple {
+  --metric-color: #d3a2ff;
+  --metric-soft: rgba(211, 162, 255, 0.16);
+}
+
+:global(body[data-theme="dark"]) .red {
+  --metric-color: #ff8f82;
+  --metric-soft: rgba(255, 143, 130, 0.16);
+}
+
+:global(body[data-theme="dark"]) .pink {
+  --metric-color: #ff9fd0;
+  --metric-soft: rgba(255, 159, 208, 0.16);
 }

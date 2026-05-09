@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/StatusBadge/StatusBadge";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatValue } from "@/lib/apiClient";
+import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
 import { useI18n } from "@/i18n/useI18n";
 import type { InventoryAlert } from "@/types/inventory";
 
@@ -32,6 +33,11 @@ export default function AlertsPage() {
     <>
       <PageHeader title={t("pages.alerts.title")} description={t("pages.alerts.description")} />
       <FilterBar compact filters={filters} inventoryItems={inventoryData.inventoryItems} sources={inventoryData.sources} onChange={setFilters} />
+      <div className="report-actions">
+        <button className="report-button primary" type="button" onClick={() => exportExcel("alerts.xls", rows)}>{t("actions.exportExcel")}</button>
+        <button className="report-button" type="button" onClick={() => exportCsv("alerts.csv", rows)}>{t("actions.exportCsv")}</button>
+        <button className="report-button" type="button" onClick={() => exportPdf("alerts.pdf", rows)}>{t("actions.exportPdf")}</button>
+      </div>
       <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && filteredItems.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={resetFilters} />
       <SectionCard title={t("sections.alertQueue")} eyebrow={t("summary.liveData")}>
         <DataTable columns={columns} rows={rows} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />

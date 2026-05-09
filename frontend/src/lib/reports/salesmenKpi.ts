@@ -1,4 +1,5 @@
 import type { InventoryItem } from "@/types/inventory";
+import { createMoneyTotals, divideMoneyTotals, sumMoney, type MoneyTotals } from "@/lib/currency";
 
 export interface CountBreakdown {
   label: string;
@@ -8,8 +9,8 @@ export interface CountBreakdown {
 export interface SalesmanKpi {
   salesman: string;
   soldUnits: number;
-  soldRevenue: number;
-  averageSoldPrice: number;
+  soldRevenue: MoneyTotals;
+  averageSoldPrice: MoneyTotals;
   retailSalesCount: number;
   brokersSalesCount: number;
   fleetSalesCount: number;
@@ -33,7 +34,7 @@ export interface SalesmenKpiReport {
   salesmen: SalesmanKpi[];
   totalSalesmen: number;
   totalSoldUnits: number;
-  totalRevenue: number;
+  totalRevenue: MoneyTotals;
   averageSalesPerSalesman: number;
   topSalesmanByUnits: string;
   topSalesmanByRevenue: string;
@@ -41,10 +42,6 @@ export interface SalesmenKpiReport {
 
 function quantity(item: InventoryItem) {
   return item.quantity || 1;
-}
-
-function numberValue(value: number | null | undefined) {
-  return Number.isFinite(value) ? Number(value) : 0;
 }
 
 function validSalesman(value: string) {
@@ -123,7 +120,7 @@ function missingBreakdown(overall: CountBreakdown[], salesmanValues: CountBreakd
 export function calculateSalesmenKpi(items: InventoryItem[]): SalesmenKpiReport {
   const sold = items.filter((item) => soldItem(item) && validSalesman(item.salesMan));
   const totalSoldUnits = sold.reduce((sum, item) => sum + quantity(item), 0);
-  const totalRevenue = sold.reduce((sum, item) => sum + numberValue(item.soldPrice), 0);
+  const totalRevenue = sumMoney(sold, (item) => item.soldPrice);
   const overallModels = groupCounts(sold, (item) => item.model, 10);
   const overallBrands = groupCounts(sold, (item) => item.brand, 10);
   const overallColors = groupCounts(sold, (item) => item.exteriorColor, 10);
@@ -137,7 +134,7 @@ export function calculateSalesmenKpi(items: InventoryItem[]): SalesmenKpiReport 
   const salesmen = Object.entries(groups)
     .map(([salesman, group]): SalesmanKpi => {
       const soldUnits = group.reduce((sum, item) => sum + quantity(item), 0);
-      const soldRevenue = group.reduce((sum, item) => sum + numberValue(item.soldPrice), 0);
+      const soldRevenue = sumMoney(group, (item) => item.soldPrice);
       const topSoldModels = groupCounts(group, (item) => item.model);
       const topSoldBrands = groupCounts(group, (item) => item.brand);
       const topSoldColors = groupCounts(group, (item) => item.exteriorColor);
@@ -147,7 +144,7 @@ export function calculateSalesmenKpi(items: InventoryItem[]): SalesmenKpiReport 
         salesman,
         soldUnits,
         soldRevenue,
-        averageSoldPrice: soldUnits > 0 ? soldRevenue / soldUnits : 0,
+        averageSoldPrice: soldUnits > 0 ? divideMoneyTotals(soldRevenue, soldUnits) : createMoneyTotals(),
         retailSalesCount: customerGroupCount(group, (value) => value.includes("retail") || value.includes("individual")),
         brokersSalesCount: customerGroupCount(group, (value) => value.includes("broker")),
         fleetSalesCount: customerGroupCount(group, (value) => value.includes("fleet")),
@@ -164,10 +161,10 @@ export function calculateSalesmenKpi(items: InventoryItem[]): SalesmenKpiReport 
         lastSaleDate: dates.lastSaleDate,
         averageDaysToSell: averageDaysToSell(group),
         shareOfTotalSales: totalSoldUnits > 0 ? (soldUnits / totalSoldUnits) * 100 : 0,
-        shareOfTotalRevenue: totalRevenue > 0 ? (soldRevenue / totalRevenue) * 100 : 0,
+        shareOfTotalRevenue: totalRevenue.usd > 0 ? (soldRevenue.usd / totalRevenue.usd) * 100 : 0,
       };
     })
-    .sort((a, b) => b.soldUnits - a.soldUnits || b.soldRevenue - a.soldRevenue);
+    .sort((a, b) => b.soldUnits - a.soldUnits || b.soldRevenue.usd - a.soldRevenue.usd);
 
   return {
     salesmen,
@@ -176,6 +173,6 @@ export function calculateSalesmenKpi(items: InventoryItem[]): SalesmenKpiReport 
     totalRevenue,
     averageSalesPerSalesman: salesmen.length > 0 ? totalSoldUnits / salesmen.length : 0,
     topSalesmanByUnits: salesmen[0]?.salesman ?? "-",
-    topSalesmanByRevenue: [...salesmen].sort((a, b) => b.soldRevenue - a.soldRevenue)[0]?.salesman ?? "-",
+    topSalesmanByRevenue: [...salesmen].sort((a, b) => b.soldRevenue.usd - a.soldRevenue.usd)[0]?.salesman ?? "-",
   };
 }

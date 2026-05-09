@@ -14,6 +14,8 @@ const navItems = [
   { labelKey: "sidebar.salesPerformance", href: "/sales-performance", marker: "SP" },
   { labelKey: "sidebar.salesmenKpi", href: "/salesmen-kpi", marker: "SK" },
   { labelKey: "sidebar.aggregatedStock", href: "/aggregated-stock", marker: "AS" },
+  { labelKey: "sidebar.stockRules", href: "/stock-rules", marker: "SR" },
+  { labelKey: "sidebar.snapshots", href: "/snapshots", marker: "SN" },
   { labelKey: "sidebar.logistics", href: "/logistics", marker: "LG" },
   { labelKey: "sidebar.multiLocation", href: "/multi-location", marker: "ML" },
   { labelKey: "sidebar.settings", href: "/settings", marker: "ST" },

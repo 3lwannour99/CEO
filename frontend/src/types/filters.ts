@@ -73,7 +73,7 @@ export function createDefaultInventoryFilters(): InventoryFilters {
     customerGroups: [],
     salesmen: [],
     search: "",
-    dateField: "all",
+    dateField: "arInvoiceDate",
     fromDate: toDateInputValue(firstDay),
     toDate: toDateInputValue(lastDay),
     exactDate: undefined,
