@@ -16,6 +16,7 @@ import {
   calculateStockCoverage,
 } from "@/lib/reports/inventoryReports";
 import { getInventory, getSources, getStockRules } from "@/services/inventoryApi";
+import { useAuth } from "@/providers/AuthProvider/AuthProvider";
 import type { InventoryFilters } from "@/types/filters";
 import type {
   AggregatedStockResponse,
@@ -73,6 +74,7 @@ interface InventoryRefreshRequest {
 const InventoryDataContext = createContext<InventoryDataContextValue | undefined>(undefined);
 
 export function InventoryDataProvider({ children }: Readonly<{ children: React.ReactNode }>) {
+  const auth = useAuth();
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [sources, setSources] = useState<CounterScreenSource[]>([]);
   const [stockRules, setStockRules] = useState<StockRule[]>([]);
@@ -172,8 +174,27 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
   });
 
   useEffect(() => {
+    if (auth.isLoading) {
+      return;
+    }
+
+    if (!auth.isAuthenticated) {
+      queueMicrotask(() => {
+        setInventoryItems([]);
+        setSources([]);
+        setStockRules([]);
+        setMeta(undefined);
+        setIsInitialLoading(false);
+        setIsRefreshing(false);
+        setError(null);
+        setHasSuccessfulData(false);
+        hasSuccessfulDataRef.current = false;
+      });
+      return;
+    }
+
     void refreshInventoryData({ reason: "initial-load", triggerSync: false });
-  }, [refreshInventoryData]);
+  }, [auth.isAuthenticated, auth.isLoading, refreshInventoryData]);
 
   useEffect(() => {
     function handleVisibilityChange() {
@@ -187,23 +208,32 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [refreshInventoryData]);
 
-  const filteredDataCacheRef = useRef(new Map<string, InventoryItem[]>());
-
-  useEffect(() => {
-    filteredDataCacheRef.current = new Map();
-  }, [inventoryItems]);
+  const filteredDataCacheRef = useRef<{
+    inventoryRef: InventoryItem[];
+    values: Map<string, InventoryItem[]>;
+  }>({
+    inventoryRef: inventoryItems,
+    values: new Map<string, InventoryItem[]>(),
+  });
 
   const getFilteredData = useCallback(
     (filters: InventoryFilters) => {
+      if (filteredDataCacheRef.current.inventoryRef !== inventoryItems) {
+        filteredDataCacheRef.current = {
+          inventoryRef: inventoryItems,
+          values: new Map<string, InventoryItem[]>(),
+        };
+      }
+
       const cacheKey = JSON.stringify(filters);
-      const cached = filteredDataCacheRef.current.get(cacheKey);
+      const cached = filteredDataCacheRef.current.values.get(cacheKey);
 
       if (cached) {
         return cached;
       }
 
       const filteredData = filterInventory(inventoryItems, filters);
-      filteredDataCacheRef.current.set(cacheKey, filteredData);
+      filteredDataCacheRef.current.values.set(cacheKey, filteredData);
 
       return filteredData;
     },

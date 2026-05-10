@@ -4,6 +4,7 @@ import { DashboardShell } from "@/components/DashboardShell/DashboardShell";
 import { ThemeProvider } from "@/components/ThemeProvider/ThemeProvider";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { CurrencyDisplayProvider } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
+import { AuthProvider } from "@/providers/AuthProvider/AuthProvider";
 import { FilterProvider } from "@/providers/FilterProvider/FilterProvider";
 import { InventoryDataProvider } from "@/providers/InventoryDataProvider/InventoryDataProvider";
 import "./globals.css";
@@ -34,13 +35,15 @@ export default function RootLayout({
       <body className={`${inter.variable} ${cairo.variable}`} suppressHydrationWarning>
         <ThemeProvider>
           <I18nProvider>
-            <InventoryDataProvider>
-              <CurrencyDisplayProvider>
-                <FilterProvider>
-                  <DashboardShell>{children}</DashboardShell>
-                </FilterProvider>
-              </CurrencyDisplayProvider>
-            </InventoryDataProvider>
+            <AuthProvider>
+              <InventoryDataProvider>
+                <CurrencyDisplayProvider>
+                  <FilterProvider>
+                    <DashboardShell>{children}</DashboardShell>
+                  </FilterProvider>
+                </CurrencyDisplayProvider>
+              </InventoryDataProvider>
+            </AuthProvider>
           </I18nProvider>
         </ThemeProvider>
       </body>

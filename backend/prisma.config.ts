@@ -35,10 +35,10 @@ function normalizeDatabaseProvider(value?: string) {
 function selectDatabaseUrl(databaseProvider: string) {
     const candidates =
         databaseProvider === 'mysql'
-            ? [process.env.MYSQL_DATABASE_URL, process.env.DATABASE_URL]
+            ? [process.env.DATABASE_URL, process.env.MYSQL_DATABASE_URL]
             : [
-                  process.env.POSTGRES_DATABASE_URL,
                   process.env.DATABASE_URL,
+                  process.env.POSTGRES_DATABASE_URL,
                   process.env.TEMPLATE_DB_URL,
               ];
 

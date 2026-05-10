@@ -2,9 +2,12 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4
 const ACCESS_TOKEN_KEY = "ceoreport_access_token";
 
 export class ApiError extends Error {
-  constructor(message: string) {
+  status: number;
+
+  constructor(message: string, status = 0) {
     super(message);
     this.name = "ApiError";
+    this.status = status;
   }
 }
 
@@ -38,6 +41,18 @@ function authHeaders(headers?: HeadersInit): HeadersInit {
   return token ? { ...headers, Authorization: `Bearer ${token}` } : (headers ?? {});
 }
 
+function handleAuthFailure(status: number) {
+  if (status !== 401 || typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  window.dispatchEvent(new Event("ceoreport-auth-token-changed"));
+  if (window.location.pathname !== "/login") {
+    window.location.assign("/login");
+  }
+}
+
 export function buildQuery(params?: QueryParams) {
   const searchParams = new URLSearchParams();
   Object.entries(params ?? {}).forEach(([key, value]) => {
@@ -57,7 +72,8 @@ export async function apiGet<T>(path: string, params?: QueryParams): Promise<T> 
   });
 
   if (!response.ok) {
-    throw new ApiError(`API request failed: ${response.status}`);
+    handleAuthFailure(response.status);
+    throw new ApiError(`API request failed: ${response.status}`, response.status);
   }
 
   return (await response.json()) as T;
@@ -71,7 +87,8 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new ApiError(`API request failed: ${response.status}`);
+    handleAuthFailure(response.status);
+    throw new ApiError(`API request failed: ${response.status}`, response.status);
   }
 
   return (await response.json()) as T;
@@ -85,7 +102,8 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new ApiError(`API request failed: ${response.status}`);
+    handleAuthFailure(response.status);
+    throw new ApiError(`API request failed: ${response.status}`, response.status);
   }
 
   return (await response.json()) as T;
@@ -95,7 +113,8 @@ export async function apiDelete<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, { method: "DELETE", headers: authHeaders() });
 
   if (!response.ok) {
-    throw new ApiError(`API request failed: ${response.status}`);
+    handleAuthFailure(response.status);
+    throw new ApiError(`API request failed: ${response.status}`, response.status);
   }
 
   return (await response.json()) as T;
@@ -109,7 +128,8 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new ApiError(`API request failed: ${response.status}`);
+    handleAuthFailure(response.status);
+    throw new ApiError(`API request failed: ${response.status}`, response.status);
   }
 
   return (await response.json()) as T;

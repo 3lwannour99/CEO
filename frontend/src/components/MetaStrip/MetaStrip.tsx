@@ -31,12 +31,12 @@ export function MetaStrip({ meta }: MetaStripProps) {
       <span>{t("summary.fromCache")}: {meta.fromCache ? t("summary.yes") : t("summary.no")}</span>
       {meta.syncStatus ? <span>{t("summary.syncStatus")}: {meta.syncStatus}</span> : null}
       <span className={liveStatus.connected ? styles.liveConnected : styles.liveDisconnected}>
-        Live: {liveStatus.connected ? "connected" : "disconnected"}
+        {t("common.live")}: {liveStatus.connected ? t("common.connected") : t("common.disconnected")}
       </span>
-      {liveStatus.lastEvent ? <span>Latest sync: {liveStatus.lastEvent.status}</span> : null}
-      {liveStatus.lastUpdatedAt ? <span>Socket update: {formatDate(liveStatus.lastUpdatedAt)}</span> : null}
-      {liveStatus.lastEvent?.failedSources ? <span>Failed sources: {liveStatus.lastEvent.failedSources}</span> : null}
-      {liveStatus.connectionError ? <span>Socket: {liveStatus.connectionError}</span> : null}
+      {liveStatus.lastEvent ? <span>{t("common.latestSync")}: {liveStatus.lastEvent.status}</span> : null}
+      {liveStatus.lastUpdatedAt ? <span>{t("common.socketUpdate")}: {formatDate(liveStatus.lastUpdatedAt)}</span> : null}
+      {liveStatus.lastEvent?.failedSources ? <span>{t("common.failedSources")}: {liveStatus.lastEvent.failedSources}</span> : null}
+      {liveStatus.connectionError ? <span>{t("common.socket")}: {liveStatus.connectionError}</span> : null}
       {isStale ? <span>{t("summary.staleData")}</span> : null}
       <span>{t("summary.successfulSources")}: {meta.successfulSources}</span>
       <span>{t("summary.failedSources")}: {meta.failedSources}</span>

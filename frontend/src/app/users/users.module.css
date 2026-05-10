@@ -1,0 +1,180 @@
+.page {
+  display: grid;
+  gap: var(--space-5);
+  width: 100%;
+}
+
+.createForm {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: var(--space-4);
+  align-items: end;
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.input,
+.inlineSelect {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.input:focus,
+.inlineSelect:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.primaryButton,
+.secondaryButton {
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-4);
+  font-size: 0.86rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.primaryButton {
+  min-width: 150px;
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+}
+
+.secondaryButton {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.inlineSelect:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.errorNotice,
+.successNotice {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.errorNotice {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.successNotice {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.usernameText {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.roleChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.roleChip,
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border-radius: 999px;
+  padding-inline: var(--space-2);
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.roleChip {
+  color: var(--color-text);
+  background: var(--color-soft);
+}
+
+.statusPill {
+  border: 1px solid transparent;
+}
+
+.activeStatus {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+  border-color: color-mix(in srgb, var(--color-success) 30%, transparent);
+}
+
+.inactiveStatus {
+  color: var(--color-muted);
+  background: var(--color-soft);
+  border-color: var(--color-border);
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.tableActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.inlineSelect {
+  min-width: 140px;
+  min-height: 36px;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 1180px) {
+  .createForm {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .createForm {
+    grid-template-columns: 1fr;
+  }
+
+  .formActions {
+    justify-content: stretch;
+  }
+
+  .primaryButton {
+    width: 100%;
+  }
+
+  .tableActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -7,6 +7,7 @@ import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { createStockRule, deleteStockRule, getStockRules } from "@/services/inventoryApi";
 import { formatNumber, formatValue } from "@/lib/apiClient";
 import { useI18n } from "@/i18n/useI18n";
+import { useAuth } from "@/providers/AuthProvider/AuthProvider";
 import type { StockRule, StockRuleInput } from "@/types/inventory";
 
 const emptyRule: StockRuleInput = {
@@ -28,6 +29,7 @@ const emptyRule: StockRuleInput = {
 
 export default function StockRulesPage() {
   const { t } = useI18n();
+  const auth = useAuth();
   const [rules, setRules] = useState<StockRule[]>([]);
   const [draft, setDraft] = useState<StockRuleInput>(emptyRule);
   const [loading, setLoading] = useState(true);
@@ -72,15 +74,18 @@ export default function StockRulesPage() {
     { key: "target", header: t("table.targetCoverageMonths"), render: (row) => formatNumber(row.targetCoverageMonths) },
     { key: "lead", header: t("table.leadTimeDays"), render: (row) => formatNumber(row.leadTimeDays) },
     { key: "active", header: t("table.active"), render: (row) => (row.isActive ? t("summary.yes") : t("summary.no")) },
-    { key: "delete", header: "", render: (row) => <button className="report-button" type="button" onClick={() => void deleteStockRule(row.id).then(loadRules)}>{t("actions.delete")}</button> },
+    ...(auth.hasPermission("stockRules.manage")
+      ? [{ key: "delete", header: "", render: (row: StockRule) => <button className="report-button" type="button" onClick={() => void deleteStockRule(row.id).then(loadRules)}>{t("actions.delete")}</button> }]
+      : []),
   ];
 
   return (
     <>
       <PageHeader title={t("pages.stockRules.title")} description={t("pages.stockRules.description")} />
       {error ? <p>{error}</p> : null}
-      <SectionCard title={t("sidebar.stockRules")} eyebrow={t("sections.configuration")}>
-        <form className="business-form" onSubmit={submit}>
+      {auth.hasPermission("stockRules.manage") ? (
+        <SectionCard title={t("sidebar.stockRules")} eyebrow={t("sections.configuration")}>
+          <form className="business-form" onSubmit={submit}>
           <TextField label={t("table.company")} value={draft.sourceId ?? ""} onChange={(value) => setDraft({ ...draft, sourceId: value || null })} />
           <TextField label={t("table.brand")} value={draft.brand ?? ""} onChange={(value) => setDraft({ ...draft, brand: value || null })} />
           <TextField label={t("table.model")} value={draft.model ?? ""} onChange={(value) => setDraft({ ...draft, model: value || null })} />
@@ -102,8 +107,9 @@ export default function StockRulesPage() {
             </select>
           </label>
           <button className="report-button primary" type="submit" disabled={saving}>{saving ? t("filters.loadingData") : t("filters.apply")}</button>
-        </form>
-      </SectionCard>
+          </form>
+        </SectionCard>
+      ) : null}
       <SectionCard title={t("sections.systemReadiness")} eyebrow={t("sidebar.stockRules")}>
         <DataTable columns={columns} rows={rules} isLoading={loading} emptyMessage={t("filters.emptyFiltered")} />
       </SectionCard>

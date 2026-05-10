@@ -173,5 +173,6 @@ As the project grows, keep the code organized by feature and ownership:
 - Frontend dashboard views should live under `frontend/src/app/` using route folders.
 - Shared frontend UI components can be added under `frontend/src/components/`.
 - Backend business features can be added as Nest modules under `backend/src/<feature-name>/`.
-- Database models should be added to `backend/prisma/schema/schema.prisma`.
+- Authentication and user management live under `backend/src/auth`, `backend/src/users`, `frontend/src/providers/AuthProvider`, `frontend/src/app/login`, and `frontend/src/app/users`.
+- Database models should be added as separate files under `backend/prisma/schema/`; auth models use `user.prisma`, `role.prisma`, `permission.prisma`, `user-role.prisma`, and `role-permission.prisma`.
 - Data ingestion jobs for SAP, Carflow, and external APIs can be added as backend modules or scheduled services.
