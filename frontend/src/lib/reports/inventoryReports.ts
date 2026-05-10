@@ -181,125 +181,205 @@ export function calculateAlerts(
       message: `${error.sourceName} could not be reached.`,
       severity: "critical" as const,
       branch: error.sourceName,
+      sourceId: error.sourceId,
       sourceName: error.sourceName,
       chassis: "-",
       affectedCount: 0,
+      affectedUnits: 0,
+      sampleChassis: [],
+      affectedChassis: [],
+      affectedVehicles: [],
       recommendedAction: "Check source API availability and retry sync.",
       createdAt: generatedAt,
     })),
-    ...items
-      .filter((item) => item.isInStock && movementCategory(item) === "slow")
-      .map((item) => ({
-        id: `slow-${item.sourceId}-${item.chassis || item.itemCode}`,
+    ...groupAlertVehicles(
+      items.filter((item) => item.isInStock && movementCategory(item) === "slow"),
+      (item) => groupKey(item, ["source", "brand", "model", "type", "warehouse"]),
+      (group) => {
+        const sample = group[0];
+        const ages = group.map((item) => item.stockAgeDays).filter((value): value is number => typeof value === "number");
+        return {
+        id: `slow-${groupKey(sample, ["source", "brand", "model", "type", "warehouse"])}`,
         type: "slowStock" as const,
         title: "Slow stock 90+ days",
-        message: `${item.brand} ${item.model} has ${item.stockAgeDays ?? 0} stock age days.`,
+        message: `${sample?.brand ?? ""} ${sample?.model ?? ""} has ${sumQuantity(group)} slow-moving units.`,
         severity: "warning" as const,
-        branch: item.branch || item.sourceName,
-        sourceName: item.sourceName,
-        model: item.model,
-        chassis: item.chassis || "-",
-        status: item.displayStatus || item.normalizedStatus,
-        ageDays: item.stockAgeDays,
-        affectedCount: 1,
+        ...alertGroupFields(sample),
+        affectedCount: sumQuantity(group),
+        affectedUnits: sumQuantity(group),
+        affectedVehicles: group,
+        affectedChassis: chassisSamples(group, Number.MAX_SAFE_INTEGER),
+        sampleChassis: chassisSamples(group, 5),
+        metrics: {
+          oldestStockAgeDays: ages.length > 0 ? Math.max(...ages) : null,
+          averageStockAgeDays: ages.length > 0 ? round(ages.reduce((sum, value) => sum + value, 0) / ages.length) : null,
+        },
         recommendedAction: "Review pricing, transfer, or promotion plan.",
         createdAt: generatedAt,
-      })),
-    ...items
-      .filter((item) => item.isInStock && movementCategory(item) === "unknown")
-      .map((item) => ({
-        id: `unknown-age-${item.sourceId}-${item.chassis || item.itemCode}`,
+      };
+      },
+    ),
+    ...groupAlertVehicles(
+      items.filter((item) => item.isInStock && movementCategory(item) === "unknown"),
+      (item) => groupKey(item, ["source", "brand", "model", "warehouse"]),
+      (group) => {
+        const sample = group[0];
+        return {
+        id: `unknown-age-${groupKey(sample, ["source", "brand", "model", "warehouse"])}`,
         type: "unknownAge" as const,
         title: "Unknown stock age",
-        message: `${item.brand} ${item.model} has no usable stock date.`,
+        message: `${sample?.brand ?? ""} ${sample?.model ?? ""} has ${sumQuantity(group)} units without usable stock age.`,
         severity: "info" as const,
-        branch: item.branch || item.sourceName,
-        sourceName: item.sourceName,
-        model: item.model,
-        chassis: item.chassis || "-",
-        status: item.displayStatus || item.normalizedStatus,
+        ...alertGroupFields(sample),
+        chassis: "-",
         ageDays: null,
-        affectedCount: 1,
+        affectedCount: sumQuantity(group),
+        affectedUnits: sumQuantity(group),
+        affectedVehicles: group,
+        affectedChassis: chassisSamples(group, Number.MAX_SAFE_INTEGER),
+        sampleChassis: chassisSamples(group, 5),
         recommendedAction: "Validate GRPO, AP invoice, or create date.",
         createdAt: generatedAt,
-      })),
-    ...replenishment
-      .filter((item) => item.currentStock <= item.minStock)
-      .map((item) => ({
-        id: `low-stock-${item.sourceId}-${item.model}-${item.exteriorColor}-${item.warehouse}`,
+      };
+      },
+    ),
+    ...groupBy(
+      replenishment.filter((item) => item.currentStock <= item.minStock),
+      (item) => `${item.sourceId}|${item.brand}|${item.model}`,
+      (group) => {
+        const item = group[0];
+        const currentStock = group.reduce((sum, row) => sum + row.currentStock, 0);
+        const minStock = group.reduce((sum, row) => sum + row.minStock, 0);
+        return {
+        id: `low-stock-${item.sourceId}-${item.brand}-${item.model}`,
         type: "lowStock" as const,
         title: "Low Stock",
-        message: `${item.brand} ${item.model} is below min stock (${item.currentStock}/${item.minStock}).`,
-        severity: "critical" as const,
+        message: `${item.brand} ${item.model} is below min stock (${currentStock}/${minStock}).`,
+        severity: "warning" as const,
         branch: item.warehouse || item.sourceName || "",
+        sourceId: item.sourceId,
         sourceName: item.sourceName,
+        brand: item.brand,
         model: item.model,
+        typeName: item.type,
+        warehouse: item.warehouse,
         chassis: "-",
-        affectedCount: item.currentStock,
-        recommendedAction: item.reason,
+        affectedCount: currentStock,
+        affectedUnits: currentStock,
+        metrics: { currentStock, minStock },
+        recommendedAction: "Review stock rules, rebalance, or order units for this model group.",
         createdAt: generatedAt,
-      })),
-    ...replenishment
-      .filter((item) => item.currentStock <= item.reorderPoint)
-      .map((item) => ({
-        id: `reorder-${item.sourceId}-${item.model}-${item.exteriorColor}-${item.warehouse}`,
+      };
+      },
+    ),
+    ...groupBy(
+      replenishment.filter((item) => item.currentStock <= item.reorderPoint),
+      (item) => `${item.sourceId}|${item.brand}|${item.model}`,
+      (group) => {
+        const item = group[0];
+        const currentStock = group.reduce((sum, row) => sum + row.currentStock, 0);
+        const reorderPoint = group.reduce((sum, row) => sum + row.reorderPoint, 0);
+        const suggestedOrderQuantity = group.reduce((sum, row) => sum + row.suggestedOrderQuantity, 0);
+        return {
+        id: `reorder-${item.sourceId}-${item.brand}-${item.model}`,
         type: "belowReorderPoint" as const,
         title: "Below Reorder Point",
-        message: `${item.brand} ${item.model} suggested order quantity: ${item.suggestedOrderQuantity}.`,
-        severity: "warning" as const,
+        message: `${item.brand} ${item.model} suggested order quantity: ${suggestedOrderQuantity}.`,
+        severity: "critical" as const,
         branch: item.warehouse || item.sourceName || "",
+        sourceId: item.sourceId,
         sourceName: item.sourceName,
+        brand: item.brand,
         model: item.model,
+        typeName: item.type,
+        warehouse: item.warehouse,
         chassis: "-",
-        affectedCount: item.currentStock,
-        recommendedAction: item.reason,
+        affectedCount: currentStock,
+        affectedUnits: currentStock,
+        metrics: {
+          currentStock,
+          reorderPoint,
+          suggestedOrderQuantity,
+        },
+        recommendedAction: "Order or rebalance this model group immediately.",
         createdAt: generatedAt,
-      })),
-    ...coverage
-      .filter((item) => item.status === "danger" || item.status === "overstock")
-      .map((item) => ({
-        id: `coverage-${item.status}-${item.sourceId}-${item.model}-${item.exteriorColor}-${item.warehouse}`,
+      };
+      },
+    ),
+    ...groupBy(
+      coverage.filter((item) => item.status === "danger" || item.status === "overstock"),
+      (item) => `${item.status}|${item.sourceId}|${item.brand}|${item.model}`,
+      (group) => {
+        const item = group[0];
+        const currentStock = group.reduce((sum, row) => sum + row.currentStock, 0);
+        const averageMonthlySales = group.reduce((sum, row) => sum + row.averageMonthlySales, 0);
+        const coverageMonths = averageMonthlySales > 0 ? round(currentStock / averageMonthlySales) : null;
+        return {
+        id: `coverage-${item.status}-${item.sourceId}-${item.brand}-${item.model}`,
         type: item.status === "danger" ? ("coverageDanger" as const) : ("overstock" as const),
         title: item.status === "danger" ? "Coverage Danger" : "Overstock",
-        message: `${item.brand} ${item.model} coverage is ${item.coverageMonths ?? "not available"} months.`,
+        message: `${item.brand} ${item.model} coverage is ${coverageMonths ?? "not available"} months.`,
         severity: item.status === "danger" ? ("critical" as const) : ("warning" as const),
         branch: item.warehouse || item.sourceName || "",
+        sourceId: item.sourceId,
         sourceName: item.sourceName,
+        brand: item.brand,
         model: item.model,
+        typeName: item.type,
+        warehouse: item.warehouse,
         chassis: "-",
-        ageDays: item.coverageMonths,
-        affectedCount: item.currentStock,
+        ageDays: coverageMonths,
+        affectedCount: currentStock,
+        affectedUnits: currentStock,
+        metrics: {
+          coverageMonths,
+          targetCoverageMonths: item.targetCoverageMonths,
+          currentStock,
+          averageMonthlySales: round(averageMonthlySales),
+        },
         recommendedAction: item.recommendedAction,
         createdAt: generatedAt,
-      })),
-    ...items
-      .filter((item) => item.isReserved && reservationAgeDays(item) > 30)
-      .map((item) => ({
-        id: `old-reservation-${item.sourceId}-${item.chassis || item.itemCode}`,
+      };
+      },
+    ),
+    ...groupAlertVehicles(
+      items.filter((item) => item.isReserved && reservationAgeDays(item) > 30),
+      (item) => groupKey(item, ["source", "brand", "model", "salesman"]),
+      (group) => {
+        const sample = group[0];
+        const ages = group.map(reservationAgeDays).filter((value) => value > 30);
+        return {
+        id: `old-reservation-${groupKey(sample, ["source", "brand", "model", "salesman"])}`,
         type: "oldReservation" as const,
         title: "Old Reservation",
-        message: `${item.brand} ${item.model} reservation is older than 30 days.`,
+        message: `${sample?.brand ?? ""} ${sample?.model ?? ""} has ${sumQuantity(group)} old reservations.`,
         severity: "warning" as const,
-        branch: item.branch || item.sourceName,
-        sourceName: item.sourceName,
-        model: item.model,
-        chassis: item.chassis || "-",
-        status: item.displayStatus || item.normalizedStatus,
-        ageDays: reservationAgeDays(item),
-        affectedCount: 1,
+        ...alertGroupFields(sample),
+        chassis: "-",
+        affectedCount: sumQuantity(group),
+        affectedUnits: sumQuantity(group),
+        affectedVehicles: group,
+        affectedChassis: chassisSamples(group, Number.MAX_SAFE_INTEGER),
+        sampleChassis: chassisSamples(group, 5),
+        metrics: {
+          oldestReservationAgeDays: ages.length > 0 ? Math.max(...ages) : null,
+          averageReservationAgeDays: ages.length > 0 ? round(ages.reduce((sum, value) => sum + value, 0) / ages.length) : null,
+        },
         recommendedAction: "Follow up with sales team and customer.",
         createdAt: generatedAt,
-      })),
+      };
+      },
+    ),
   ];
 
   return Array.from(
     new Map(
       alerts.map((alert) => [
-        alert.chassis && alert.chassis !== "-" ? `${alert.type}-${alert.chassis}` : alert.id,
+        alert.id,
         alert,
       ]),
     ).values(),
-  );
+  ).sort((left, right) => severityRank(right.severity) - severityRank(left.severity) || (right.affectedUnits ?? 0) - (left.affectedUnits ?? 0)).slice(0, 100);
 }
 
 export function calculateReplenishment(
@@ -851,6 +931,53 @@ function match(ruleValue: string | null | undefined, itemValue: string) {
 
 function urgencyRank(urgency: ReplenishmentSuggestion["urgency"]) {
   return { low: 0, medium: 1, high: 2, critical: 3 }[urgency];
+}
+
+function severityRank(severity: InventoryAlert["severity"]) {
+  return { success: 0, info: 1, warning: 2, critical: 3 }[severity] ?? 0;
+}
+
+function groupAlertVehicles(
+  items: InventoryItem[],
+  keyFactory: (item: InventoryItem) => string,
+  mapper: (items: InventoryItem[]) => InventoryAlert,
+) {
+  return groupBy(items, keyFactory, mapper);
+}
+
+function alertGroupFields(item?: InventoryItem) {
+  return {
+    branch: item?.branch || item?.sourceName || "",
+    sourceId: item?.sourceId,
+    sourceName: item?.sourceName,
+    brand: item?.brand,
+    model: item?.model,
+    typeName: item?.type,
+    warehouse: item?.warehouse,
+    status: item?.displayStatus || item?.normalizedStatus,
+  };
+}
+
+function groupKey(item: InventoryItem | undefined, parts: Array<"source" | "brand" | "model" | "type" | "warehouse" | "salesman">) {
+  if (!item) {
+    return "unknown";
+  }
+
+  return parts
+    .map((part) => {
+      if (part === "source") {
+        return item.sourceId || item.sourceName || "Unknown";
+      }
+      if (part === "salesman") {
+        return item.salesMan || "Unknown";
+      }
+      return item[part] || "Unknown";
+    })
+    .join("|");
+}
+
+function chassisSamples(items: InventoryItem[], limit: number) {
+  return Array.from(new Set(items.map((item) => item.chassis).filter(Boolean))).slice(0, limit) as string[];
 }
 
 function sellThroughRate(items: InventoryItem[]) {

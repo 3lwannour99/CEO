@@ -6,20 +6,35 @@ model InventorySnapshotItem {
   id         String @id @default(cuid())
   snapshotId String
 
-  sourceId      String?
-  brand         String?
-  model         String?
-  type          String?
-  exteriorColor String?
-  warehouse     String?
+  sourceId         String?
+  sourceName       String?
+  brand            String?
+  model            String?
+  type             String?
+  exteriorColor    String?
+  warehouse        String?
+  branch           String?
+  movementCategory String?
+  status           String?
 
-  quantity Int
-  valueSar Float @default(0)
-  valueJod Float @default(0)
-  valueUsd Float @default(0)
+  quantity      Int
+  slowUnits     Int   @default(0)
+  mediumUnits   Int   @default(0)
+  fastUnits     Int   @default(0)
+  soldUnits     Int   @default(0)
+  reservedUnits Int   @default(0)
+  inStockUnits  Int   @default(0)
+  valueSar      Float @default(0)
+  valueJod      Float @default(0)
+  valueUsd      Float @default(0)
 
   snapshot InventorySnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
 
   @@index([snapshotId])
   @@index([sourceId, model, exteriorColor, warehouse])
+  @@index([brand])
+  @@index([type])
+  @@index([branch])
+  @@index([movementCategory])
+  @@index([status])
 }

@@ -273,13 +273,33 @@ export interface InventoryAlert {
   message: string;
   severity: AlertSeverity;
   branch: string;
+  sourceId?: string;
   sourceName?: string;
+  brand?: string;
   model?: string;
+  typeName?: string;
+  warehouse?: string;
   chassis?: string;
   status?: string;
   ageDays?: number | null;
   affectedCount?: number;
+  affectedUnits?: number;
+  affectedChassis?: string[];
+  affectedVehicles?: InventoryItem[];
   sampleChassis?: string[];
+  metrics?: {
+    currentStock?: number;
+    minStock?: number;
+    reorderPoint?: number;
+    suggestedOrderQuantity?: number;
+    coverageMonths?: number | null;
+    targetCoverageMonths?: number;
+    oldestStockAgeDays?: number | null;
+    averageStockAgeDays?: number | null;
+    oldestReservationAgeDays?: number | null;
+    averageReservationAgeDays?: number | null;
+    averageMonthlySales?: number;
+  };
   recommendedAction?: string;
   createdAt: string;
 }
@@ -514,6 +534,9 @@ export interface InventorySnapshot {
   id: string;
   snapshotDate: string;
   sourceName: string | null;
+  isFiltered?: boolean;
+  filtersJson?: SnapshotFilters | null;
+  scopeLabel?: string | null;
   totalUnits: number;
   soldUnits: number;
   reservedUnits: number;
@@ -524,11 +547,15 @@ export interface InventorySnapshot {
   totalValueSar: number;
   totalValueJod: number;
   totalValueUsd: number;
+  createdAt?: string;
+  items?: InventorySnapshotItem[];
 }
 
 export interface MonthlyComparison {
   month: string;
+  periodLabel?: string;
   totalUnits: number;
+  inStockUnits?: number;
   slowUnits: number;
   mediumUnits: number;
   fastUnits: number;
@@ -537,6 +564,83 @@ export interface MonthlyComparison {
   stockValueSar: number;
   stockValueJod: number;
   stockValueUsd: number;
+  previousTotalUnits?: number;
+  totalUnitsChange?: number;
+  inStockUnitsChange?: number;
+  soldUnitsChange?: number;
+  reservedUnitsChange?: number;
+  slowUnitsChange?: number;
+  stockValueSarChange?: number;
+  stockValueJodChange?: number;
+  stockValueUsdChange?: number;
+}
+
+export interface SnapshotFilters {
+  fromDate?: string;
+  toDate?: string;
+  sourceId?: string;
+  brand?: string;
+  model?: string;
+  type?: string;
+  exteriorColor?: string;
+  warehouse?: string;
+  branch?: string;
+  isFiltered?: string;
+}
+
+export interface InventorySnapshotItem {
+  id: string;
+  snapshotId: string;
+  sourceId?: string | null;
+  sourceName?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  type?: string | null;
+  exteriorColor?: string | null;
+  warehouse?: string | null;
+  branch?: string | null;
+  movementCategory?: string | null;
+  status?: string | null;
+  quantity: number;
+  slowUnits?: number;
+  mediumUnits?: number;
+  fastUnits?: number;
+  soldUnits?: number;
+  reservedUnits?: number;
+  inStockUnits?: number;
+  valueSar: number;
+  valueJod: number;
+  valueUsd: number;
+}
+
+export interface SnapshotBreakdownRow {
+  key: string;
+  label: string;
+  units: number;
+  slowUnits: number;
+  mediumUnits: number;
+  fastUnits: number;
+  soldUnits: number;
+  reservedUnits: number;
+  inStockUnits: number;
+  stockValueSar: number;
+  stockValueJod: number;
+  stockValueUsd: number;
+  percentageOfTotal: number;
+}
+
+export interface InventorySnapshotDetail extends InventorySnapshot {
+  breakdowns: {
+    bySource: SnapshotBreakdownRow[];
+    byBrand: SnapshotBreakdownRow[];
+    byModel: SnapshotBreakdownRow[];
+    byType: SnapshotBreakdownRow[];
+    byColor: SnapshotBreakdownRow[];
+    byWarehouse: SnapshotBreakdownRow[];
+    byBranch: SnapshotBreakdownRow[];
+    byMovementCategory: SnapshotBreakdownRow[];
+    byStatus: SnapshotBreakdownRow[];
+  };
 }
 
 export interface InventoryFilters {

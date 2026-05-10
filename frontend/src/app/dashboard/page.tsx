@@ -89,12 +89,11 @@ export default function DashboardPage() {
   ];
   const alertColumns: DataTableColumn<InventoryAlert>[] = [
     { key: "title", header: t("table.alert"), render: (row) => row.title },
-    { key: "chassis", header: t("alerts.chassis"), render: (row) => formatValue(row.chassis) },
+    { key: "affected", header: t("alerts.affectedUnits"), render: (row) => formatNumber(row.affectedUnits ?? row.affectedCount ?? 0) },
+    { key: "source", header: t("table.source"), render: (row) => formatValue(row.sourceName ?? row.branch) },
     { key: "model", header: t("table.model"), render: (row) => formatValue(row.model) },
-    { key: "branch", header: t("table.branch"), render: (row) => row.branch },
     { key: "severity", header: t("table.severity"), render: (row) => <StatusBadge tone={row.severity} /> },
     { key: "action", header: t("alerts.recommendedAction"), render: (row) => formatValue(row.recommendedAction) },
-    { key: "created", header: t("table.created"), render: (row) => row.createdAt },
   ];
   const locationColumns: DataTableColumn<LocationStock>[] = [
     { key: "location", header: t("sections.locations"), render: (row) => formatValue(row.location) },
@@ -239,7 +238,11 @@ export default function DashboardPage() {
           <DataTable columns={inventoryColumns} rows={data.slowStockList} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
         </SectionCard>
         <SectionCard title={t("sections.recentAlerts")} eyebrow={t("sections.autoAlerts")} action={formatNumber(data.recentAlerts.length)}>
+          <p>{t("alerts.topAlertsOnly")}</p>
           <DataTable columns={alertColumns} rows={data.recentAlerts} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
+          <div className="report-actions">
+            <a className="report-button" href="/alerts">{t("dashboard.viewAll")}</a>
+          </div>
         </SectionCard>
         <SectionCard title={t("sections.stockByLocation")} eyebrow={t("sections.multiLocation")}>
           <DataTable columns={locationColumns} rows={data.stockByLocation} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />

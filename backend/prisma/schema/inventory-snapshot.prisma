@@ -6,8 +6,11 @@ model InventorySnapshot {
   id           String   @id @default(cuid())
   snapshotDate DateTime
 
-  sourceId   String?
-  sourceName String?
+  sourceId    String?
+  sourceName  String?
+  isFiltered  Boolean @default(false)
+  filtersJson Json?
+  scopeLabel  String?
 
   totalUnits    Int
   soldUnits     Int
@@ -26,4 +29,5 @@ model InventorySnapshot {
 
   @@index([snapshotDate])
   @@index([sourceId])
+  @@index([isFiltered])
 }

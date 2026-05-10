@@ -672,55 +672,156 @@ export class InventoryService {
                 title: 'Source API failure',
                 message: `${error.sourceName} could not be reached.`,
                 severity: 'critical',
+                type: 'sourceFailure',
+                sourceId: error.sourceId,
+                sourceName: error.sourceName,
                 branch: error.sourceName,
+                affectedUnits: 0,
+                affectedCount: 0,
+                sampleChassis: [],
+                affectedChassis: [],
+                affectedVehicles: [],
+                recommendedAction:
+                    'Check source API availability and retry sync.',
                 createdAt: response.meta.generatedAt,
             })),
-            ...response.data
-                .filter(
+            ...groupAlertVehicles(
+                response.data.filter(
                     (item) =>
                         item.movementCategory === 'slow' && item.isInStock,
-                )
-                .slice(0, 25)
-                .map((item) => ({
-                    id: `slow-${item.sourceId}-${item.chassis || item.itemCode}`,
-                    title: 'Slow stock 90+ days',
-                    message: `${item.brand} ${item.model} has ${item.stockAgeDays ?? 0} stock age days.`,
-                    severity: 'warning',
-                    branch: item.branch || item.sourceName,
-                    createdAt: response.meta.generatedAt,
-                })),
-            ...response.data
-                .filter(
+                ),
+                (item) =>
+                    alertGroupKey(item, [
+                        'source',
+                        'brand',
+                        'model',
+                        'type',
+                        'warehouse',
+                    ]),
+                (group) => {
+                    const sample = group[0];
+                    const ages = group
+                        .map((item) => item.stockAgeDays)
+                        .filter(
+                            (value): value is number =>
+                                typeof value === 'number',
+                        );
+                    return {
+                        id: `slow-${alertGroupKey(sample, ['source', 'brand', 'model', 'type', 'warehouse'])}`,
+                        type: 'slowStock',
+                        title: 'Slow stock 90+ days',
+                        message: `${sample?.brand ?? ''} ${sample?.model ?? ''} has ${sumQuantity(group)} slow-moving units.`,
+                        severity: 'warning',
+                        ...alertGroupFields(sample),
+                        affectedUnits: sumQuantity(group),
+                        affectedCount: sumQuantity(group),
+                        affectedVehicles: group,
+                        affectedChassis: chassisSamples(
+                            group,
+                            Number.MAX_SAFE_INTEGER,
+                        ),
+                        sampleChassis: chassisSamples(group, 5),
+                        metrics: {
+                            oldestStockAgeDays:
+                                ages.length > 0 ? Math.max(...ages) : null,
+                            averageStockAgeDays:
+                                ages.length > 0
+                                    ? round(
+                                          ages.reduce(
+                                              (sum, value) => sum + value,
+                                              0,
+                                          ) / ages.length,
+                                      )
+                                    : null,
+                        },
+                        recommendedAction:
+                            'Review pricing, transfer, or promotion plan.',
+                        createdAt: response.meta.generatedAt,
+                    };
+                },
+            ),
+            ...groupAlertVehicles(
+                response.data.filter(
                     (item) =>
                         item.movementCategory === 'unknown' && item.isInStock,
-                )
-                .slice(0, 25)
-                .map((item) => ({
-                    id: `unknown-age-${item.sourceId}-${item.chassis || item.itemCode}`,
-                    title: 'Unknown stock age',
-                    message: `${item.brand} ${item.model} has no usable stock date.`,
-                    severity: 'info',
-                    branch: item.branch || item.sourceName,
-                    createdAt: response.meta.generatedAt,
-                })),
+                ),
+                (item) =>
+                    alertGroupKey(item, [
+                        'source',
+                        'brand',
+                        'model',
+                        'warehouse',
+                    ]),
+                (group) => {
+                    const sample = group[0];
+                    return {
+                        id: `unknown-age-${alertGroupKey(sample, ['source', 'brand', 'model', 'warehouse'])}`,
+                        type: 'unknownAge',
+                        title: 'Unknown stock age',
+                        message: `${sample?.brand ?? ''} ${sample?.model ?? ''} has ${sumQuantity(group)} units without usable stock age.`,
+                        severity: 'info',
+                        ...alertGroupFields(sample),
+                        affectedUnits: sumQuantity(group),
+                        affectedCount: sumQuantity(group),
+                        affectedVehicles: group,
+                        affectedChassis: chassisSamples(
+                            group,
+                            Number.MAX_SAFE_INTEGER,
+                        ),
+                        sampleChassis: chassisSamples(group, 5),
+                        recommendedAction:
+                            'Validate GRPO, AP invoice, or create date.',
+                        createdAt: response.meta.generatedAt,
+                    };
+                },
+            ),
             ...replenishment
                 .filter((item) => item.currentStock <= item.minStock)
                 .map((item) => ({
                     id: `low-stock-${item.sourceId}-${item.model}-${item.exteriorColor}-${item.warehouse}`,
+                    type: 'lowStock',
                     title: 'Low Stock',
                     message: `${item.brand} ${item.model} ${item.exteriorColor} is below min stock (${item.currentStock}/${item.minStock}).`,
-                    severity: 'critical',
+                    severity: 'warning',
                     branch: item.warehouse || item.sourceName || '',
+                    sourceId: item.sourceId,
+                    sourceName: item.sourceName,
+                    brand: item.brand,
+                    model: item.model,
+                    typeName: item.type,
+                    warehouse: item.warehouse,
+                    affectedUnits: item.currentStock,
+                    affectedCount: item.currentStock,
+                    metrics: {
+                        currentStock: item.currentStock,
+                        minStock: item.minStock,
+                    },
+                    recommendedAction: item.reason,
                     createdAt: response.meta.generatedAt,
                 })),
             ...replenishment
                 .filter((item) => item.currentStock <= item.reorderPoint)
                 .map((item) => ({
                     id: `reorder-${item.sourceId}-${item.model}-${item.exteriorColor}-${item.warehouse}`,
+                    type: 'belowReorderPoint',
                     title: 'Below Reorder Point',
                     message: `${item.brand} ${item.model} should be reordered. Suggested quantity: ${item.suggestedOrderQuantity}.`,
-                    severity: 'warning',
+                    severity: 'critical',
                     branch: item.warehouse || item.sourceName || '',
+                    sourceId: item.sourceId,
+                    sourceName: item.sourceName,
+                    brand: item.brand,
+                    model: item.model,
+                    typeName: item.type,
+                    warehouse: item.warehouse,
+                    affectedUnits: item.currentStock,
+                    affectedCount: item.currentStock,
+                    metrics: {
+                        currentStock: item.currentStock,
+                        reorderPoint: item.reorderPoint,
+                        suggestedOrderQuantity: item.suggestedOrderQuantity,
+                    },
+                    recommendedAction: item.reason,
                     createdAt: response.meta.generatedAt,
                 })),
             ...coverage
@@ -737,24 +838,84 @@ export class InventoryService {
                     message: `${item.brand} ${item.model} coverage is ${item.coverageMonths ?? 'not available'} months.`,
                     severity: item.status === 'danger' ? 'critical' : 'warning',
                     branch: item.warehouse || item.sourceName || '',
+                    sourceId: item.sourceId,
+                    sourceName: item.sourceName,
+                    brand: item.brand,
+                    model: item.model,
+                    typeName: item.type,
+                    warehouse: item.warehouse,
+                    affectedUnits: item.currentStock,
+                    affectedCount: item.currentStock,
+                    metrics: {
+                        coverageMonths: item.coverageMonths,
+                        targetCoverageMonths: item.targetCoverageMonths,
+                        currentStock: item.currentStock,
+                        averageMonthlySales: item.averageMonthlySales,
+                    },
+                    recommendedAction: item.recommendedAction,
                     createdAt: response.meta.generatedAt,
                 })),
-            ...response.data
-                .filter(
+            ...groupAlertVehicles(
+                response.data.filter(
                     (item) => item.isReserved && reservationAgeDays(item) > 30,
-                )
-                .slice(0, 25)
-                .map((item) => ({
-                    id: `old-reservation-${item.sourceId}-${item.chassis || item.itemCode}`,
-                    title: 'Old Reservation',
-                    message: `${item.brand} ${item.model} reservation is older than 30 days.`,
-                    severity: 'warning',
-                    branch: item.branch || item.sourceName,
-                    createdAt: response.meta.generatedAt,
-                })),
+                ),
+                (item) =>
+                    alertGroupKey(item, [
+                        'source',
+                        'brand',
+                        'model',
+                        'salesman',
+                    ]),
+                (group) => {
+                    const sample = group[0];
+                    const ages = group
+                        .map(reservationAgeDays)
+                        .filter((value) => value > 30);
+                    return {
+                        id: `old-reservation-${alertGroupKey(sample, ['source', 'brand', 'model', 'salesman'])}`,
+                        type: 'oldReservation',
+                        title: 'Old Reservation',
+                        message: `${sample?.brand ?? ''} ${sample?.model ?? ''} has ${sumQuantity(group)} old reservations.`,
+                        severity: 'warning',
+                        ...alertGroupFields(sample),
+                        affectedUnits: sumQuantity(group),
+                        affectedCount: sumQuantity(group),
+                        affectedVehicles: group,
+                        affectedChassis: chassisSamples(
+                            group,
+                            Number.MAX_SAFE_INTEGER,
+                        ),
+                        sampleChassis: chassisSamples(group, 5),
+                        metrics: {
+                            oldestReservationAgeDays:
+                                ages.length > 0 ? Math.max(...ages) : null,
+                            averageReservationAgeDays:
+                                ages.length > 0
+                                    ? round(
+                                          ages.reduce(
+                                              (sum, value) => sum + value,
+                                              0,
+                                          ) / ages.length,
+                                      )
+                                    : null,
+                        },
+                        recommendedAction:
+                            'Follow up with sales team and customer.',
+                        createdAt: response.meta.generatedAt,
+                    };
+                },
+            ),
         ];
 
-        return alerts;
+        return alerts
+            .sort(
+                (left, right) =>
+                    severityRank(String(right.severity)) -
+                        severityRank(String(left.severity)) ||
+                    (Number(right.affectedUnits) || 0) -
+                        (Number(left.affectedUnits) || 0),
+            )
+            .slice(0, 100);
     }
 
     async getMeta(query: InventoryQueryDto = {}): Promise<InventoryMeta> {
@@ -1086,6 +1247,60 @@ function isInTransit(item: InventoryItem): boolean {
 
 function urgencyRank(urgency: ReplenishmentSuggestion['urgency']): number {
     return { low: 0, medium: 1, high: 2, critical: 3 }[urgency];
+}
+
+function severityRank(severity: string): number {
+    return { success: 0, info: 1, warning: 2, critical: 3 }[severity] ?? 0;
+}
+
+function groupAlertVehicles(
+    items: InventoryItem[],
+    keyFactory: (item: InventoryItem) => string,
+    mapper: (items: InventoryItem[]) => Record<string, unknown>,
+) {
+    return Object.values(groupBy(items, keyFactory, mapper));
+}
+
+function alertGroupFields(item?: InventoryItem) {
+    return {
+        branch: item?.branch || item?.sourceName || '',
+        sourceId: item?.sourceId,
+        sourceName: item?.sourceName,
+        brand: item?.brand,
+        model: item?.model,
+        typeName: item?.type,
+        warehouse: item?.warehouse,
+        status: item?.displayStatus || item?.normalizedStatus,
+    };
+}
+
+function alertGroupKey(
+    item: InventoryItem | undefined,
+    parts: Array<
+        'source' | 'brand' | 'model' | 'type' | 'warehouse' | 'salesman'
+    >,
+): string {
+    if (!item) {
+        return 'unknown';
+    }
+
+    return parts
+        .map((part) => {
+            if (part === 'source') {
+                return item.sourceId || item.sourceName || 'Unknown';
+            }
+            if (part === 'salesman') {
+                return item.salesMan || 'Unknown';
+            }
+            return item[part] || 'Unknown';
+        })
+        .join('|');
+}
+
+function chassisSamples(items: InventoryItem[], limit: number): string[] {
+    return Array.from(
+        new Set(items.map((item) => item.chassis).filter(Boolean)),
+    ).slice(0, limit);
 }
 
 function reservationAgeDays(item: InventoryItem): number {
