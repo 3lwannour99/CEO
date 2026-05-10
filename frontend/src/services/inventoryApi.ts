@@ -6,11 +6,13 @@ import type {
   CounterScreenSource,
   InventoryFilters,
   InventoryItem,
+  InventorySnapshotDetail,
   InventorySummary,
   LocationStock,
   MonthlyComparison,
   MultiLocationReport,
   SalesPerformanceResponse,
+  SnapshotFilters,
   StockRule,
   StockRuleInput,
   InventorySnapshot,
@@ -70,16 +72,20 @@ export function deleteStockRule(id: string) {
   return apiDelete<StockRule>(`/stock-rules/${id}`);
 }
 
-export function getSnapshots() {
-  return apiGet<InventorySnapshot[]>("/snapshots");
+export function getSnapshots(filters?: SnapshotFilters) {
+  return apiGet<InventorySnapshot[]>("/snapshots", filters);
 }
 
-export function runSnapshot() {
-  return apiPost<InventorySnapshot>("/snapshots/run");
+export function getSnapshot(id: string, filters?: SnapshotFilters) {
+  return apiGet<InventorySnapshotDetail>(`/snapshots/${id}`, filters);
 }
 
-export function getMonthlyComparison() {
-  return apiGet<MonthlyComparison[]>("/snapshots/monthly-comparison");
+export function runSnapshot(body?: { filtered?: boolean; filters?: SnapshotFilters }) {
+  return apiPost<InventorySnapshot>("/snapshots/run", body ?? {});
+}
+
+export function getMonthlyComparison(filters?: SnapshotFilters) {
+  return apiGet<MonthlyComparison[]>("/snapshots/monthly-comparison", filters);
 }
 
 function validateInventoryResponse(response: ApiListResponse<InventoryItem>) {

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { formatValue } from "@/lib/apiClient";
+import { defaultExcelFileName, exportToExcel, type ExcelExportColumn } from "@/lib/exportData";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useI18n } from "@/i18n/useI18n";
 import styles from "./DataTable.module.css";
@@ -12,6 +13,8 @@ export interface DataTableColumn<T> {
   render: (row: T) => React.ReactNode;
   searchValue?: (row: T) => unknown;
   sortValue?: (row: T) => unknown;
+  exportValue?: (row: T) => unknown;
+  exportable?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -33,6 +36,14 @@ interface DataTableProps<T> {
   enablePagination?: boolean;
   pageSize?: number;
   getRowKey?: (row: T, rowIndex: number) => React.Key;
+  exportEnabled?: boolean;
+  exportFileName?: string;
+  exportSheetName?: string;
+  exportTitle?: string;
+  exportRows?: T[];
+  exportColumns?: ExcelExportColumn<T>[];
+  exportIncludeHiddenColumns?: boolean;
+  exportUseFilteredRows?: boolean;
 }
 
 type SortDirection = "asc" | "desc";
@@ -122,11 +133,20 @@ export function DataTable<T>({
   enablePagination = true,
   pageSize = 100,
   getRowKey,
+  exportEnabled = true,
+  exportFileName,
+  exportSheetName,
+  exportTitle,
+  exportRows,
+  exportColumns,
+  exportIncludeHiddenColumns = false,
+  exportUseFilteredRows = true,
 }: DataTableProps<T>) {
   const { t } = useI18n();
   const [columnFilterDrafts, setColumnFilterDrafts] = useState<Record<string, string>>(columnFilters ?? {});
   const [sortState, setSortState] = useState<SortState | null>(null);
   const [page, setPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
   const debouncedColumnFilters = useDebouncedValue(columnFilterDrafts, 250);
   const activeColumnFilters = columnFilters ?? debouncedColumnFilters;
   const searchableColumnSet = searchableColumns ? new Set(searchableColumns) : null;
@@ -178,6 +198,9 @@ export function DataTable<T>({
   const renderedRows = enablePagination ? visibleRows.slice((currentPage - 1) * pageSize, currentPage * pageSize) : visibleRows;
   const shouldScroll = enableInternalScroll && visibleRows.length > maxVisibleRows;
   const hasColumnFilters = Object.values(activeColumnFilters).some((value) => value.trim());
+  const rowsForExport = exportRows ?? (exportUseFilteredRows ? visibleRows : rows);
+  const columnsForExport = exportColumns ?? columns.filter((column) => exportIncludeHiddenColumns || (column.exportable !== false && !isActionColumn(column)));
+  const canExport = exportEnabled && !isLoading && rowsForExport.length > 0 && columnsForExport.length > 0;
   const wrapClassName = [
     styles.tableWrap,
     shouldScroll ? styles.scrollArea : "",
@@ -235,6 +258,34 @@ export function DataTable<T>({
     }
   }
 
+  function handleExportExcel() {
+    if (!canExport || isExporting) {
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      exportToExcel({
+        columns: columnsForExport.map((column) => ({
+          header: column.header,
+          key: column.key,
+          value: "value" in column
+            ? column.value
+            : (row: T) => getExportValue(row, column as DataTableColumn<T>),
+        })),
+        fileName: exportFileName ?? defaultExcelFileName(exportTitle ?? exportSheetName),
+        rows: rowsForExport,
+        sheetName: exportSheetName ?? exportTitle,
+        title: exportTitle,
+      });
+    } catch (error) {
+      console.error(t("table.exportFailed"), error);
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   function resolveRowKey(row: T, rowIndex: number) {
     if (getRowKey) {
       return getRowKey(row, rowIndex);
@@ -253,11 +304,28 @@ export function DataTable<T>({
 
   return (
     <div className={styles.tableFrame}>
-      {enableColumnSearch && hasColumnFilters ? (
+      {(exportEnabled || (enableColumnSearch && hasColumnFilters)) ? (
         <div className={styles.tableTools}>
-          <button type="button" className={styles.clearFiltersButton} onClick={clearColumnFilters}>
-            {t("table.clearColumnFilters")}
-          </button>
+          <div className={styles.tableToolGroup}>
+            {enableColumnSearch && hasColumnFilters ? (
+              <button type="button" className={styles.clearFiltersButton} onClick={clearColumnFilters}>
+                {t("table.clearColumnFilters")}
+              </button>
+            ) : null}
+          </div>
+          <div className={styles.tableToolGroup}>
+            {exportEnabled ? (
+              <button
+                type="button"
+                className={styles.exportButton}
+                onClick={handleExportExcel}
+                disabled={!canExport || isExporting}
+                title={rowsForExport.length === 0 ? t("table.noRowsToExport") : t("table.exportCurrentFilteredRows")}
+              >
+                {isExporting ? t("table.exporting") : t("table.exportExcel")}
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : null}
       <div className={wrapClassName} data-max-rows={maxVisibleRows}>
@@ -348,4 +416,30 @@ export function DataTable<T>({
       ) : null}
     </div>
   );
+}
+
+function isActionColumn<T>(column: DataTableColumn<T>) {
+  return ["action", "actions", "details", "vehicles"].includes(column.key.toLowerCase());
+}
+
+function getExportValue<T>(row: T, column: DataTableColumn<T>) {
+  if (column.exportValue) {
+    return column.exportValue(row);
+  }
+
+  if (column.searchValue) {
+    return column.searchValue(row);
+  }
+
+  const objectValue = getObjectValue(row, column.key);
+  if (objectValue !== undefined) {
+    return objectValue;
+  }
+
+  const rendered = column.render(row);
+  if (typeof rendered === "string" || typeof rendered === "number" || typeof rendered === "boolean") {
+    return rendered;
+  }
+
+  return undefined;
 }

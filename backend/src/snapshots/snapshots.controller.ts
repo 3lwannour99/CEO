@@ -1,4 +1,12 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    Param,
+    Post,
+    Query,
+    UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions.guard';
@@ -11,19 +19,27 @@ export class SnapshotsController {
 
     @Post('run')
     @RequirePermissions('actions.createSnapshot.execute')
-    runSnapshot() {
-        return this.snapshotsService.runSnapshot();
+    runSnapshot(
+        @Body() body: { filtered?: boolean; filters?: Record<string, string> },
+    ) {
+        return this.snapshotsService.runSnapshot(body);
     }
 
     @Get()
     @RequirePermissions('snapshots.page.view')
-    findAll() {
-        return this.snapshotsService.findAll();
+    findAll(@Query() query: Record<string, string>) {
+        return this.snapshotsService.findAll(query);
     }
 
     @Get('monthly-comparison')
     @RequirePermissions('snapshots.page.view')
-    getMonthlyComparison() {
-        return this.snapshotsService.getMonthlyComparison();
+    getMonthlyComparison(@Query() query: Record<string, string>) {
+        return this.snapshotsService.getMonthlyComparison(query);
+    }
+
+    @Get(':id')
+    @RequirePermissions('snapshots.page.view')
+    findOne(@Param('id') id: string, @Query() query: Record<string, string>) {
+        return this.snapshotsService.findOne(id, query);
     }
 }
