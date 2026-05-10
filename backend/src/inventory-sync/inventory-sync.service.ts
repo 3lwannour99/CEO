@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto';
 import { mapCounterScreenItem } from '../integrations/counterscreen/counterscreen.mapper';
 import { CounterScreenService } from '../integrations/counterscreen/counterscreen.service';
 import {
+    CounterScreenSource,
     RawCounterScreenItem,
-    SourceFetchResult,
 } from '../integrations/counterscreen/counterscreen.types';
 import { InventoryEventsService } from '../inventory-events/inventory-events.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -24,6 +24,15 @@ export class InventorySyncService {
     private readonly logger = new Logger(InventorySyncService.name);
     private isRunning = false;
     private runningStartedAt: string | null = null;
+    private readonly batchSize = Number(
+        process.env.INVENTORY_SYNC_BATCH_SIZE ?? 1000,
+    );
+    private readonly transactionTimeoutMs = Number(
+        process.env.INVENTORY_SYNC_TRANSACTION_TIMEOUT_MS ?? 30_000,
+    );
+    private readonly transactionMaxWaitMs = Number(
+        process.env.INVENTORY_SYNC_TRANSACTION_MAX_WAIT_MS ?? 10_000,
+    );
 
     constructor(
         private readonly counterScreenService: CounterScreenService,
@@ -43,6 +52,8 @@ export class InventorySyncService {
         this.isRunning = true;
         this.runningStartedAt = new Date().toISOString();
         const startedAt = new Date();
+        const startedAtMs = Date.now();
+        const initialMemory = formatMemoryUsage();
         const syncRun = await this.prisma.inventorySyncRun.create({
             data: {
                 startedAt,
@@ -53,13 +64,17 @@ export class InventorySyncService {
 
         try {
             this.logger.log(`Starting ${trigger} inventory sync ${syncRun.id}`);
-            const results = await this.counterScreenService.fetchAllSources();
-            const syncedAt = new Date();
-            const sourceStats = await this.persistResults(
-                syncRun.id,
-                results,
-                syncedAt,
+            this.logger.log(
+                `[sync ${syncRun.id}] memory before sync rss=${initialMemory.rssMb}MB heapUsed=${initialMemory.heapUsedMb}MB heapTotal=${initialMemory.heapTotalMb}MB`,
             );
+            const syncedAt = new Date();
+            const sourceStats: SourceSyncStats[] = [];
+            const sources = this.counterScreenService.getSources();
+            for (const source of sources) {
+                sourceStats.push(
+                    await this.syncSource(syncRun.id, source, syncedAt),
+                );
+            }
             const failedSources = sourceStats.filter(
                 (item) => item.status === 'failed',
             ).length;
@@ -105,6 +120,10 @@ export class InventorySyncService {
             });
 
             await this.emitInventoryUpdated(updatedRun);
+            const finalMemory = formatMemoryUsage();
+            this.logger.log(
+                `[sync ${syncRun.id}] completed status=${updatedRun.status} durationMs=${Date.now() - startedAtMs} rss=${finalMemory.rssMb}MB heapUsed=${finalMemory.heapUsedMb}MB heapTotal=${finalMemory.heapTotalMb}MB successfulSources=${updatedRun.successfulSources} failedSources=${updatedRun.failedSources}`,
+            );
 
             return updatedRun;
         } catch (error) {
@@ -126,7 +145,10 @@ export class InventorySyncService {
                 include: { sourceResults: true },
             });
 
-            await this.emitInventoryUpdated(failedRun);
+            const finalMemory = formatMemoryUsage();
+            this.logger.error(
+                `[sync ${syncRun.id}] failed durationMs=${Date.now() - startedAtMs} rss=${finalMemory.rssMb}MB heapUsed=${finalMemory.heapUsedMb}MB heapTotal=${finalMemory.heapTotalMb}MB`,
+            );
 
             return failedRun;
         } finally {
@@ -159,26 +181,15 @@ export class InventorySyncService {
         });
     }
 
-    private async persistResults(
-        syncRunId: string,
-        results: SourceFetchResult[],
-        syncedAt: Date,
-    ) {
-        const stats: SourceSyncStats[] = [];
-
-        for (const result of results) {
-            stats.push(await this.syncSource(syncRunId, result, syncedAt));
-        }
-
-        return stats;
-    }
-
     private async syncSource(
         syncRunId: string,
-        result: SourceFetchResult,
+        source: CounterScreenSource,
         syncedAt: Date,
     ): Promise<SourceSyncStats> {
         const startedAt = new Date();
+        const result = await this.counterScreenService.fetchSourceById(
+            source.id,
+        );
 
         if (result.error) {
             await this.prisma.inventorySourceSyncResult.create({
@@ -206,13 +217,14 @@ export class InventorySyncService {
         const rows = result.data.map((raw, sourceRowIndex) =>
             buildInventoryCreateInput(
                 syncRunId,
-                result,
+                result.source,
                 raw,
                 sourceRowIndex,
                 syncedAt,
             ),
         );
 
+        const normalizedCount = rows.length;
         await this.replaceSourceInventoryItems(result.source.id, rows);
 
         await this.prisma.inventorySourceSyncResult.create({
@@ -227,9 +239,14 @@ export class InventorySyncService {
             },
         });
 
+        const memory = formatMemoryUsage();
+        this.logger.log(
+            `[sync ${syncRunId}] source=${result.source.id} status=success records=${result.data.length} normalized=${normalizedCount} heapUsed=${memory.heapUsedMb}MB`,
+        );
+
         return {
             errorMessage: null,
-            normalizedCount: rows.length,
+            normalizedCount,
             recordsCount: result.data.length,
             sourceId: result.source.id,
             status: 'success',
@@ -239,15 +256,29 @@ export class InventorySyncService {
     private replaceSourceInventoryItems(
         sourceId: string,
         rows: ReturnType<typeof buildInventoryCreateInput>[],
-    ) {
-        return this.prisma.$transaction([
-            this.prisma.inventoryItem.deleteMany({
-                where: { sourceId },
-            }),
-            this.prisma.inventoryItem.createMany({
-                data: rows,
-            }),
-        ]);
+    ): Promise<void> {
+        return this.prisma.$transaction(
+            async (tx) => {
+                await tx.inventoryItem.deleteMany({
+                    where: { sourceId },
+                });
+
+                for (
+                    let start = 0;
+                    start < rows.length;
+                    start += this.batchSize
+                ) {
+                    const chunk = rows.slice(start, start + this.batchSize);
+                    await tx.inventoryItem.createMany({
+                        data: chunk,
+                    });
+                }
+            },
+            {
+                maxWait: this.transactionMaxWaitMs,
+                timeout: this.transactionTimeoutMs,
+            },
+        );
     }
 
     private async emitInventoryUpdated(
@@ -258,7 +289,7 @@ export class InventorySyncService {
         const totalRows = await this.prisma.inventoryItem.count();
         const lastSyncedAt = syncRun.finishedAt ?? syncRun.startedAt;
 
-        if (syncRun.status === 'running') {
+        if (syncRun.status === 'running' || syncRun.status === 'failed') {
             return;
         }
 
@@ -284,12 +315,12 @@ export class InventorySyncService {
 
 function buildInventoryCreateInput(
     syncRunId: string,
-    result: SourceFetchResult,
+    source: CounterScreenSource,
     raw: RawCounterScreenItem,
     sourceRowIndex: number,
     syncedAt: Date,
 ) {
-    const item = mapCounterScreenItem(raw, result.source);
+    const item = mapCounterScreenItem(raw, source);
     const rowHash = generateRowHash(raw);
 
     return {
@@ -307,6 +338,19 @@ function buildInventoryCreateInput(
         sourceRowIndex,
         syncRunId,
     };
+}
+
+function formatMemoryUsage() {
+    const usage = process.memoryUsage();
+    return {
+        heapTotalMb: toMb(usage.heapTotal),
+        heapUsedMb: toMb(usage.heapUsed),
+        rssMb: toMb(usage.rss),
+    };
+}
+
+function toMb(bytes: number) {
+    return Math.round((bytes / 1024 / 1024) * 10) / 10;
 }
 
 function generateInventoryKey(
