@@ -26,4 +26,4 @@ RUN if [ "$DATABASE_PROVIDER" = "mysql" ]; then \
 
 RUN npm run build
 
-CMD ["npm","run","start:prod"]
+CMD ["npm","run","start:prod:with-db"]
