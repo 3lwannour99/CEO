@@ -179,7 +179,7 @@ function toAuthenticatedUser(user: UserWithAuth): AuthenticatedUser {
         ...directAllowPermissions,
     ]).filter((permission) => !denied.has(permission));
 
-        return {
+    return {
         email: user.email,
         fullName: user.fullName,
         id: user.id,

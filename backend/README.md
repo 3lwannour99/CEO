@@ -97,7 +97,6 @@ role permissions + direct user ALLOW permissions - direct user DENY permissions
 Permission keys use dotted names such as `dashboard.page.view`, `dashboard.cards.totalInventory.view`, `data.cost.view`, and `actions.syncInventory.execute`. Seed data is idempotent: it upserts permission catalog rows, default roles, role-permission mappings, and the optional admin user from `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
 
 Role management endpoints live under `/api/roles`, permission catalog listing under `/api/permissions`, and direct user overrides under `/api/users/:id/permissions`. Role permission editing replaces the submitted role permission list. User direct permission editing replaces only direct allow/deny overrides and leaves role permissions unchanged.
-
 The Prisma client is generated into:
 
 ```txt
