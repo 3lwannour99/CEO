@@ -11,7 +11,7 @@
         "start": "nest start",
         "start:dev": "nest start --watch",
         "start:debug": "nest start --debug --watch",
-        "start:prod": "npm run db:sync && npm run db:seed && node dist/main",
+        "start:prod": "npm run db:sync && npm run db:seed && node dist/src/main",
         "inspect:duplicate-chassis": "tsx scripts/report-duplicate-chassis.ts",
         "inspect:unique-keys": "tsx scripts/inspect-counterscreen-unique-keys.ts",
         "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
