@@ -1,4 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api";
+const ACCESS_TOKEN_KEY = "ceoreport_access_token";
 
 export class ApiError extends Error {
   constructor(message: string) {
@@ -8,6 +9,34 @@ export class ApiError extends Error {
 }
 
 type QueryParams = object | undefined;
+
+export function getAccessToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+export function setAccessToken(token: string | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (token) {
+    window.localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  } else {
+    window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  }
+
+  window.dispatchEvent(new Event("ceoreport-auth-token-changed"));
+}
+
+function authHeaders(headers?: HeadersInit): HeadersInit {
+  const token = getAccessToken();
+
+  return token ? { ...headers, Authorization: `Bearer ${token}` } : (headers ?? {});
+}
 
 export function buildQuery(params?: QueryParams) {
   const searchParams = new URLSearchParams();
@@ -24,6 +53,7 @@ export function buildQuery(params?: QueryParams) {
 export async function apiGet<T>(path: string, params?: QueryParams): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}${buildQuery(params)}`, {
     cache: "no-store",
+    headers: authHeaders(),
   });
 
   if (!response.ok) {
@@ -36,7 +66,7 @@ export async function apiGet<T>(path: string, params?: QueryParams): Promise<T> 
 export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
@@ -50,7 +80,7 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
 export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
 
@@ -62,7 +92,21 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
 }
 
 export async function apiDelete<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, { method: "DELETE" });
+  const response = await fetch(`${API_BASE_URL}${path}`, { method: "DELETE", headers: authHeaders() });
+
+  if (!response.ok) {
+    throw new ApiError(`API request failed: ${response.status}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
 
   if (!response.ok) {
     throw new ApiError(`API request failed: ${response.status}`);

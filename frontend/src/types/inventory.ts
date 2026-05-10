@@ -78,6 +78,36 @@ export interface InventoryLiveStatus {
 
 export type InventoryRefreshReason = "initial-load" | "websocket-update" | "manual-refresh" | "filter-change" | "visibility-return";
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  fullName: string;
+  roles: string[];
+  permissions: string[];
+}
+
+export interface AuthLoginResponse {
+  accessToken: string;
+  user: AuthUser;
+}
+
+export interface RoleSummary {
+  id: string;
+  name: string;
+  description?: string | null;
+}
+
+export interface ManagedUser {
+  id: string;
+  email: string;
+  fullName: string;
+  isActive: boolean;
+  roles: RoleSummary[];
+  permissions: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface InventoryItem {
   inventoryKey?: string;
   businessStateKey?: string;
