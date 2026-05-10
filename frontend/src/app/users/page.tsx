@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader/PageHeader";
 import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { useI18n } from "@/i18n/useI18n";
 import { useAuth } from "@/providers/AuthProvider/AuthProvider";
-import { createUser, getRoles, getUsers, updateUserActive, updateUserRoles } from "@/services/authApi";
+import { createUser, getAssignableRoles, getUsers, updateUserActive, updateUserRoles } from "@/services/usersApi";
 import type { ManagedUser, RoleSummary } from "@/types/inventory";
 import styles from "./users.module.css";
 
@@ -31,7 +31,7 @@ export default function UsersPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [userRows, roleRows] = await Promise.all([getUsers(), getRoles()]);
+      const [userRows, roleRows] = await Promise.all([getUsers(), getAssignableRoles()]);
       setUsers(userRows);
       setRoles(roleRows);
       setError(null);

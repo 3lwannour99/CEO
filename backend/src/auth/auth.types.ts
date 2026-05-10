@@ -4,6 +4,9 @@ export interface AuthenticatedUser {
     email?: string | null;
     fullName: string;
     roles: string[];
+    rolePermissions?: string[];
+    directAllowPermissions?: string[];
+    directDenyPermissions?: string[];
     permissions: string[];
 }
 
