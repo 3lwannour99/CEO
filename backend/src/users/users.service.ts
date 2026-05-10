@@ -19,7 +19,7 @@ export class UsersService {
     async findAll() {
         const users = await this.prisma.user.findMany({
             include: userInclude,
-            orderBy: [{ fullName: 'asc' }, { email: 'asc' }],
+            orderBy: [{ fullName: 'asc' }, { username: 'asc' }],
         });
 
         return users.map(toUserResponse);
@@ -39,15 +39,19 @@ export class UsersService {
     }
 
     async create(dto: CreateUserDto) {
-        await this.assertEmailAvailable(dto.email);
+        await this.assertUsernameAvailable(dto.username);
+        if (dto.email) {
+            await this.assertEmailAvailable(dto.email);
+        }
 
         const passwordHash = await bcrypt.hash(dto.password, 12);
         const user = await this.prisma.user.create({
             data: {
-                email: normalizeEmail(dto.email),
+                email: dto.email ? normalizeEmail(dto.email) : null,
                 fullName: dto.fullName,
                 isActive: dto.isActive ?? true,
                 passwordHash,
+                username: normalizeUsername(dto.username),
             },
         });
 
@@ -58,12 +62,18 @@ export class UsersService {
     async update(id: string, dto: UpdateUserDto) {
         await this.findOne(id);
 
+        if (dto.username) {
+            await this.assertUsernameAvailable(dto.username, id);
+        }
         if (dto.email) {
             await this.assertEmailAvailable(dto.email, id);
         }
 
         await this.prisma.user.update({
             data: {
+                username: dto.username
+                    ? normalizeUsername(dto.username)
+                    : undefined,
                 email: dto.email ? normalizeEmail(dto.email) : undefined,
                 fullName: dto.fullName,
                 isActive: dto.isActive,
@@ -151,6 +161,19 @@ export class UsersService {
         });
 
         if (existing && existing.id !== currentUserId) {
+            throw new ConflictException('Email is already in use.');
+        }
+    }
+
+    private async assertUsernameAvailable(
+        username: string,
+        currentUserId?: string,
+    ) {
+        const existing = await this.prisma.user.findUnique({
+            where: { username: normalizeUsername(username) },
+        });
+
+        if (existing && existing.id !== currentUserId) {
             throw new ConflictException('Username is already in use.');
         }
     }
@@ -199,9 +222,14 @@ function toUserResponse(user: UserWithRoles) {
         permissions,
         roles,
         updatedAt: user.updatedAt,
+        username: user.username ?? '',
     };
 }
 
 function normalizeEmail(email: string) {
     return email.trim().toLowerCase();
+}
+
+function normalizeUsername(username: string) {
+    return username.trim().toLowerCase();
 }

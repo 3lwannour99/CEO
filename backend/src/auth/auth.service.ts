@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import type { Prisma } from '../generated/prisma-client/client.js';
@@ -13,13 +17,16 @@ export class AuthService {
         private readonly prisma: PrismaService,
     ) {}
 
-    async login(email: string, password: string) {
+    async login(username: string, password: string) {
         const user = await this.prisma.user.findUnique({
             include: userAuthInclude,
-            where: { email: email.trim().toLowerCase() },
+            where: { username: normalizeUsername(username) },
         });
 
         if (!user || !user.isActive) {
+            throw new UnauthorizedException('Invalid username or password.');
+        }
+        if (!user.username) {
             throw new UnauthorizedException('Invalid username or password.');
         }
 
@@ -31,13 +38,16 @@ export class AuthService {
             throw new UnauthorizedException('Invalid username or password.');
         }
 
-        const currentUser = toAuthenticatedUser(user);
+        const currentUser = {
+            ...toAuthenticatedUser(user),
+            ...(await this.getEffectivePermissions(user.id)),
+        };
         const payload: JwtPayload = {
-            email: currentUser.email,
             fullName: currentUser.fullName,
             permissions: currentUser.permissions,
             roles: currentUser.roles,
             sub: currentUser.id,
+            username: currentUser.username,
         };
 
         return {
@@ -60,8 +70,64 @@ export class AuthService {
                 'User is inactive or no longer exists.',
             );
         }
+        if (!user.username) {
+            throw new UnauthorizedException('User username is not configured.');
+        }
 
-        return toAuthenticatedUser(user);
+        return {
+            ...toAuthenticatedUser(user),
+            ...(await this.getEffectivePermissions(user.id)),
+        };
+    }
+
+    async getEffectivePermissions(userId: string) {
+        const [user, allPermissions] = await Promise.all([
+            this.prisma.user.findUnique({
+                include: userAuthInclude,
+                where: { id: userId },
+            }),
+            this.prisma.permission.findMany({ orderBy: { key: 'asc' } }),
+        ]);
+
+        if (!user) {
+            throw new NotFoundException('User not found.');
+        }
+
+        const roles = user.userRoles
+            .map((userRole) => userRole.role.name)
+            .sort();
+        const rolePermissions = uniqueSorted(
+            roles.includes('SUPER_ADMIN')
+                ? allPermissions.map((permission) => permission.key)
+                : user.userRoles.flatMap((userRole) =>
+                      userRole.role.rolePermissions.map(
+                          (rolePermission) => rolePermission.permission.key,
+                      ),
+                  ),
+        );
+        const directAllowPermissions = uniqueSorted(
+            user.userPermissions
+                .filter((userPermission) => userPermission.effect === 'ALLOW')
+                .map((userPermission) => userPermission.permission.key),
+        );
+        const directDenyPermissions = uniqueSorted(
+            user.userPermissions
+                .filter((userPermission) => userPermission.effect === 'DENY')
+                .map((userPermission) => userPermission.permission.key),
+        );
+        const denied = new Set(directDenyPermissions);
+        const permissions = uniqueSorted([
+            ...rolePermissions,
+            ...directAllowPermissions,
+        ]).filter((permission) => !denied.has(permission));
+
+        return {
+            directAllowPermissions,
+            directDenyPermissions,
+            permissions,
+            rolePermissions,
+            roles,
+        };
     }
 }
 
@@ -79,27 +145,57 @@ const userAuthInclude = {
             },
         },
     },
+    userPermissions: {
+        include: {
+            permission: true,
+        },
+    },
 } as const;
 
 type UserWithAuth = Prisma.UserGetPayload<{ include: typeof userAuthInclude }>;
 
 function toAuthenticatedUser(user: UserWithAuth): AuthenticatedUser {
     const roles = user.userRoles.map((userRole) => userRole.role.name).sort();
-    const permissions = Array.from(
-        new Set(
-            user.userRoles.flatMap((userRole) =>
-                userRole.role.rolePermissions.map(
-                    (rolePermission) => rolePermission.permission.key,
-                ),
+    const rolePermissions = uniqueSorted(
+        user.userRoles.flatMap((userRole) =>
+            userRole.role.rolePermissions.map(
+                (rolePermission) => rolePermission.permission.key,
             ),
         ),
-    ).sort();
+    );
+    const directAllowPermissions = uniqueSorted(
+        user.userPermissions
+            .filter((userPermission) => userPermission.effect === 'ALLOW')
+            .map((userPermission) => userPermission.permission.key),
+    );
+    const directDenyPermissions = uniqueSorted(
+        user.userPermissions
+            .filter((userPermission) => userPermission.effect === 'DENY')
+            .map((userPermission) => userPermission.permission.key),
+    );
+    const denied = new Set(directDenyPermissions);
+    const permissions = uniqueSorted([
+        ...rolePermissions,
+        ...directAllowPermissions,
+    ]).filter((permission) => !denied.has(permission));
 
     return {
+        directAllowPermissions,
+        directDenyPermissions,
         email: user.email,
         fullName: user.fullName,
         id: user.id,
         permissions,
+        rolePermissions,
         roles,
+        username: user.username ?? '',
     };
+}
+
+function uniqueSorted(values: string[]) {
+    return Array.from(new Set(values)).sort();
+}
+
+function normalizeUsername(username: string) {
+    return username.trim().toLowerCase();
 }

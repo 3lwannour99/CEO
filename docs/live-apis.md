@@ -2,7 +2,30 @@
 
 This document describes the inventory APIs used by the app, where their data comes from, and the response shapes exposed to the frontend.
 
-CounterScreen/SAP is the operational source of truth. The configured database is the reporting source of truth. Normal frontend requests read from backend APIs backed by database reporting tables; CounterScreen is called only by backend sync logic. See `docs/data-architecture.md` for the sync architecture and `docs/counterscreen-api-outcome.md` for the latest observed raw API shape.
+CounterScreen/SAP is the operational source of truth. The configured database is the reporting source of truth in `database` mode. In `live` mode, inventory/reporting APIs call CounterScreen through backend integration and normalize in memory without writing inventory rows. See `docs/data-architecture.md` for mode behavior and `docs/counterscreen-api-outcome.md` for the latest observed raw API shape.
+
+## Inventory Data Mode Switch
+
+Backend mode is controlled by:
+
+```txt
+INVENTORY_DATA_MODE=database | live
+INVENTORY_SYNC_ENABLED=true | false
+```
+
+Defaults:
+
+```txt
+INVENTORY_DATA_MODE=database
+INVENTORY_SYNC_ENABLED=true
+```
+
+Emergency low-memory Render option:
+
+```txt
+INVENTORY_DATA_MODE=live
+INVENTORY_SYNC_ENABLED=false
+```
 
 ## Runtime Base URLs
 
@@ -190,6 +213,7 @@ interface ApiMeta {
   lastSyncedAt: string | null;
   fromCache: boolean;
   fromDatabase: boolean;
+  dataMode?: "database" | "live";
   syncStatus: string;
   sourceCount: number;
   successfulSources: number;
@@ -249,7 +273,32 @@ Example:
 GET /api/inventory?refresh=true
 ```
 
-`refresh=true` triggers a backend sync first, then returns database-backed reporting data. If sync fails, the API still returns the latest available database data and includes the sync/source errors in metadata.
+`refresh=true` behavior depends on mode:
+
+- `database`: triggers backend sync first, then returns database-backed reporting data.
+- `live`: bypasses CounterScreen cache and returns fresh live data only. It does not trigger DB sync.
+
+## Endpoint Support In Live Mode
+
+Supported in `live` mode with same response shapes:
+
+- `GET /api/inventory`
+- `GET /api/inventory/summary`
+- `GET /api/dashboard/summary`
+- `GET /api/alerts`
+- `GET /api/replenishment`
+- `GET /api/stock-coverage`
+- `GET /api/sales-performance`
+- `GET /api/aggregated-stock`
+- `GET /api/aggregated-stock/vins`
+- `GET /api/multi-location`
+- `GET /api/logistics`
+- `GET /api/inventory/multi-status-chassis`
+
+Sync endpoints in `live` mode:
+
+- `POST /api/inventory-sync/run` returns conflict with message `Inventory sync is disabled in live data mode.`
+- Scheduler does not run sync when `INVENTORY_DATA_MODE=live` or `INVENTORY_SYNC_ENABLED=false`.
 
 ## Query Filters
 

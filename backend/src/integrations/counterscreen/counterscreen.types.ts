@@ -126,6 +126,7 @@ export interface InventoryMeta {
     lastSyncedAt?: string | null;
     fromCache: boolean;
     fromDatabase?: boolean;
+    dataMode?: 'database' | 'live';
     syncStatus?: string;
     syncResult?: unknown;
     sourceCount: number;

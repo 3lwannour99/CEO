@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { mapCounterScreenItem } from '../integrations/counterscreen/counterscreen.mapper';
 import { CounterScreenService } from '../integrations/counterscreen/counterscreen.service';
@@ -7,6 +7,7 @@ import {
     RawCounterScreenItem,
 } from '../integrations/counterscreen/counterscreen.types';
 import { InventoryEventsService } from '../inventory-events/inventory-events.service';
+import { getInventoryDataMode } from '../inventory/inventory-data-mode';
 import { PrismaService } from '../prisma/prisma.service';
 
 type SyncTrigger = 'manual' | 'scheduled' | 'refresh';
@@ -41,6 +42,13 @@ export class InventorySyncService {
     ) {}
 
     async runSync(trigger: SyncTrigger = 'manual') {
+        const mode = getInventoryDataMode();
+        if (mode === 'live') {
+            throw new ConflictException(
+                'Inventory sync is disabled in live data mode.',
+            );
+        }
+
         if (this.isRunning) {
             return {
                 skipped: true,

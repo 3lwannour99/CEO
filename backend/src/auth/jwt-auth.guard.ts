@@ -31,11 +31,11 @@ export class JwtAuthGuard implements CanActivate {
             );
 
             request.user = {
-                email: payload.email,
                 fullName: payload.fullName,
                 id: payload.sub,
                 permissions: payload.permissions ?? [],
                 roles: payload.roles ?? [],
+                username: payload.username,
             };
             return true;
         } catch {

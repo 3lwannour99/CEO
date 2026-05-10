@@ -1,6 +1,7 @@
 export interface AuthenticatedUser {
     id: string;
-    email: string;
+    username: string;
+    email?: string | null;
     fullName: string;
     roles: string[];
     permissions: string[];
@@ -8,7 +9,7 @@ export interface AuthenticatedUser {
 
 export interface JwtPayload {
     sub: string;
-    email: string;
+    username: string;
     fullName: string;
     roles: string[];
     permissions: string[];
