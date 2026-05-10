@@ -169,7 +169,29 @@
 
 .permissionTableWrap {
   max-height: 420px;
-  overflow: auto;
+  overflow-x: scroll;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior-inline: contain;
+}
+
+.permissionTableWrap::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.permissionTableWrap::-webkit-scrollbar-track {
+  background: var(--color-soft);
+}
+
+.permissionTableWrap::-webkit-scrollbar-thumb {
+  border: 3px solid var(--color-soft);
+  border-radius: 999px;
+  background: var(--color-border-strong);
+}
+
+.permissionTableWrap::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
 }
 
 .permissionTable {
