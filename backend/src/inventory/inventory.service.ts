@@ -18,6 +18,7 @@ import { resolveStockRule } from '../common/calculations/stock-rules';
 import { getSalesKpis } from '../common/calculations/sales-metrics';
 import { StockRulesService } from '../stock-rules/stock-rules.service';
 import { CounterScreenService } from '../integrations/counterscreen/counterscreen.service.js';
+import { getInventoryDataMode } from './inventory-data-mode';
 
 export interface ReplenishmentSuggestion {
     brand: string;
@@ -58,19 +59,25 @@ export class InventoryService {
     ) {}
 
     async findAll(query: InventoryQueryDto): Promise<InventoryResponse> {
-        const syncResult = await this.syncIfRequested(query);
-        const rows = await this.prisma.inventoryItem.findMany({
-            orderBy: [{ sourceId: 'asc' }, { brand: 'asc' }, { model: 'asc' }],
-        });
-        const data = this.applyFilters(rows.map(toInventoryItem), query);
+        const loaded = await this.loadInventoryData(query);
+        const data = this.applyFilters(loaded.data, query);
 
         return {
             data,
-            meta: await this.buildMeta(data.length, syncResult),
+            meta: {
+                ...loaded.meta,
+                total: data.length,
+            },
         };
     }
 
     async findRaw(query: Pick<InventoryQueryDto, 'sourceId' | 'refresh'>) {
+        if (this.isLiveMode()) {
+            return this.counterScreenService.getRawInventory(
+                isRefresh(query.refresh),
+            );
+        }
+
         const syncResult = await this.syncIfRequested(query);
         const meta = await this.buildMeta(0, syncResult);
 
@@ -159,7 +166,8 @@ export class InventoryService {
     }
 
     async getMultiStatusChassis(query: InventoryQueryDto = {}) {
-        const { data } = await this.findAll(query);
+        const response = await this.findAll(query);
+        const data = response.data;
         const groups = Object.values(
             groupBy(
                 data.filter((item) => Boolean(item.chassis)),
@@ -197,12 +205,7 @@ export class InventoryService {
                     0,
                 ),
                 generatedAt: new Date().toISOString(),
-                lastSyncedAt:
-                    (
-                        await this.prisma.inventoryItem.aggregate({
-                            _max: { lastSyncedAt: true },
-                        })
-                    )._max.lastSyncedAt?.toISOString() ?? null,
+                lastSyncedAt: response.meta.lastSyncedAt ?? null,
             },
         };
     }
@@ -755,12 +758,20 @@ export class InventoryService {
     }
 
     async getMeta(query: InventoryQueryDto = {}): Promise<InventoryMeta> {
+        if (this.isLiveMode()) {
+            return (await this.loadInventoryData(query)).meta;
+        }
+
         const syncResult = await this.syncIfRequested(query);
         const count = await this.prisma.inventoryItem.count();
         return this.buildMeta(count, syncResult);
     }
 
     private async syncIfRequested(query: Pick<InventoryQueryDto, 'refresh'>) {
+        if (this.isLiveMode()) {
+            return null;
+        }
+
         if (!isRefresh(query.refresh)) {
             return null;
         }
@@ -787,6 +798,7 @@ export class InventoryService {
 
         return {
             errors,
+            dataMode: 'database',
             failedSources: latestRun?.failedSources ?? errors.length,
             fromCache: false,
             fromDatabase: true,
@@ -798,6 +810,43 @@ export class InventoryService {
             syncStatus: latestRun?.status ?? 'unknown',
             total,
         };
+    }
+
+    private async loadInventoryData(query: InventoryQueryDto): Promise<{
+        data: InventoryItem[];
+        meta: InventoryMeta;
+    }> {
+        if (this.isLiveMode()) {
+            const response = await this.counterScreenService.getInventory(
+                isRefresh(query.refresh),
+            );
+            return {
+                data: response.data,
+                meta: {
+                    ...response.meta,
+                    dataMode: 'live',
+                    fromDatabase: false,
+                    lastSyncedAt: null,
+                    syncResult: null,
+                    syncStatus: 'live',
+                },
+            };
+        }
+
+        const syncResult = await this.syncIfRequested(query);
+        const rows = await this.prisma.inventoryItem.findMany({
+            orderBy: [{ sourceId: 'asc' }, { brand: 'asc' }, { model: 'asc' }],
+        });
+        const data = rows.map(toInventoryItem);
+
+        return {
+            data,
+            meta: await this.buildMeta(data.length, syncResult),
+        };
+    }
+
+    private isLiveMode() {
+        return getInventoryDataMode() === 'live';
     }
 
     applyFilters(

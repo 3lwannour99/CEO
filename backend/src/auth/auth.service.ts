@@ -17,13 +17,16 @@ export class AuthService {
         private readonly prisma: PrismaService,
     ) {}
 
-    async login(email: string, password: string) {
+    async login(username: string, password: string) {
         const user = await this.prisma.user.findUnique({
             include: userAuthInclude,
-            where: { email: email.trim().toLowerCase() },
+            where: { username: normalizeUsername(username) },
         });
 
         if (!user || !user.isActive) {
+            throw new UnauthorizedException('Invalid username or password.');
+        }
+        if (!user.username) {
             throw new UnauthorizedException('Invalid username or password.');
         }
 
@@ -40,11 +43,11 @@ export class AuthService {
             ...(await this.getEffectivePermissions(user.id)),
         };
         const payload: JwtPayload = {
-            email: currentUser.email,
             fullName: currentUser.fullName,
             permissions: [],
             roles: [],
             sub: currentUser.id,
+            username: currentUser.username,
         };
 
         return {
@@ -66,6 +69,9 @@ export class AuthService {
             throw new UnauthorizedException(
                 'User is inactive or no longer exists.',
             );
+        }
+        if (!user.username) {
+            throw new UnauthorizedException('User username is not configured.');
         }
 
         return {
@@ -173,7 +179,7 @@ function toAuthenticatedUser(user: UserWithAuth): AuthenticatedUser {
         ...directAllowPermissions,
     ]).filter((permission) => !denied.has(permission));
 
-    return {
+        return {
         email: user.email,
         fullName: user.fullName,
         id: user.id,
@@ -183,9 +189,14 @@ function toAuthenticatedUser(user: UserWithAuth): AuthenticatedUser {
         permissions,
         rolePermissions,
         roles,
+        username: user.username ?? '',
     };
 }
 
 function uniqueSorted(values: string[]) {
     return Array.from(new Set(values)).sort();
+}
+
+function normalizeUsername(username: string) {
+    return username.trim().toLowerCase();
 }

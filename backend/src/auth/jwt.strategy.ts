@@ -5,11 +5,11 @@ import { JwtPayload, AuthenticatedUser } from './auth.types';
 export class JwtStrategy {
     validate(payload: JwtPayload): AuthenticatedUser {
         return {
-            email: payload.email,
             fullName: payload.fullName,
             id: payload.sub,
             permissions: payload.permissions ?? [],
             roles: payload.roles ?? [],
+            username: payload.username,
         };
     }
 }

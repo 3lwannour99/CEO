@@ -23,7 +23,8 @@ export function getAssignableRoles() {
 }
 
 export function createUser(input: {
-  email: string;
+  username: string;
+  email?: string;
   fullName: string;
   password: string;
   roleNames: string[];
@@ -32,7 +33,7 @@ export function createUser(input: {
   return apiPost<ManagedUser>("/users", input);
 }
 
-export function updateUser(id: string, input: { email?: string; fullName?: string; isActive?: boolean; roleNames?: string[] }) {
+export function updateUser(id: string, input: { username?: string; email?: string; fullName?: string; isActive?: boolean; roleNames?: string[] }) {
   return apiPatch<ManagedUser>(`/users/${id}`, input);
 }
 

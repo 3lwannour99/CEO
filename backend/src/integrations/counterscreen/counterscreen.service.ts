@@ -28,6 +28,9 @@ export class CounterScreenService {
     async getInventory(refresh = false): Promise<InventoryResponse> {
         const now = Date.now();
         if (!refresh && this.cache && this.cache.expiresAt > now) {
+            this.logger.log(
+                `CounterScreen inventory cache hit (expiresInMs=${this.cache.expiresAt - now})`,
+            );
             return {
                 data: this.cache.data.data,
                 meta: {
@@ -72,6 +75,9 @@ export class CounterScreenService {
     async getRawInventory(refresh = false): Promise<RawInventoryResponse> {
         const now = Date.now();
         if (!refresh && this.cache && this.cache.expiresAt > now) {
+            this.logger.log(
+                `CounterScreen raw inventory cache hit (expiresInMs=${this.cache.expiresAt - now})`,
+            );
             return {
                 ...this.cache.raw,
                 meta: {
@@ -121,6 +127,7 @@ export class CounterScreenService {
     private async fetchSource(
         source: CounterScreenSource,
     ): Promise<SourceFetchResult> {
+        const startedAtMs = Date.now();
         const controller = new AbortController();
         const timeout = setTimeout(
             () => controller.abort(),
@@ -135,7 +142,7 @@ export class CounterScreenService {
         try {
             const url = `${source.baseUrl}/CounterScreen?filter=All`;
             this.logger.log(
-                `Fetching CounterScreen source ${source.id} from ${url}`,
+                `[CounterScreen] request start source=${source.id} url=${url}`,
             );
             const response = await fetch(url, { signal: controller.signal });
 
@@ -148,12 +155,16 @@ export class CounterScreenService {
                 throw new Error('Unexpected response shape');
             }
 
+            const records = payload.filter(
+                (item): item is Record<string, unknown> =>
+                    typeof item === 'object' && item !== null,
+            );
+            this.logger.log(
+                `[CounterScreen] request success source=${source.id} status=${response.status} durationMs=${Date.now() - startedAtMs} records=${records.length}`,
+            );
             return {
                 source,
-                data: payload.filter(
-                    (item): item is Record<string, unknown> =>
-                        typeof item === 'object' && item !== null,
-                ),
+                data: records,
             };
         } catch (error) {
             const message =
@@ -161,7 +172,7 @@ export class CounterScreenService {
                     ? error.message
                     : 'Unknown source failure';
             this.logger.warn(
-                `CounterScreen source ${source.id} failed: ${message}`,
+                `[CounterScreen] request failed source=${source.id} durationMs=${Date.now() - startedAtMs} error="${message}"`,
             );
             return {
                 source,

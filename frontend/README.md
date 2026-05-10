@@ -29,6 +29,8 @@ Authentication is handled by `AuthProvider`. The login page stores the JWT acces
 Authorization: Bearer <token>
 ```
 
+Login uses `username + password`. Email remains backend legacy metadata and is not required in the frontend login flow.
+
 The sidebar and protected pages use permission checks from the authenticated user. Frontend hiding is only UX; backend guards enforce the real permissions.
 
 ## RBAC UI

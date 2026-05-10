@@ -38,6 +38,7 @@ export interface ApiMeta {
   lastSyncedAt?: string | null;
   fromCache: boolean;
   fromDatabase?: boolean;
+  dataMode?: "database" | "live";
   syncStatus?: string;
   syncResult?: unknown;
   sourceCount: number;
@@ -80,7 +81,8 @@ export type InventoryRefreshReason = "initial-load" | "websocket-update" | "manu
 
 export interface AuthUser {
   id: string;
-  email: string;
+  username: string;
+  email?: string | null;
   fullName: string;
   isActive?: boolean;
   roles: string[];
@@ -104,7 +106,8 @@ export interface RoleSummary {
 
 export interface ManagedUser {
   id: string;
-  email: string;
+  username: string;
+  email?: string | null;
   fullName: string;
   isActive: boolean;
   roles: RoleSummary[];

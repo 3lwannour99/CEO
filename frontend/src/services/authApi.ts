@@ -2,7 +2,7 @@ import { apiGet, apiPost } from "@/lib/apiClient";
 import type { AuthLoginResponse, AuthUser } from "@/types/inventory";
 
 export function login(username: string, password: string) {
-  return apiPost<AuthLoginResponse>("/auth/login", { email: username, password });
+  return apiPost<AuthLoginResponse>("/auth/login", { username, password });
 }
 
 export function getCurrentUser() {
@@ -12,4 +12,3 @@ export function getCurrentUser() {
 export function logout() {
   return apiPost<{ ok: boolean }>("/auth/logout");
 }
-

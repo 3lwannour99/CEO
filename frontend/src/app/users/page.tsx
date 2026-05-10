@@ -23,7 +23,7 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [draft, setDraft] = useState({
-    email: "",
+    username: "",
     fullName: "",
     password: "",
     roleName: "VIEWER",
@@ -56,13 +56,13 @@ export default function UsersPage() {
     setSuccess(null);
 
     const nextDraft = {
-      email: draft.email.trim(),
+      username: draft.username.trim().toLowerCase(),
       fullName: draft.fullName.trim(),
       password: draft.password,
       roleName: draft.roleName,
     };
 
-    if (!nextDraft.fullName || !nextDraft.email || !nextDraft.password || !nextDraft.roleName) {
+    if (!nextDraft.fullName || !nextDraft.username || !nextDraft.password || !nextDraft.roleName) {
       setError(t("users.requiredFields"));
       return;
     }
@@ -70,12 +70,12 @@ export default function UsersPage() {
     setSaving(true);
     try {
       await createUser({
-        email: nextDraft.email,
+        username: nextDraft.username,
         fullName: nextDraft.fullName,
         password: nextDraft.password,
         roleNames: [nextDraft.roleName],
       });
-      setDraft({ email: "", fullName: "", password: "", roleName: "VIEWER" });
+      setDraft({ username: "", fullName: "", password: "", roleName: "VIEWER" });
       setSuccess(t("users.createSuccess"));
       await load();
     } catch (submitError) {
@@ -144,7 +144,7 @@ export default function UsersPage() {
 
   const columns: DataTableColumn<ManagedUser>[] = [
     { key: "name", header: t("common.name"), render: (row) => row.fullName },
-    { key: "email", header: t("common.username"), render: (row) => <span className={styles.usernameText}>{row.email}</span> },
+    { key: "username", header: t("common.username"), render: (row) => <span className={styles.usernameText}>{row.username}</span> },
     {
       key: "roles",
       header: t("users.roles"),
@@ -196,7 +196,7 @@ export default function UsersPage() {
             </label>
             <label className={styles.field}>
               <span>{t("users.username")}</span>
-              <input className={styles.input} dir="ltr" type="text" autoComplete="username" value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} required />
+              <input className={styles.input} dir="ltr" type="text" autoComplete="username" value={draft.username} onChange={(event) => setDraft({ ...draft, username: event.target.value })} required />
             </label>
             <label className={styles.field}>
               <span>{t("users.password")}</span>

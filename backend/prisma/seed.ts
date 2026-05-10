@@ -117,13 +117,14 @@ async function main() {
 }
 
 async function seedAdminUser() {
+    const username = process.env.ADMIN_USERNAME?.trim().toLowerCase();
     const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
     const password = process.env.ADMIN_PASSWORD;
     const fullName = process.env.ADMIN_FULL_NAME?.trim() || 'System Admin';
 
-    if (!email || !password) {
+    if (!username || !password) {
         console.warn(
-            'ADMIN_EMAIL or ADMIN_PASSWORD is missing. Skipping initial admin user seed.',
+            'ADMIN_USERNAME or ADMIN_PASSWORD is missing. Skipping initial admin user seed.',
         );
         return;
     }
@@ -137,19 +138,39 @@ async function seedAdminUser() {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await prisma.user.upsert({
-        create: {
-            email,
-            fullName,
-            isActive: true,
-            passwordHash,
-        },
-        update: {
-            fullName,
-            isActive: true,
-        },
-        where: { email },
-    });
+    const existingByEmail =
+        email === undefined
+            ? null
+            : await prisma.user.findUnique({
+                  where: { email },
+              });
+    const user = existingByEmail
+        ? await prisma.user.update({
+              data: {
+                  email,
+                  fullName,
+                  isActive: true,
+                  passwordHash,
+                  username,
+              },
+              where: { id: existingByEmail.id },
+          })
+        : await prisma.user.upsert({
+              create: {
+                  email: email ?? null,
+                  fullName,
+                  isActive: true,
+                  passwordHash,
+                  username,
+              },
+              update: {
+                  email: email ?? null,
+                  fullName,
+                  isActive: true,
+                  passwordHash,
+              },
+              where: { username },
+          });
 
     await prisma.userRole.upsert({
         create: {
@@ -165,7 +186,7 @@ async function seedAdminUser() {
         },
     });
 
-    console.log(`Seeded admin user ${email}.`);
+    console.log(`Seeded admin user ${username}.`);
 }
 
 main()

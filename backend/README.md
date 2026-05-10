@@ -14,7 +14,7 @@ CounterScreen/SAP
 -> frontend dashboard
 ```
 
-Normal dashboard APIs read from the configured reporting database. CounterScreen is called only by backend sync logic, inspection scripts, or a manual `refresh=true` request.
+Normal dashboard APIs read from the configured reporting database by default. CounterScreen is called by backend sync logic in `database` mode, and can be used as the direct API source in `live` mode.
 
 `InventoryItem` is the reporting source of truth. Raw CounterScreen payloads are not persisted; sync counts remain available through `InventorySyncRun.totalRawRecords` and `InventorySourceSyncResult.recordsCount`. `GET /api/inventory/raw` is a disabled compatibility endpoint that returns an empty data array and an explanatory message.
 
@@ -50,11 +50,13 @@ Root Docker Compose uses service-prefixed names where useful:
 - `TEMPLATE_DB_URL`: legacy active database URL fallback.
 - `COUNTERSCREEN_TIMEOUT_MS`: timeout for each CounterScreen source request.
 - `COUNTERSCREEN_REJECT_UNAUTHORIZED`: set to `false` only when the source TLS setup requires it.
+- `INVENTORY_DATA_MODE`: inventory API source mode. Allowed values: `database` or `live`. Defaults to `database`.
 - `INVENTORY_SYNC_ENABLED`: enables or disables scheduled inventory sync.
 - `INVENTORY_SYNC_INTERVAL_CRON`: cron expression for scheduled sync.
 - `JWT_SECRET`: required signing secret for access tokens.
 - `JWT_EXPIRES_IN`: token lifetime, for example `1d`.
-- `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FULL_NAME`: optional seed values for creating the first `SUPER_ADMIN` user.
+- `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_FULL_NAME`: optional seed values for creating the first `SUPER_ADMIN` user.
+- `ADMIN_EMAIL`: optional legacy user email metadata for seeded admin.
 
 Use `backend/.env.example` only when running the backend directly outside Docker. Use `frontend/.env.example` only when running the frontend directly outside Docker. Docker Compose should use the root `.env`.
 
@@ -92,7 +94,7 @@ role permissions + direct user ALLOW permissions - direct user DENY permissions
 
 `DENY` wins over role permissions and direct allow permissions. `SUPER_ADMIN` is seeded with all permission catalog rows by default, and direct denies can still remove access. The JWT stores identity only for guard decisions; `PermissionsGuard` reloads effective permissions so role and user permission edits apply immediately.
 
-Permission keys use dotted names such as `dashboard.page.view`, `dashboard.cards.totalInventory.view`, `data.cost.view`, and `actions.syncInventory.execute`. Seed data is idempotent: it upserts permission catalog rows, default roles, role-permission mappings, and the optional admin user from `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+Permission keys use dotted names such as `dashboard.page.view`, `dashboard.cards.totalInventory.view`, `data.cost.view`, and `actions.syncInventory.execute`. Seed data is idempotent: it upserts permission catalog rows, default roles, role-permission mappings, and the optional admin user from `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
 
 Role management endpoints live under `/api/roles`, permission catalog listing under `/api/permissions`, and direct user overrides under `/api/users/:id/permissions`. Role permission editing replaces the submitted role permission list. User direct permission editing replaces only direct allow/deny overrides and leaves role permissions unchanged.
 
@@ -143,6 +145,15 @@ When switching providers, run the matching generate command before starting the 
 
 Render deployments can omit `DATABASE_PROVIDER` while PostgreSQL is the active database, but `DATABASE_URL` must still be defined. MySQL deployments must explicitly set `DATABASE_PROVIDER=mysql` and provide a MySQL `DATABASE_URL` or `MYSQL_DATABASE_URL`.
 
+For temporary low-memory operation on Render:
+
+```bash
+INVENTORY_DATA_MODE=live
+INVENTORY_SYNC_ENABLED=false
+```
+
+This keeps Prisma models and DB-backed reporting code intact, but inventory APIs serve fresh CounterScreen data without writing `InventoryItem` rows.
+
 ## Prisma Development Policy
 
 During active development, do not commit Prisma migration files. Multiple developers are still changing the schema, so `backend/prisma/schema` is the source of truth until the database schema stabilizes.
@@ -171,7 +182,19 @@ If the generated Prisma client has stale or permission-conflicted files, remove 
 
 ## Sync Locally
 
-The scheduler runs every minute by default when `INVENTORY_SYNC_ENABLED` is not `false`.
+The scheduler runs every minute by default when `INVENTORY_SYNC_ENABLED` is not `false` and `INVENTORY_DATA_MODE` is `database`.
+
+If `INVENTORY_DATA_MODE=live`, scheduled sync is skipped and logged:
+
+```txt
+Inventory sync disabled because INVENTORY_DATA_MODE=live
+```
+
+If `INVENTORY_SYNC_ENABLED=false`, scheduled sync is skipped and logged:
+
+```txt
+Inventory sync disabled by INVENTORY_SYNC_ENABLED=false
+```
 
 Manual sync:
 
@@ -209,14 +232,14 @@ Seed roles and permissions with:
 npm run db:seed
 ```
 
-If `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set, the seed creates or updates that user and assigns `SUPER_ADMIN`. Passwords are hashed with bcrypt. Missing admin env values only skip admin creation; roles and permissions are still seeded.
+If `ADMIN_USERNAME` and `ADMIN_PASSWORD` are set, the seed creates or updates that user and assigns `SUPER_ADMIN`. `ADMIN_EMAIL` is optional legacy metadata and is not used for login. Passwords are hashed with bcrypt. Missing admin env values only skip admin creation; roles and permissions are still seeded.
 
 Login:
 
 ```bash
 curl -X POST http://localhost:4000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"change_me"}'
+  -d '{"username":"admin","password":"change_me"}'
 ```
 
 Protected routes require `Authorization: Bearer <token>`. `/api/health` remains public.

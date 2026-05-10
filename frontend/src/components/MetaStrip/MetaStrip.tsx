@@ -25,7 +25,13 @@ export function MetaStrip({ meta }: MetaStripProps) {
 
   return (
     <div className={styles.meta}>
-      <span>{meta.fromDatabase ? t("summary.fromDatabase") : t("summary.liveData")}</span>
+      <span>
+        {meta.dataMode === "live"
+          ? t("summary.liveCounterScreenData")
+          : meta.fromDatabase
+            ? t("summary.databaseReportingData")
+            : t("summary.liveData")}
+      </span>
       <span>{t("summary.lastUpdated")}: {formatDate(meta.generatedAt)}</span>
       <span>{t("summary.lastSynced")}: {formatDate(lastSyncedAt)}</span>
       <span>{t("summary.fromCache")}: {meta.fromCache ? t("summary.yes") : t("summary.no")}</span>

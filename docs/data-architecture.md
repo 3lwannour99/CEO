@@ -1,6 +1,6 @@
 # Data Architecture
 
-CEOReport now separates operational inventory data from reporting data.
+CEOReport supports two inventory data modes and separates operational inventory data from reporting data.
 
 ## Source Of Truth
 
@@ -16,7 +16,26 @@ CounterScreen/SAP
 -> Frontend dashboard
 ```
 
-The frontend never calls CounterScreen directly and does not choose between live data and database data.
+The frontend never calls CounterScreen directly and does not choose between live data and database data. Mode selection is backend-only via environment variables.
+
+## Inventory Data Modes
+
+```txt
+INVENTORY_DATA_MODE=database | live
+INVENTORY_SYNC_ENABLED=true | false
+```
+
+Defaults:
+
+```txt
+INVENTORY_DATA_MODE=database
+INVENTORY_SYNC_ENABLED=true
+```
+
+Mode behavior:
+
+- `database`: scheduled/manual sync writes normalized rows into `InventoryItem`; reporting APIs read from DB.
+- `live`: reporting APIs fetch fresh CounterScreen data directly and normalize in memory; no `InventoryItem` writes are performed by reporting requests.
 
 ## Sync Job
 
@@ -38,7 +57,7 @@ It:
 
 The observed CounterScreen shape is documented in `docs/counterscreen-api-outcome.md`. As of the latest inspection, all four sources are similar enough for one shared reporting table, but `Chassis` is not unique within a source and should not be used alone as the sync upsert key.
 
-The scheduled sync runs every minute by default:
+The scheduled sync runs every minute by default when `INVENTORY_DATA_MODE=database` and `INVENTORY_SYNC_ENABLED=true`:
 
 ```txt
 INVENTORY_SYNC_ENABLED=true
@@ -48,9 +67,21 @@ COUNTERSCREEN_TIMEOUT_MS=30000
 
 Overlapping runs are prevented in process. If a sync is already running, the next scheduled run is skipped and logged.
 
+If `INVENTORY_DATA_MODE=live`, scheduler logs and skips:
+
+```txt
+Inventory sync disabled because INVENTORY_DATA_MODE=live
+```
+
+If `INVENTORY_SYNC_ENABLED=false`, scheduler logs and skips:
+
+```txt
+Inventory sync disabled by INVENTORY_SYNC_ENABLED=false
+```
+
 ## Manual Sync
 
-Manual sync endpoints:
+Manual sync endpoints (database mode):
 
 ```txt
 POST /api/inventory-sync/run
@@ -59,6 +90,12 @@ GET /api/inventory-sync/runs
 ```
 
 These routes are protected by JWT authentication. `POST /api/inventory-sync/run` requires `inventory.sync`; status and run history require `inventory.view`.
+
+In `live` mode, `POST /api/inventory-sync/run` is rejected with:
+
+```txt
+Inventory sync is disabled in live data mode.
+```
 
 ## Authentication Model
 
@@ -79,11 +116,13 @@ Direct `DENY` always wins. The Prisma auth models live in separate files under `
 
 The public health endpoint remains unauthenticated. Reporting, inventory, sync, stock rules, snapshots, and users APIs require JWT access tokens and route permissions.
 
+Authentication identity uses `username` + password. `email` remains in the user table as optional legacy metadata and is not used for login.
+
 ## Refresh Behavior
 
-Normal dashboard requests read from the configured reporting database.
+Normal dashboard requests read based on active mode.
 
-`refresh=true` is treated as an admin/manual refresh trigger:
+In `database` mode, `refresh=true` is treated as an admin/manual refresh trigger:
 
 ```txt
 GET /api/inventory?refresh=true
@@ -91,9 +130,11 @@ GET /api/inventory?refresh=true
 
 The backend runs a sync first, then returns database results. If the sync fails or partially fails, APIs still return the latest available database data and include sync/source errors in metadata.
 
+In `live` mode, `refresh=true` bypasses CounterScreen cache and fetches fresh live data only; it does not trigger DB sync.
+
 ## API Metadata
 
-Inventory list responses include reporting metadata:
+Inventory list responses include mode-aware metadata:
 
 ```ts
 {
@@ -102,6 +143,7 @@ Inventory list responses include reporting metadata:
   lastSyncedAt: string | null;
   fromCache: false;
   fromDatabase: true;
+  dataMode: "database" | "live";
   syncStatus: string;
   sourceCount: number;
   successfulSources: number;
@@ -117,6 +159,8 @@ Inventory list responses include reporting metadata:
 ## Raw Records
 
 Raw CounterScreen API payloads are not persisted in the reporting database. `InventoryItem` is the reporting source of truth, while `InventorySyncRun.totalRawRecords` and `InventorySourceSyncResult.recordsCount` keep sync counts for observability.
+
+In `live` mode, reporting/history tables are not refreshed by inventory API requests. This mode is intended as a temporary low-DB-processing fallback and depends directly on CounterScreen availability.
 
 `GET /api/inventory/raw` is retained as a disabled compatibility endpoint. It returns no records and explains that raw record storage is disabled. Use inspection scripts to fetch live CounterScreen API payloads directly when debugging mapper or source issues.
 
