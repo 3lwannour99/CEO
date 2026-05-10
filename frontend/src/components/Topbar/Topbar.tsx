@@ -3,6 +3,7 @@
 import { LanguageToggle } from "@/components/LanguageToggle/LanguageToggle";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 import { CurrencySelector } from "@/components/CurrencySelector/CurrencySelector";
+import { CountrySelector } from "@/components/CountrySelector/CountrySelector";
 import { useI18n } from "@/i18n/useI18n";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
@@ -41,6 +42,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           {isRefreshing ? t("filters.refreshingData") : t("summary.refresh")}
         </button>
         <LanguageToggle />
+        <CountrySelector />
         <CurrencySelector />
         <ThemeToggle />
         <div className={styles.company}>

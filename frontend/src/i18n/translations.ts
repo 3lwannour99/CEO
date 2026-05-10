@@ -94,6 +94,7 @@ export const translations: Record<LanguageCode, TranslationTree> = {
     },
     topbar: {
       searchPlaceholder: "Search model, chassis, customer, PO...",
+      allCountries: "All",
     },
     filters: {
       brand: "Brand",
@@ -632,6 +633,7 @@ export const translations: Record<LanguageCode, TranslationTree> = {
     },
     topbar: {
       searchPlaceholder: "بحث بالموديل أو رقم الشاسيه أو العميل أو أمر الشراء...",
+      allCountries: "الكل",
     },
     filters: {
       brand: "البراند",
