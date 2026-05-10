@@ -1,6 +1,6 @@
 .tableFrame {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
   width: 100%;
 }
@@ -61,11 +61,13 @@
 .tableWrap {
   width: 100%;
   min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   overflow-x: scroll;
   overflow-y: hidden;
   scrollbar-gutter: stable;
   overscroll-behavior-inline: contain;
-  --table-row-height: 49px;
+  --table-row-height: 52px;
   --table-header-height: 44px;
   --table-search-height: 52px;
 }
@@ -109,7 +111,7 @@
   color: var(--color-muted);
   background: var(--color-table-head);
   font-size: 0.75rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
@@ -181,7 +183,7 @@
 .table td {
   min-height: var(--table-row-height);
   border-block-end: 1px solid var(--color-border);
-  padding: 14px 16px;
+  padding: 14px 18px;
   text-align: start;
   white-space: nowrap;
 }
@@ -199,7 +201,7 @@
 .columnSearch {
   width: 100%;
   min-width: 120px;
-  min-height: 32px;
+  min-height: 34px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding-inline: var(--space-2);

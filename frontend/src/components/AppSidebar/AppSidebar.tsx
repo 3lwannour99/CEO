@@ -3,23 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/i18n/useI18n";
+import { useAuth } from "@/providers/AuthProvider/AuthProvider";
 import styles from "./AppSidebar.module.css";
 
 const navItems = [
-  { labelKey: "sidebar.dashboard", href: "/dashboard", marker: "DB" },
-  { labelKey: "sidebar.inventoryMovement", href: "/inventory-movement", marker: "IM" },
-  { labelKey: "sidebar.alerts", href: "/alerts", marker: "AL" },
-  { labelKey: "sidebar.replenishment", href: "/replenishment", marker: "RP" },
-  { labelKey: "sidebar.stockCoverage", href: "/stock-coverage", marker: "SC" },
-  { labelKey: "sidebar.salesPerformance", href: "/sales-performance", marker: "SP" },
-  { labelKey: "sidebar.salesmenKpi", href: "/salesmen-kpi", marker: "SK" },
-  { labelKey: "sidebar.aggregatedStock", href: "/aggregated-stock", marker: "AS" },
-  { labelKey: "sidebar.stockRules", href: "/stock-rules", marker: "SR" },
-  { labelKey: "sidebar.snapshots", href: "/snapshots", marker: "SN" },
-  { labelKey: "sidebar.logistics", href: "/logistics", marker: "LG" },
-  { labelKey: "sidebar.multiLocation", href: "/multi-location", marker: "ML" },
-  { labelKey: "sidebar.multiStatusChassis", href: "/multi-status-chassis", marker: "MC" },
-  { labelKey: "sidebar.settings", href: "/settings", marker: "ST" },
+  { labelKey: "nav.dashboard", href: "/dashboard", marker: "DB", permissions: ["dashboard.view"] },
+  { labelKey: "nav.inventoryMovement", href: "/inventory-movement", marker: "IM", permissions: ["inventory.view"] },
+  { labelKey: "nav.alerts", href: "/alerts", marker: "AL", permissions: ["alerts.view"] },
+  { labelKey: "nav.replenishment", href: "/replenishment", marker: "RP", permissions: ["replenishment.view"] },
+  { labelKey: "nav.stockCoverage", href: "/stock-coverage", marker: "SC", permissions: ["stockCoverage.view"] },
+  { labelKey: "nav.salesPerformance", href: "/sales-performance", marker: "SP", permissions: ["salesPerformance.view"] },
+  { labelKey: "nav.salesmenKpi", href: "/salesmen-kpi", marker: "SK", permissions: ["salesPerformance.view"] },
+  { labelKey: "nav.aggregatedStock", href: "/aggregated-stock", marker: "AS", permissions: ["inventory.view"] },
+  { labelKey: "nav.stockRules", href: "/stock-rules", marker: "SR", permissions: ["stockRules.view"] },
+  { labelKey: "nav.dailySnapshots", href: "/snapshots", marker: "SN", permissions: ["snapshots.view"] },
+  { labelKey: "nav.logistics", href: "/logistics", marker: "LG", permissions: ["logistics.view"] },
+  { labelKey: "nav.multiLocation", href: "/multi-location", marker: "ML", permissions: ["multiLocation.view"] },
+  { labelKey: "nav.multiStatusChassis", href: "/multi-status-chassis", marker: "MC", permissions: ["inventory.view"] },
+  { labelKey: "nav.users", href: "/users", marker: "US", permissions: ["users.view"] },
+  { labelKey: "nav.settings", href: "/settings", marker: "ST", permissions: ["settings.manage"] },
 ];
 
 interface AppSidebarProps {
@@ -31,6 +33,7 @@ interface AppSidebarProps {
 export function AppSidebar({ isOpen, onClose, isBusy = false }: AppSidebarProps) {
   const pathname = usePathname();
   const { t } = useI18n();
+  const auth = useAuth();
 
   return (
     <>
@@ -43,7 +46,7 @@ export function AppSidebar({ isOpen, onClose, isBusy = false }: AppSidebarProps)
           </div>
         </div>
         <nav className={styles.nav}>
-          {navItems.map((item) => {
+          {navItems.filter((item) => auth.hasAnyPermission(item.permissions)).map((item) => {
             const active = pathname === item.href;
             return (
               <Link

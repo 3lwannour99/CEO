@@ -23,6 +23,14 @@ NEXT_PUBLIC_WS_BASE_URL=http://localhost:4000
 
 The frontend uses Socket.IO only as a live update signal. It connects to the backend `/inventory` namespace, listens for `inventory.updated`, and refetches existing REST data when a sync finishes. If the socket is disconnected, normal REST loading still works.
 
+Authentication is handled by `AuthProvider`. The login page stores the JWT access token in `localStorage` for this first version, and the API client sends it as:
+
+```txt
+Authorization: Bearer <token>
+```
+
+The sidebar and protected pages use permission checks from the authenticated user. Frontend hiding is only UX; backend guards enforce the real permissions.
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.

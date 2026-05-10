@@ -59,10 +59,10 @@ export default function DashboardPage() {
   const percentOfStock = (value: number | undefined) =>
     data.metrics.currentStockUnits > 0 ? `${formatNumber(Math.round(((value ?? 0) / data.metrics.currentStockUnits) * 100))}% ${t("table.currentStock")}` : formatValue(null);
   const metrics: DashboardMetric[] = [
-    { label: "Total Report Rows", value: formatNumber(data.metrics.totalRows), trend: "All rows including duplicates", tone: "neutral" },
-    { label: "Unique Chassis", value: formatNumber(data.metrics.uniqueChassisCount), trend: "Distinct physical vehicles", tone: "positive" },
-    { label: "Multi-Status Chassis", value: formatNumber(data.metrics.multiStatusChassisCount), trend: "Chassis with multiple records", tone: "warning" },
-    { label: "Rows in Multi-Status Groups", value: formatNumber(data.metrics.rowsInMultiStatusChassisGroups), trend: "Impact of duplicates", tone: "warning" },
+    { label: t("metrics.totalReportRows"), value: formatNumber(data.metrics.totalRows), trend: t("metrics.allRowsIncludingDuplicates"), tone: "neutral" },
+    { label: t("metrics.uniqueChassis"), value: formatNumber(data.metrics.uniqueChassisCount), trend: t("metrics.distinctPhysicalVehicles"), tone: "positive" },
+    { label: t("metrics.multiStatusChassis"), value: formatNumber(data.metrics.multiStatusChassisCount), trend: t("metrics.chassisWithMultipleRecords"), tone: "warning" },
+    { label: t("metrics.rowsInMultiStatusGroups"), value: formatNumber(data.metrics.rowsInMultiStatusChassisGroups), trend: t("metrics.duplicateImpact"), tone: "warning" },
     { label: t("metrics.totalStockUnits"), value: formatNumber(data.metrics.currentStockUnits), trend: `${formatNumber(filteredItems.length)} ${t("table.total")} ${t("table.units")}`, tone: "positive" },
     { label: t("table.currentStock"), value: formatNumber(data.metrics.currentStockUnits), trend: percentOfStock(data.metrics.currentStockUnits), tone: "neutral" },
     { label: t("metrics.fastMovingStock"), value: formatNumber(data.metrics.fastMovingUnits), trend: percentOfStock(data.metrics.fastMovingUnits), tone: "positive" },

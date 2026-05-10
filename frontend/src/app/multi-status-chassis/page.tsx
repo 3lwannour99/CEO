@@ -25,27 +25,27 @@ export default function MultiStatusChassisPage() {
       })
       .catch((err) => {
         if (active) {
-          setError(err instanceof Error ? err.message : "Failed to load data");
+          setError(err instanceof Error ? err.message : t("filters.failedToLoadData"));
           setLoading(false);
         }
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [t]);
 
   const groupColumns: DataTableColumn<MultiStatusChassisGroup>[] = [
     { key: "company", header: t("table.columns.company"), render: (row) => row.sourceName },
     { key: "chassis", header: t("table.columns.chassis"), render: (row) => row.chassis },
-    { key: "rowCount", header: t("table.rowCount") || "Row Count", render: (row) => row.rowCount.toString() },
+    { key: "rowCount", header: t("table.rowCount"), render: (row) => row.rowCount.toString() },
     { key: "statuses", header: t("table.columns.status"), render: (row) => row.statuses.join(", ") },
   ];
 
   if (error) {
     return (
       <>
-        <PageHeader title={t("sidebar.multiStatusChassis")} description="Chassis with multiple statuses" />
-        <SectionCard title="Error">
+        <PageHeader title={t("pages.multiStatusChassis.title")} description={t("pages.multiStatusChassis.shortDescription")} />
+        <SectionCard title={t("status.error")}>
           <p>{error}</p>
         </SectionCard>
       </>
@@ -54,20 +54,20 @@ export default function MultiStatusChassisPage() {
 
   return (
     <>
-      <PageHeader title={t("sidebar.multiStatusChassis")} description="View chassis that have multiple distinct statuses across different records." />
-      <SectionCard title="Summary">
+      <PageHeader title={t("pages.multiStatusChassis.title")} description={t("pages.multiStatusChassis.description")} />
+      <SectionCard title={t("pages.multiStatusChassis.summary")}>
         <div style={{ display: "flex", gap: "2rem", marginBottom: "1rem" }}>
-          <div><strong>Total Groups:</strong> {data?.meta.totalGroups ?? "-"}</div>
-          <div><strong>Total Rows:</strong> {data?.meta.totalRows ?? "-"}</div>
-          <div><strong>Last Synced At:</strong> {data?.meta.lastSyncedAt ? new Date(data.meta.lastSyncedAt).toLocaleString() : "-"}</div>
+          <div><strong>{t("table.totalGroups")}:</strong> {data?.meta.totalGroups ?? "-"}</div>
+          <div><strong>{t("table.totalRows")}:</strong> {data?.meta.totalRows ?? "-"}</div>
+          <div><strong>{t("summary.lastSynced")}:</strong> {data?.meta.lastSyncedAt ? new Date(data.meta.lastSyncedAt).toLocaleString() : "-"}</div>
         </div>
       </SectionCard>
-      <SectionCard title="Multi-Status Chassis">
+      <SectionCard title={t("pages.multiStatusChassis.title")}>
         <DataTable
           columns={groupColumns}
           rows={data?.data || []}
           isLoading={loading}
-          emptyMessage="No multi-status chassis found."
+          emptyMessage={t("pages.multiStatusChassis.empty")}
         />
       </SectionCard>
     </>

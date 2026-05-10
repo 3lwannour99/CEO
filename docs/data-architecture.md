@@ -58,7 +58,19 @@ GET /api/inventory-sync/status
 GET /api/inventory-sync/runs
 ```
 
-No auth is currently required because the project does not have auth wired for these routes yet.
+These routes are protected by JWT authentication. `POST /api/inventory-sync/run` requires `inventory.sync`; status and run history require `inventory.view`.
+
+## Authentication Model
+
+CEOReport uses role-based access control:
+
+```txt
+User -> UserRole -> Role -> RolePermission -> Permission
+```
+
+The Prisma auth models live in separate files under `backend/prisma/schema`. Seed data creates `SUPER_ADMIN`, `ADMIN`, `MANAGER`, and `VIEWER`, plus the default permission keys used by backend route guards.
+
+The public health endpoint remains unauthenticated. Reporting, inventory, sync, stock rules, snapshots, and users APIs require JWT access tokens and route permissions.
 
 ## Refresh Behavior
 

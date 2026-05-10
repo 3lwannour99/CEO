@@ -17,11 +17,19 @@
 
 .main {
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-5);
   width: 100%;
   max-width: var(--content-max-width);
   margin: 0 auto;
+  padding: clamp(var(--space-4), 2vw, var(--space-6));
+}
+
+.accessDenied {
+  display: grid;
+  gap: var(--space-2);
   padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 @media (max-width: 768px) {

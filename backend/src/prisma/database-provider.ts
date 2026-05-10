@@ -4,8 +4,9 @@ import { PrismaPg } from '@prisma/adapter-pg';
 export type DatabaseProvider = 'postgresql' | 'mysql';
 
 export function getDatabaseProvider(): DatabaseProvider {
-    const provider = (process.env.DATABASE_PROVIDER?.trim() || 'postgresql')
-        .toLowerCase();
+    const provider = (
+        process.env.DATABASE_PROVIDER?.trim() || 'postgresql'
+    ).toLowerCase();
 
     if (provider === 'postgres' || provider === 'postgresql') {
         return 'postgresql';
@@ -23,10 +24,10 @@ export function getDatabaseProvider(): DatabaseProvider {
 export function getDatabaseUrl(provider = getDatabaseProvider()): string {
     const candidates =
         provider === 'mysql'
-            ? [process.env.MYSQL_DATABASE_URL, process.env.DATABASE_URL]
+            ? [process.env.DATABASE_URL, process.env.MYSQL_DATABASE_URL]
             : [
-                  process.env.POSTGRES_DATABASE_URL,
                   process.env.DATABASE_URL,
+                  process.env.POSTGRES_DATABASE_URL,
                   process.env.TEMPLATE_DB_URL,
               ];
     const url = candidates.find((candidate) =>

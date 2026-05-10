@@ -52,6 +52,9 @@ Root Docker Compose uses service-prefixed names where useful:
 - `COUNTERSCREEN_REJECT_UNAUTHORIZED`: set to `false` only when the source TLS setup requires it.
 - `INVENTORY_SYNC_ENABLED`: enables or disables scheduled inventory sync.
 - `INVENTORY_SYNC_INTERVAL_CRON`: cron expression for scheduled sync.
+- `JWT_SECRET`: required signing secret for access tokens.
+- `JWT_EXPIRES_IN`: token lifetime, for example `1d`.
+- `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FULL_NAME`: optional seed values for creating the first `SUPER_ADMIN` user.
 
 Use `backend/.env.example` only when running the backend directly outside Docker. Use `frontend/.env.example` only when running the frontend directly outside Docker. Docker Compose should use the root `.env`.
 
@@ -152,22 +155,50 @@ The scheduler runs every minute by default when `INVENTORY_SYNC_ENABLED` is not 
 Manual sync:
 
 ```bash
-curl -X POST http://localhost:4000/api/inventory-sync/run
+curl -H "Authorization: Bearer <token>" -X POST http://localhost:4000/api/inventory-sync/run
 ```
 
 Sync status:
 
 ```bash
-curl http://localhost:4000/api/inventory-sync/status
+curl -H "Authorization: Bearer <token>" http://localhost:4000/api/inventory-sync/status
 ```
 
 Recent runs:
 
 ```bash
-curl http://localhost:4000/api/inventory-sync/runs
+curl -H "Authorization: Bearer <token>" http://localhost:4000/api/inventory-sync/runs
 ```
 
 Inventory live updates use Socket.IO as a notification signal only. The backend emits `inventory.updated` on the `/inventory` namespace after an inventory sync run has finished writing database rows and sync logs. The event contains sync metadata, not inventory datasets. The frontend receives the event and refetches the existing REST APIs.
+
+## Authentication And Permissions
+
+CEOReport uses JWT access tokens and role-based access control:
+
+```txt
+User -> Role -> Permission
+```
+
+Default roles are `SUPER_ADMIN`, `ADMIN`, `MANAGER`, and `VIEWER`. Default permissions include dashboard, inventory, sync, export, alerts, replenishment, stock coverage, sales performance, logistics, multi-location, stock rules, snapshots, users, and settings permissions.
+
+Seed roles and permissions with:
+
+```bash
+npm run db:seed
+```
+
+If `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set, the seed creates or updates that user and assigns `SUPER_ADMIN`. Passwords are hashed with bcrypt. Missing admin env values only skip admin creation; roles and permissions are still seeded.
+
+Login:
+
+```bash
+curl -X POST http://localhost:4000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"change_me"}'
+```
+
+Protected routes require `Authorization: Bearer <token>`. `/api/health` remains public.
 
 ## Useful Commands
 
