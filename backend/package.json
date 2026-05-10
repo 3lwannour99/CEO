@@ -11,7 +11,12 @@
         "start": "nest start",
         "start:dev": "nest start --watch",
         "start:debug": "nest start --debug --watch",
+<<<<<<< Updated upstream
         "start:prod": "npm run db:sync && npm run db:seed && node dist/main",
+=======
+        "start:prod": "node dist/src/main",
+        "start:prod:with-db": "npm run db:sync && npm run db:seed && npm run start:prod",
+>>>>>>> Stashed changes
         "inspect:duplicate-chassis": "tsx scripts/report-duplicate-chassis.ts",
         "inspect:unique-keys": "tsx scripts/inspect-counterscreen-unique-keys.ts",
         "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",

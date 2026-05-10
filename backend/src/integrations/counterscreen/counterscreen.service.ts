@@ -94,6 +94,30 @@ export class CounterScreenService {
         );
     }
 
+    async fetchSourceById(sourceId: string): Promise<SourceFetchResult> {
+        const source = COUNTERSCREEN_SOURCES.find(
+            (item) => item.id === sourceId,
+        );
+        if (!source) {
+            return {
+                source: {
+                    id: sourceId,
+                    name: sourceId,
+                    country: 'Unknown',
+                    baseUrl: '',
+                },
+                data: [],
+                error: {
+                    sourceId,
+                    sourceName: sourceId,
+                    message: 'Source not found',
+                },
+            };
+        }
+
+        return this.fetchSource(source);
+    }
+
     private async fetchSource(
         source: CounterScreenSource,
     ): Promise<SourceFetchResult> {
