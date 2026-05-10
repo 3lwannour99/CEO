@@ -13,6 +13,7 @@ import { PermissionsGuard } from '../auth/permissions.guard';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateUserActiveDto } from './dto/update-user-active.dto';
+import { UpdateUserPermissionsDto } from './dto/update-user-permissions.dto';
 import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
@@ -62,6 +63,21 @@ export class UsersController {
     @Patch(':id/roles')
     updateRoles(@Param('id') id: string, @Body() dto: UpdateUserRolesDto) {
         return this.usersService.updateRoles(id, dto);
+    }
+
+    @RequirePermissions('users.manage')
+    @Get(':id/permissions')
+    findPermissions(@Param('id') id: string) {
+        return this.usersService.findPermissions(id);
+    }
+
+    @RequirePermissions('users.manage')
+    @Patch(':id/permissions')
+    updatePermissions(
+        @Param('id') id: string,
+        @Body() dto: UpdateUserPermissionsDto,
+    ) {
+        return this.usersService.updatePermissions(id, dto);
     }
 
     @RequirePermissions('users.manage')

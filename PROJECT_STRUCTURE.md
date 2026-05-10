@@ -48,10 +48,15 @@ The frontend is a Next.js application using React and TypeScript.
 
 - `frontend/src/app/layout.tsx` defines the root HTML layout and page metadata.
 - `frontend/src/app/page.tsx` is the current home page entry point.
+- `frontend/src/app/roles/page.tsx` is the role editor for custom roles and permission checkbox assignment.
+- `frontend/src/app/users/page.tsx` manages users, role assignment, and direct permission overrides.
+- `frontend/src/services/rolesApi.ts`, `permissionsApi.ts`, and `usersApi.ts` wrap RBAC APIs.
 - `frontend/src/app/globals.css` contains global styles.
 - `frontend/src/app/page.module.css` contains styles scoped to the home page.
 - `frontend/public/` stores static assets served by Next.js.
 - `frontend/package.json` defines frontend scripts and dependencies.
+
+Frontend permission visibility is handled by `AuthProvider` helpers (`hasPermission`, `hasAnyPermission`, `hasAllPermissions`). These helpers use effective permissions from `/api/auth/me`; backend guards still enforce endpoint access.
 
 ### Frontend scripts
 

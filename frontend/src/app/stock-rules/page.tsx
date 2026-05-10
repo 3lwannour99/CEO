@@ -74,7 +74,7 @@ export default function StockRulesPage() {
     { key: "target", header: t("table.targetCoverageMonths"), render: (row) => formatNumber(row.targetCoverageMonths) },
     { key: "lead", header: t("table.leadTimeDays"), render: (row) => formatNumber(row.leadTimeDays) },
     { key: "active", header: t("table.active"), render: (row) => (row.isActive ? t("summary.yes") : t("summary.no")) },
-    ...(auth.hasPermission("stockRules.manage")
+    ...(auth.hasPermission("actions.editStockRules.execute")
       ? [{ key: "delete", header: "", render: (row: StockRule) => <button className="report-button" type="button" onClick={() => void deleteStockRule(row.id).then(loadRules)}>{t("actions.delete")}</button> }]
       : []),
   ];
@@ -83,7 +83,7 @@ export default function StockRulesPage() {
     <>
       <PageHeader title={t("pages.stockRules.title")} description={t("pages.stockRules.description")} />
       {error ? <p>{error}</p> : null}
-      {auth.hasPermission("stockRules.manage") ? (
+      {auth.hasPermission("actions.editStockRules.execute") ? (
         <SectionCard title={t("sidebar.stockRules")} eyebrow={t("sections.configuration")}>
           <form className="business-form" onSubmit={submit}>
           <TextField label={t("table.company")} value={draft.sourceId ?? ""} onChange={(value) => setDraft({ ...draft, sourceId: value || null })} />

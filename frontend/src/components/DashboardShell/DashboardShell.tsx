@@ -12,21 +12,22 @@ import { useAuth } from "@/providers/AuthProvider/AuthProvider";
 import styles from "./DashboardShell.module.css";
 
 const routePermissions: Array<{ prefix: string; permissions: string[] }> = [
-  { prefix: "/dashboard", permissions: ["dashboard.view"] },
-  { prefix: "/inventory-movement", permissions: ["inventory.view"] },
-  { prefix: "/alerts", permissions: ["alerts.view"] },
-  { prefix: "/replenishment", permissions: ["replenishment.view"] },
-  { prefix: "/stock-coverage", permissions: ["stockCoverage.view"] },
-  { prefix: "/sales-performance", permissions: ["salesPerformance.view"] },
-  { prefix: "/salesmen-kpi", permissions: ["salesPerformance.view"] },
-  { prefix: "/aggregated-stock", permissions: ["inventory.view"] },
-  { prefix: "/stock-rules", permissions: ["stockRules.view"] },
-  { prefix: "/snapshots", permissions: ["snapshots.view"] },
-  { prefix: "/logistics", permissions: ["logistics.view"] },
-  { prefix: "/multi-location", permissions: ["multiLocation.view"] },
-  { prefix: "/multi-status-chassis", permissions: ["inventory.view"] },
-  { prefix: "/settings", permissions: ["settings.manage"] },
-  { prefix: "/users", permissions: ["users.view"] },
+  { prefix: "/dashboard", permissions: ["dashboard.page.view"] },
+  { prefix: "/inventory-movement", permissions: ["inventory.page.view"] },
+  { prefix: "/alerts", permissions: ["alerts.page.view"] },
+  { prefix: "/replenishment", permissions: ["replenishment.page.view"] },
+  { prefix: "/stock-coverage", permissions: ["stockCoverage.page.view"] },
+  { prefix: "/sales-performance", permissions: ["salesPerformance.page.view"] },
+  { prefix: "/salesmen-kpi", permissions: ["salesPerformance.page.view"] },
+  { prefix: "/aggregated-stock", permissions: ["inventory.page.view"] },
+  { prefix: "/stock-rules", permissions: ["stockRules.page.view"] },
+  { prefix: "/snapshots", permissions: ["snapshots.page.view"] },
+  { prefix: "/logistics", permissions: ["logistics.page.view"] },
+  { prefix: "/multi-location", permissions: ["multiLocation.page.view"] },
+  { prefix: "/multi-status-chassis", permissions: ["inventory.page.view"] },
+  { prefix: "/settings", permissions: ["settings.view"] },
+  { prefix: "/roles", permissions: ["roles.view", "roles.manage"] },
+  { prefix: "/users", permissions: ["users.view", "users.manage"] },
 ];
 
 export function DashboardShell({ children }: Readonly<{ children: React.ReactNode }>) {

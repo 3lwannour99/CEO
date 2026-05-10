@@ -148,6 +148,53 @@
   gap: var(--space-2);
 }
 
+.permissionGrid {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.permissionUser {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.permissionUser summary {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.permissionList {
+  display: grid;
+  max-height: 420px;
+  overflow: auto;
+  border-block-start: 1px solid var(--color-border);
+}
+
+.permissionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.permissionRow strong,
+.permissionRow small {
+  display: block;
+}
+
+.permissionRow small {
+  margin-block-start: 3px;
+  color: var(--color-muted);
+  font-size: 0.74rem;
+}
+
 .inlineSelect {
   min-width: 140px;
   min-height: 36px;

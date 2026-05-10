@@ -82,7 +82,11 @@ export interface AuthUser {
   id: string;
   email: string;
   fullName: string;
+  isActive?: boolean;
   roles: string[];
+  rolePermissions?: string[];
+  directAllowPermissions?: string[];
+  directDenyPermissions?: string[];
   permissions: string[];
 }
 
@@ -95,6 +99,7 @@ export interface RoleSummary {
   id: string;
   name: string;
   description?: string | null;
+  isActive?: boolean;
 }
 
 export interface ManagedUser {
@@ -103,7 +108,30 @@ export interface ManagedUser {
   fullName: string;
   isActive: boolean;
   roles: RoleSummary[];
+  rolePermissions?: string[];
+  directAllowPermissions?: string[];
+  directDenyPermissions?: string[];
   permissions: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PermissionSummary {
+  id: string;
+  key: string;
+  labelEn?: string | null;
+  labelAr?: string | null;
+  description?: string | null;
+  category?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RoleDetail extends RoleSummary {
+  isActive: boolean;
+  permissionKeys: string[];
+  permissions: PermissionSummary[];
+  userCount: number;
   createdAt: string;
   updatedAt: string;
 }

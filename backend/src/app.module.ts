@@ -10,6 +10,7 @@ import { InventoryEventsModule } from './inventory-events/inventory-events.modul
 import { InventorySyncModule } from './inventory-sync/inventory-sync.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PermissionsModule } from './permissions/permissions.module';
 import { LoggerMiddleware } from './logger/logger.middleware';
 import { LogisticsModule } from './logistics/logistics.module';
 import { ReplenishmentModule } from './replenishment/replenishment.module';
@@ -18,12 +19,15 @@ import { SchedulerModule } from './scheduler/scheduler.module';
 import { SnapshotsModule } from './snapshots/snapshots.module';
 import { StockRulesModule } from './stock-rules/stock-rules.module';
 import { UsersModule } from './users/users.module';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
     imports: [
         ScheduleModule.forRoot(),
         PrismaModule,
         AuthModule,
+        PermissionsModule,
+        RolesModule,
         UsersModule,
         CounterScreenModule,
         InventoryEventsModule,

@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateUserActiveDto } from './dto/update-user-active.dto';
+import { UpdateUserPermissionsDto } from './dto/update-user-permissions.dto';
 import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -51,7 +52,9 @@ export class UsersService {
             },
         });
 
-        await this.replaceRoles(user.id, dto.roleNames ?? ['VIEWER']);
+        await this.replaceRoles(user.id, {
+            roleNames: dto.roleNames ?? ['VIEWER'],
+        });
         return this.findOne(user.id);
     }
 
@@ -72,7 +75,7 @@ export class UsersService {
         });
 
         if (dto.roleNames) {
-            await this.replaceRoles(id, dto.roleNames);
+            await this.replaceRoles(id, { roleNames: dto.roleNames });
         }
 
         return this.findOne(id);
@@ -92,7 +95,67 @@ export class UsersService {
 
     async updateRoles(id: string, dto: UpdateUserRolesDto) {
         await this.findOne(id);
-        await this.replaceRoles(id, dto.roleNames);
+        await this.replaceRoles(id, dto);
+        return this.findOne(id);
+    }
+
+    async findPermissions(id: string) {
+        const user = await this.findOne(id);
+        return {
+            directAllowPermissions: user.directAllowPermissions,
+            directDenyPermissions: user.directDenyPermissions,
+            permissions: user.permissions,
+            rolePermissions: user.rolePermissions,
+        };
+    }
+
+    async updatePermissions(id: string, dto: UpdateUserPermissionsDto) {
+        await this.findOne(id);
+        const allowPermissionKeys = dto.allowPermissionKeys ?? [];
+        const denyPermissionKeys = dto.denyPermissionKeys ?? [];
+        const duplicate = allowPermissionKeys.find((key) =>
+            denyPermissionKeys.includes(key),
+        );
+
+        if (duplicate) {
+            throw new ConflictException(
+                `Permission "${duplicate}" cannot be both allowed and denied.`,
+            );
+        }
+
+        const permissions = await this.prisma.permission.findMany({
+            where: {
+                key: { in: [...allowPermissionKeys, ...denyPermissionKeys] },
+            },
+        });
+        const foundKeys = new Set(
+            permissions.map((permission) => permission.key),
+        );
+        const missing = [...allowPermissionKeys, ...denyPermissionKeys].filter(
+            (key) => !foundKeys.has(key),
+        );
+
+        if (missing.length > 0) {
+            throw new NotFoundException(
+                `Unknown permission keys: ${missing.join(', ')}`,
+            );
+        }
+
+        await this.prisma.$transaction([
+            this.prisma.userPermission.deleteMany({ where: { userId: id } }),
+            ...permissions.map((permission) =>
+                this.prisma.userPermission.create({
+                    data: {
+                        effect: allowPermissionKeys.includes(permission.key)
+                            ? 'ALLOW'
+                            : 'DENY',
+                        permissionId: permission.id,
+                        userId: id,
+                    },
+                }),
+            ),
+        ]);
+
         return this.findOne(id);
     }
 
@@ -119,16 +182,25 @@ export class UsersService {
         });
     }
 
-    private async replaceRoles(userId: string, roleNames: string[]) {
+    private async replaceRoles(userId: string, dto: UpdateUserRolesDto) {
+        const roleNames = dto.roleNames ?? [];
+        const roleIds = dto.roleIds ?? [];
+        if (roleNames.length === 0 && roleIds.length === 0) {
+            throw new NotFoundException('At least one role is required.');
+        }
+
+        const roleFilters: Prisma.RoleWhereInput[] = [];
+        if (roleNames.length) {
+            roleFilters.push({ name: { in: roleNames } });
+        }
+        if (roleIds.length) {
+            roleFilters.push({ id: { in: roleIds } });
+        }
         const roles = await this.prisma.role.findMany({
-            where: {
-                name: {
-                    in: roleNames,
-                },
-            },
+            where: { OR: roleFilters },
         });
 
-        if (roles.length !== roleNames.length) {
+        if (roles.length !== new Set([...roleNames, ...roleIds]).size) {
             throw new NotFoundException('One or more roles were not found.');
         }
 
@@ -170,6 +242,11 @@ const userInclude = {
             },
         },
     },
+    userPermissions: {
+        include: {
+            permission: true,
+        },
+    },
 } as const;
 
 type UserWithRoles = Prisma.UserGetPayload<{ include: typeof userInclude }>;
@@ -178,28 +255,49 @@ function toUserResponse(user: UserWithRoles) {
     const roles = user.userRoles.map((userRole) => ({
         description: userRole.role.description,
         id: userRole.role.id,
+        isActive: userRole.role.isActive,
         name: userRole.role.name,
     }));
-    const permissions = Array.from(
-        new Set(
-            user.userRoles.flatMap((userRole) =>
-                userRole.role.rolePermissions.map(
-                    (rolePermission) => rolePermission.permission.key,
-                ),
+    const rolePermissions = uniqueSorted(
+        user.userRoles.flatMap((userRole) =>
+            userRole.role.rolePermissions.map(
+                (rolePermission) => rolePermission.permission.key,
             ),
         ),
-    ).sort();
+    );
+    const directAllowPermissions = uniqueSorted(
+        user.userPermissions
+            .filter((userPermission) => userPermission.effect === 'ALLOW')
+            .map((userPermission) => userPermission.permission.key),
+    );
+    const directDenyPermissions = uniqueSorted(
+        user.userPermissions
+            .filter((userPermission) => userPermission.effect === 'DENY')
+            .map((userPermission) => userPermission.permission.key),
+    );
+    const denied = new Set(directDenyPermissions);
+    const permissions = uniqueSorted([
+        ...rolePermissions,
+        ...directAllowPermissions,
+    ]).filter((permission) => !denied.has(permission));
 
     return {
         createdAt: user.createdAt,
+        directAllowPermissions,
+        directDenyPermissions,
         email: user.email,
         fullName: user.fullName,
         id: user.id,
         isActive: user.isActive,
         permissions,
+        rolePermissions,
         roles,
         updatedAt: user.updatedAt,
     };
+}
+
+function uniqueSorted(values: string[]) {
+    return Array.from(new Set(values)).sort();
 }
 
 function normalizeEmail(email: string) {

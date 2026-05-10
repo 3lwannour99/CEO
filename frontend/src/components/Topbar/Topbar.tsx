@@ -41,7 +41,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           <button className={styles.alertButton} type="button" aria-label={t("app.notifications")} title={t("app.notifications")} disabled={isBusy}>
             {alertCount}
           </button>
-          {auth.hasPermission("inventory.sync") ? (
+          {auth.hasPermission("actions.syncInventory.execute") ? (
             <button className={styles.refreshButton} type="button" onClick={() => void refreshData("manual-refresh")} disabled={isInitialLoading || isRefreshing}>
               {isRefreshing ? t("filters.refreshingData") : t("summary.refresh")}
             </button>

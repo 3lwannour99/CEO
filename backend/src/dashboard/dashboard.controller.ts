@@ -11,7 +11,7 @@ export class DashboardController {
     constructor(private readonly dashboardService: DashboardService) {}
 
     @Get('summary')
-    @RequirePermissions('dashboard.view')
+    @RequirePermissions('dashboard.page.view')
     getSummary(@Query() query: InventoryQueryDto) {
         return this.dashboardService.getSummary(query);
     }

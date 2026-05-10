@@ -1,28 +1,10 @@
 import bcrypt from 'bcrypt';
 import 'dotenv/config';
+import { permissionCatalog } from '../src/auth/permission-catalog';
 import { PrismaClient } from '../src/generated/prisma-client/client';
 import { createPrismaAdapter } from '../src/prisma/database-provider';
 
 const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
-
-const permissions = [
-    ['dashboard.view', 'View dashboard summaries.'],
-    ['inventory.view', 'View inventory data and inventory reports.'],
-    ['inventory.sync', 'Run inventory synchronization.'],
-    ['inventory.export', 'Export inventory/reporting data.'],
-    ['alerts.view', 'View inventory alerts.'],
-    ['replenishment.view', 'View replenishment suggestions.'],
-    ['stockCoverage.view', 'View stock coverage reports.'],
-    ['salesPerformance.view', 'View sales performance reports.'],
-    ['logistics.view', 'View logistics reports.'],
-    ['multiLocation.view', 'View multi-location reports.'],
-    ['stockRules.view', 'View stock rules.'],
-    ['stockRules.manage', 'Create, update, and deactivate stock rules.'],
-    ['snapshots.view', 'View and run inventory snapshots.'],
-    ['users.view', 'View users and roles.'],
-    ['users.manage', 'Create and manage users.'],
-    ['settings.manage', 'Manage application settings.'],
-] as const;
 
 const roleDescriptions = {
     SUPER_ADMIN: 'Full system access.',
@@ -31,61 +13,85 @@ const roleDescriptions = {
     VIEWER: 'Read-only dashboard and report access.',
 } as const;
 
+const allPermissionKeys = permissionCatalog.map((permission) => permission.key);
+const pageAndReadOnlyKeys = allPermissionKeys.filter(
+    (key) =>
+        key.endsWith('.view') &&
+        !key.startsWith('users.') &&
+        !key.startsWith('roles.') &&
+        !key.startsWith('permissions.') &&
+        !key.startsWith('settings.manage') &&
+        !key.includes('cost') &&
+        !key.includes('profit') &&
+        !key.includes('customerPhone'),
+);
+const adminKeys = allPermissionKeys.filter(
+    (key) =>
+        !key.includes('data.cost') &&
+        !key.includes('data.profit') &&
+        key !== 'roles.delete' &&
+        key !== 'users.delete',
+);
+const managerKeys = allPermissionKeys.filter(
+    (key) =>
+        (key.endsWith('.view') ||
+            key === 'actions.export.view' ||
+            key === 'actions.export.execute' ||
+            key === 'actions.refreshDashboard.execute') &&
+        !key.startsWith('users.') &&
+        !key.startsWith('roles.') &&
+        !key.startsWith('permissions.') &&
+        !key.startsWith('settings.') &&
+        !key.includes('data.cost') &&
+        !key.includes('data.profit') &&
+        !key.includes('data.customerPhone'),
+);
+
 const rolePermissions: Record<keyof typeof roleDescriptions, string[]> = {
-    SUPER_ADMIN: permissions.map(([key]) => key),
-    ADMIN: permissions.map(([key]) => key).filter(
-        (key) => key !== 'settings.manage',
-    ),
-    MANAGER: [
-        'dashboard.view',
-        'inventory.view',
-        'inventory.sync',
-        'inventory.export',
-        'alerts.view',
-        'replenishment.view',
-        'stockCoverage.view',
-        'salesPerformance.view',
-        'logistics.view',
-        'multiLocation.view',
-        'stockRules.view',
-        'snapshots.view',
-    ],
-    VIEWER: [
-        'dashboard.view',
-        'inventory.view',
-        'alerts.view',
-        'replenishment.view',
-        'stockCoverage.view',
-        'salesPerformance.view',
-        'logistics.view',
-        'multiLocation.view',
-        'stockRules.view',
-        'snapshots.view',
-    ],
+    SUPER_ADMIN: allPermissionKeys,
+    ADMIN: adminKeys,
+    MANAGER: managerKeys,
+    VIEWER: pageAndReadOnlyKeys,
 };
 
 async function main() {
     const permissionRows = new Map<string, { id: string }>();
 
-    for (const [key, description] of permissions) {
+    for (const item of permissionCatalog) {
         const permission = await prisma.permission.upsert({
-            create: { description, key },
-            update: { description },
-            where: { key },
+            create: item,
+            update: {
+                category: item.category,
+                description: item.description,
+                labelAr: item.labelAr,
+                labelEn: item.labelEn,
+            },
+            where: { key: item.key },
         });
-        permissionRows.set(key, permission);
+        permissionRows.set(item.key, permission);
     }
 
     for (const [name, description] of Object.entries(roleDescriptions)) {
         const role = await prisma.role.upsert({
-            create: { description, name },
-            update: { description },
+            create: { description, isActive: true, name },
+            update: { description, isActive: true },
             where: { name },
         });
+        const rolePermissionKeys = rolePermissions[name as keyof typeof rolePermissions];
+        const rolePermissionIds = rolePermissionKeys
+            .map((permissionKey) => permissionRows.get(permissionKey)?.id)
+            .filter((permissionId): permissionId is string => Boolean(permissionId));
 
-        for (const permissionKey of rolePermissions[
-            name as keyof typeof rolePermissions
-        ]) {
+        await prisma.rolePermission.deleteMany({
+            where: {
+                roleId: role.id,
+                permissionId: {
+                    notIn: rolePermissionIds,
+                },
+            },
+        });
+
+        for (const permissionKey of rolePermissionKeys) {
             const permission = permissionRows.get(permissionKey);
             if (!permission) {
                 continue;

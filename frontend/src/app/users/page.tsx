@@ -6,8 +6,9 @@ import { PageHeader } from "@/components/PageHeader/PageHeader";
 import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { useI18n } from "@/i18n/useI18n";
 import { useAuth } from "@/providers/AuthProvider/AuthProvider";
-import { createUser, getRoles, getUsers, updateUserActive, updateUserRoles } from "@/services/authApi";
-import type { ManagedUser, RoleSummary } from "@/types/inventory";
+import { createUser, getAssignableRoles, getUsers, updateUserActive, updateUserPermissions, updateUserRoles } from "@/services/usersApi";
+import { getPermissions } from "@/services/permissionsApi";
+import type { ManagedUser, PermissionSummary, RoleSummary } from "@/types/inventory";
 import styles from "./users.module.css";
 
 export default function UsersPage() {
@@ -15,6 +16,7 @@ export default function UsersPage() {
   const { t } = useI18n();
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [roles, setRoles] = useState<RoleSummary[]>([]);
+  const [permissions, setPermissions] = useState<PermissionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
@@ -31,9 +33,10 @@ export default function UsersPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [userRows, roleRows] = await Promise.all([getUsers(), getRoles()]);
+      const [userRows, roleRows, permissionRows] = await Promise.all([getUsers(), getAssignableRoles(), getPermissions()]);
       setUsers(userRows);
       setRoles(roleRows);
+      setPermissions(permissionRows);
       setError(null);
     } catch (loadError) {
       logError(loadError);
@@ -107,6 +110,32 @@ export default function UsersPage() {
       await load();
     } catch (statusError) {
       logError(statusError);
+      setError(t("users.updateFailed"));
+    } finally {
+      setUpdatingUserId(null);
+    }
+  }
+
+  async function changePermissionOverride(user: ManagedUser, permissionKey: string, effect: "inherit" | "allow" | "deny") {
+    setUpdatingUserId(user.id);
+    setError(null);
+    setSuccess(null);
+    const allow = new Set(user.directAllowPermissions ?? []);
+    const deny = new Set(user.directDenyPermissions ?? []);
+    allow.delete(permissionKey);
+    deny.delete(permissionKey);
+    if (effect === "allow") {
+      allow.add(permissionKey);
+    }
+    if (effect === "deny") {
+      deny.add(permissionKey);
+    }
+
+    try {
+      await updateUserPermissions(user.id, Array.from(allow), Array.from(deny));
+      await load();
+    } catch (permissionError) {
+      logError(permissionError);
       setError(t("users.updateFailed"));
     } finally {
       setUpdatingUserId(null);
@@ -190,6 +219,47 @@ export default function UsersPage() {
       <SectionCard title={t("users.title")} eyebrow={t("users.accessControl")}>
         <DataTable columns={columns} rows={users} isLoading={loading} emptyMessage={loading ? t("users.loading") : t("users.noUsers")} getRowKey={(row) => row.id} />
       </SectionCard>
+      {canManage ? (
+        <SectionCard title={t("users.directPermissions")} eyebrow={t("users.effectivePermissions")}>
+          <div className={styles.permissionGrid}>
+            {users.map((user) => (
+              <details className={styles.permissionUser} key={user.id}>
+                <summary>
+                  <span>{user.fullName}</span>
+                  <span className={styles.muted}>{(user.permissions ?? []).length} {t("permissions.effective")}</span>
+                </summary>
+                <div className={styles.permissionList}>
+                  {permissions.map((permission) => {
+                    const state = (user.directDenyPermissions ?? []).includes(permission.key)
+                      ? "deny"
+                      : (user.directAllowPermissions ?? []).includes(permission.key)
+                        ? "allow"
+                        : "inherit";
+                    return (
+                      <div className={styles.permissionRow} key={permission.key}>
+                        <div>
+                          <strong>{permission.labelEn ?? permission.key}</strong>
+                          <small>{permission.key}</small>
+                        </div>
+                        <select
+                          className={styles.inlineSelect}
+                          value={state}
+                          disabled={updatingUserId === user.id}
+                          onChange={(event) => void changePermissionOverride(user, permission.key, event.target.value as "inherit" | "allow" | "deny")}
+                        >
+                          <option value="inherit">{t("permissions.inherit")}</option>
+                          <option value="allow">{t("permissions.allow")}</option>
+                          <option value="deny">{t("permissions.deny")}</option>
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            ))}
+          </div>
+        </SectionCard>
+      ) : null}
     </div>
   );
 }

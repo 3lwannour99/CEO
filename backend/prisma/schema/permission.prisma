@@ -1,10 +1,16 @@
 model Permission {
   id          String  @id @default(cuid())
   key         String  @unique
+  labelEn     String?
+  labelAr     String?
   description String?
+  category    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+
+  @@index([category])
 }

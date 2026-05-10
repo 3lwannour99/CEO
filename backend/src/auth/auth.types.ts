@@ -2,7 +2,11 @@ export interface AuthenticatedUser {
     id: string;
     email: string;
     fullName: string;
+    isActive?: boolean;
     roles: string[];
+    rolePermissions?: string[];
+    directAllowPermissions?: string[];
+    directDenyPermissions?: string[];
     permissions: string[];
 }
 

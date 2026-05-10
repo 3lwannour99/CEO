@@ -10,19 +10,19 @@ export class SnapshotsController {
     constructor(private readonly snapshotsService: SnapshotsService) {}
 
     @Post('run')
-    @RequirePermissions('snapshots.view')
+    @RequirePermissions('actions.createSnapshot.execute')
     runSnapshot() {
         return this.snapshotsService.runSnapshot();
     }
 
     @Get()
-    @RequirePermissions('snapshots.view')
+    @RequirePermissions('snapshots.page.view')
     findAll() {
         return this.snapshotsService.findAll();
     }
 
     @Get('monthly-comparison')
-    @RequirePermissions('snapshots.view')
+    @RequirePermissions('snapshots.page.view')
     getMonthlyComparison() {
         return this.snapshotsService.getMonthlyComparison();
     }

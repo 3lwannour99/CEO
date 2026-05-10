@@ -1,0 +1,336 @@
+.page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.toolbar,
+.editor,
+.field,
+.roleList {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.editor {
+  gap: var(--space-4);
+}
+
+.editorTop {
+  position: sticky;
+  inset-block-start: calc(var(--topbar-height) + var(--space-4));
+  z-index: 2;
+  display: grid;
+  gap: var(--space-4);
+  margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) 0;
+  border-block-end: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-card) 94%, transparent);
+  padding: var(--space-5);
+  backdrop-filter: blur(10px);
+}
+
+.roleFields {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(240px, 1.3fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font: inherit;
+  outline: none;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.textarea {
+  min-height: 42px;
+  resize: vertical;
+}
+
+.field span,
+.roleItem span {
+  color: var(--color-text);
+  font-weight: 900;
+}
+
+.roleItem {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  text-align: start;
+  cursor: pointer;
+}
+
+.roleItem small {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+}
+
+.roleItem:hover {
+  border-color: var(--color-accent);
+}
+
+.selectedRole {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.permissionToolbar {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.5fr) minmax(220px, 1fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.permissionToolbar div {
+  display: grid;
+  gap: 4px;
+}
+
+.permissionToolbar strong {
+  color: var(--color-text);
+  font-size: 0.92rem;
+}
+
+.permissionToolbar span {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.permissionGroups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.permissionGroup {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.permissionGroup header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: center;
+  border-block-end: 1px solid var(--color-border);
+  padding: var(--space-3);
+  background: var(--color-soft);
+}
+
+.permissionGroup header > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.permissionGroup header strong {
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.permissionGroup header span {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.permissionGroup header > div:last-child {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.permissionTableWrap {
+  max-height: 420px;
+  overflow: auto;
+}
+
+.permissionTable {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  color: var(--color-text);
+  font-size: 0.82rem;
+}
+
+.permissionTable th,
+.permissionTable td {
+  border-block-end: 1px solid var(--color-border);
+  padding: var(--space-2);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.permissionTable thead th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 3;
+  background: var(--color-soft);
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.permissionTable thead th:first-child {
+  inset-inline-start: 0;
+  z-index: 4;
+  min-width: 280px;
+  text-align: start;
+}
+
+.permissionTable tbody th {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 2;
+  width: 280px;
+  background: var(--color-surface);
+  text-align: start;
+}
+
+.permissionTable tbody tr:hover th,
+.permissionTable tbody tr:hover td {
+  background: var(--color-accent-soft);
+}
+
+.permissionTable tbody th span {
+  display: block;
+  min-width: 0;
+}
+
+.permissionTable tbody th span {
+  font-weight: 900;
+}
+
+.matrixCheck {
+  display: grid;
+  place-items: center;
+  min-height: 30px;
+  cursor: pointer;
+}
+
+.matrixCheck input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--color-accent);
+}
+
+.notAvailable {
+  color: var(--color-muted);
+  opacity: 0.55;
+}
+
+.permissionGroup header button,
+.primaryButton,
+.secondaryButton {
+  min-height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-size: 0.8rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.primaryButton {
+  position: sticky;
+  inset-block-end: var(--space-4);
+  justify-self: end;
+  min-width: 180px;
+  min-height: 44px;
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.errorNotice,
+.successNotice,
+.createNotice,
+.warning,
+.emptyState {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  font-weight: 800;
+}
+
+.errorNotice,
+.warning {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.successNotice {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.createNotice {
+  color: var(--color-text);
+  background: var(--color-accent-soft);
+}
+
+.emptyState {
+  grid-column: 1 / -1;
+  color: var(--color-muted);
+  background: var(--color-soft);
+}
+
+@media (max-width: 1180px) {
+  .permissionGroups {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .layout,
+  .roleFields,
+  .permissionToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .editorTop {
+    position: static;
+  }
+
+  .primaryButton {
+    position: static;
+    justify-self: stretch;
+  }
+}

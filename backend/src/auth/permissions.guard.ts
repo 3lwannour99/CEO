@@ -8,12 +8,16 @@ import {
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from './permissions.decorator';
 import { RequestWithUser } from './auth.types';
+import { AuthService } from './auth.service';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-    constructor(private readonly reflector: Reflector) {}
+    constructor(
+        private readonly authService: AuthService,
+        private readonly reflector: Reflector,
+    ) {}
 
-    canActivate(context: ExecutionContext): boolean {
+    async canActivate(context: ExecutionContext): Promise<boolean> {
         const required =
             this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
                 context.getHandler(),
@@ -31,11 +35,12 @@ export class PermissionsGuard implements CanActivate {
             throw new UnauthorizedException('Authenticated user is required.');
         }
 
-        if (user.roles.includes('SUPER_ADMIN')) {
-            return true;
-        }
+        const effective = await this.authService.getEffectivePermissions(
+            user.id,
+        );
+        request.user = { ...user, ...effective };
 
-        const granted = new Set(user.permissions);
+        const granted = new Set(effective.permissions);
         const allowed = required.every((permission) => granted.has(permission));
         if (!allowed) {
             throw new ForbiddenException('Missing required permission.');

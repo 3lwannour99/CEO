@@ -11,25 +11,25 @@ export class InventoryController {
     constructor(private readonly inventoryService: InventoryService) {}
 
     @Get()
-    @RequirePermissions('inventory.view')
+    @RequirePermissions('inventory.page.view')
     findAll(@Query() query: InventoryQueryDto) {
         return this.inventoryService.findAll(query);
     }
 
     @Get('raw')
-    @RequirePermissions('inventory.view')
+    @RequirePermissions('inventory.page.view')
     findRaw(@Query() query: InventoryQueryDto) {
         return this.inventoryService.findRaw(query);
     }
 
     @Get('summary')
-    @RequirePermissions('inventory.view')
+    @RequirePermissions('inventory.page.view')
     getSummary(@Query() query: InventoryQueryDto) {
         return this.inventoryService.getSummary(query);
     }
 
     @Get('multi-status-chassis')
-    @RequirePermissions('inventory.view')
+    @RequirePermissions('inventory.page.view')
     getMultiStatusChassis(@Query() query: InventoryQueryDto) {
         return this.inventoryService.getMultiStatusChassis(query);
     }

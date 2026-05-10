@@ -19,7 +19,7 @@ export class AppController {
 
     @Get('sources')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('inventory.view')
+    @RequirePermissions('inventory.page.view')
     getSources() {
         return this.counterScreenService.getSources();
     }

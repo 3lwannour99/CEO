@@ -34,8 +34,8 @@ export class JwtAuthGuard implements CanActivate {
                 email: payload.email,
                 fullName: payload.fullName,
                 id: payload.sub,
-                permissions: payload.permissions ?? [],
-                roles: payload.roles ?? [],
+                permissions: [],
+                roles: [],
             };
             return true;
         } catch {

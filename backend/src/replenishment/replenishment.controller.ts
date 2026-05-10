@@ -11,7 +11,7 @@ export class ReplenishmentController {
     constructor(private readonly replenishmentService: ReplenishmentService) {}
 
     @Get()
-    @RequirePermissions('replenishment.view')
+    @RequirePermissions('replenishment.page.view')
     findAll(@Query() query: InventoryQueryDto) {
         return this.replenishmentService.findAll(query);
     }

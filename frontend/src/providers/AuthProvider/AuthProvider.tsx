@@ -15,6 +15,7 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
+  hasAllPermissions: (permissions: string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -93,11 +94,11 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
 
   const value = useMemo<AuthContextValue>(() => {
     const permissions = new Set(user?.permissions ?? []);
-    const isSuperAdmin = user?.roles.includes("SUPER_ADMIN") ?? false;
-    const hasPermission = (permission: string) => isSuperAdmin || permissions.has(permission);
+    const hasPermission = (permission: string) => permissions.has(permission);
 
     return {
       error,
+      hasAllPermissions: (required) => required.length === 0 || required.every(hasPermission),
       hasAnyPermission: (required) => required.length === 0 || required.some(hasPermission),
       hasPermission,
       isAuthenticated: Boolean(user && token),

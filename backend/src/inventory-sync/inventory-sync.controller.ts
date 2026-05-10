@@ -10,19 +10,19 @@ export class InventorySyncController {
     constructor(private readonly inventorySyncService: InventorySyncService) {}
 
     @Post('run')
-    @RequirePermissions('inventory.sync')
+    @RequirePermissions('actions.syncInventory.execute')
     run() {
         return this.inventorySyncService.runSync('manual');
     }
 
     @Get('status')
-    @RequirePermissions('inventory.view')
+    @RequirePermissions('inventory.page.view')
     getStatus() {
         return this.inventorySyncService.getStatus();
     }
 
     @Get('runs')
-    @RequirePermissions('inventory.view')
+    @RequirePermissions('inventory.page.view')
     getRuns() {
         return this.inventorySyncService.getRuns();
     }

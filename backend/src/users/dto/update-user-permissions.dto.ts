@@ -1,15 +1,15 @@
 import { ArrayUnique, IsArray, IsOptional, IsString } from 'class-validator';
 
-export class UpdateUserRolesDto {
+export class UpdateUserPermissionsDto {
     @IsOptional()
     @IsArray()
     @ArrayUnique()
     @IsString({ each: true })
-    roleNames?: string[];
+    allowPermissionKeys?: string[];
 
     @IsOptional()
     @IsArray()
     @ArrayUnique()
     @IsString({ each: true })
-    roleIds?: string[];
+    denyPermissionKeys?: string[];
 }

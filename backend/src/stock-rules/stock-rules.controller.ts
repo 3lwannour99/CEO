@@ -20,25 +20,25 @@ export class StockRulesController {
     constructor(private readonly stockRulesService: StockRulesService) {}
 
     @Get()
-    @RequirePermissions('stockRules.view')
+    @RequirePermissions('stockRules.page.view')
     findAll() {
         return this.stockRulesService.findAll();
     }
 
     @Post()
-    @RequirePermissions('stockRules.manage')
+    @RequirePermissions('actions.editStockRules.execute')
     create(@Body() dto: StockRuleDto) {
         return this.stockRulesService.create(dto);
     }
 
     @Put(':id')
-    @RequirePermissions('stockRules.manage')
+    @RequirePermissions('actions.editStockRules.execute')
     update(@Param('id') id: string, @Body() dto: StockRuleDto) {
         return this.stockRulesService.update(id, dto);
     }
 
     @Delete(':id')
-    @RequirePermissions('stockRules.manage')
+    @RequirePermissions('actions.editStockRules.execute')
     remove(@Param('id') id: string) {
         return this.stockRulesService.remove(id);
     }

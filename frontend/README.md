@@ -31,6 +31,16 @@ Authorization: Bearer <token>
 
 The sidebar and protected pages use permission checks from the authenticated user. Frontend hiding is only UX; backend guards enforce the real permissions.
 
+## RBAC UI
+
+The frontend reads permissions from the backend `Permission` table through `/api/permissions`. The roles page (`/roles`) lets admins create roles, edit descriptions, enable/disable roles, and replace role permissions with grouped checkbox lists. The users page supports role assignment plus direct user permission overrides:
+
+```txt
+inherit from role | direct allow | direct deny
+```
+
+`AuthProvider` exposes `hasPermission`, `hasAnyPermission`, and `hasAllPermissions`, all based on effective permissions returned by `/api/auth/me`. Sidebar links, protected routes, refresh/sync buttons, stock rule actions, and management pages use those helpers for visibility while the backend remains the source of enforcement.
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.

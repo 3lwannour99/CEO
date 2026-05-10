@@ -13,3 +13,8 @@ enum InventorySourceSyncStatus {
   success
   failed
 }
+
+enum PermissionEffect {
+  ALLOW
+  DENY
+}

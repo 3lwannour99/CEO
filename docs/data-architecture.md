@@ -62,13 +62,20 @@ These routes are protected by JWT authentication. `POST /api/inventory-sync/run`
 
 ## Authentication Model
 
-CEOReport uses role-based access control:
+CEOReport uses role-based access control with optional direct user permission overrides:
 
 ```txt
 User -> UserRole -> Role -> RolePermission -> Permission
+User -> UserPermission -> Permission
 ```
 
-The Prisma auth models live in separate files under `backend/prisma/schema`. Seed data creates `SUPER_ADMIN`, `ADMIN`, `MANAGER`, and `VIEWER`, plus the default permission keys used by backend route guards.
+The effective permission formula is:
+
+```txt
+role permissions + direct ALLOW permissions - direct DENY permissions
+```
+
+Direct `DENY` always wins. The Prisma auth models live in separate files under `backend/prisma/schema`. Seed data creates `SUPER_ADMIN`, `ADMIN`, `MANAGER`, and `VIEWER`, plus the default permission catalog used by backend route guards and frontend role editor checkboxes.
 
 The public health endpoint remains unauthenticated. Reporting, inventory, sync, stock rules, snapshots, and users APIs require JWT access tokens and route permissions.
 

@@ -11,31 +11,31 @@ export class ReportsController {
     constructor(private readonly reportsService: ReportsService) {}
 
     @Get('stock-coverage')
-    @RequirePermissions('stockCoverage.view')
+    @RequirePermissions('stockCoverage.page.view')
     getStockCoverage(@Query() query: InventoryQueryDto) {
         return this.reportsService.getStockCoverage(query);
     }
 
     @Get('sales-performance')
-    @RequirePermissions('salesPerformance.view')
+    @RequirePermissions('salesPerformance.page.view')
     getSalesPerformance(@Query() query: InventoryQueryDto) {
         return this.reportsService.getSalesPerformance(query);
     }
 
     @Get('aggregated-stock')
-    @RequirePermissions('inventory.view')
+    @RequirePermissions('inventory.page.view')
     getAggregatedStock(@Query() query: InventoryQueryDto) {
         return this.reportsService.getAggregatedStock(query);
     }
 
     @Get('aggregated-stock/vins')
-    @RequirePermissions('inventory.view')
+    @RequirePermissions('inventory.page.view')
     getVinReport(@Query() query: InventoryQueryDto) {
         return this.reportsService.getVinReport(query);
     }
 
     @Get('multi-location')
-    @RequirePermissions('multiLocation.view')
+    @RequirePermissions('multiLocation.page.view')
     getMultiLocation(@Query() query: InventoryQueryDto) {
         return this.reportsService.getMultiLocation(query);
     }

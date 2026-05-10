@@ -7,21 +7,22 @@ import { useAuth } from "@/providers/AuthProvider/AuthProvider";
 import styles from "./AppSidebar.module.css";
 
 const navItems = [
-  { labelKey: "nav.dashboard", href: "/dashboard", marker: "DB", permissions: ["dashboard.view"] },
-  { labelKey: "nav.inventoryMovement", href: "/inventory-movement", marker: "IM", permissions: ["inventory.view"] },
-  { labelKey: "nav.alerts", href: "/alerts", marker: "AL", permissions: ["alerts.view"] },
-  { labelKey: "nav.replenishment", href: "/replenishment", marker: "RP", permissions: ["replenishment.view"] },
-  { labelKey: "nav.stockCoverage", href: "/stock-coverage", marker: "SC", permissions: ["stockCoverage.view"] },
-  { labelKey: "nav.salesPerformance", href: "/sales-performance", marker: "SP", permissions: ["salesPerformance.view"] },
-  { labelKey: "nav.salesmenKpi", href: "/salesmen-kpi", marker: "SK", permissions: ["salesPerformance.view"] },
-  { labelKey: "nav.aggregatedStock", href: "/aggregated-stock", marker: "AS", permissions: ["inventory.view"] },
-  { labelKey: "nav.stockRules", href: "/stock-rules", marker: "SR", permissions: ["stockRules.view"] },
-  { labelKey: "nav.dailySnapshots", href: "/snapshots", marker: "SN", permissions: ["snapshots.view"] },
-  { labelKey: "nav.logistics", href: "/logistics", marker: "LG", permissions: ["logistics.view"] },
-  { labelKey: "nav.multiLocation", href: "/multi-location", marker: "ML", permissions: ["multiLocation.view"] },
-  { labelKey: "nav.multiStatusChassis", href: "/multi-status-chassis", marker: "MC", permissions: ["inventory.view"] },
-  { labelKey: "nav.users", href: "/users", marker: "US", permissions: ["users.view"] },
-  { labelKey: "nav.settings", href: "/settings", marker: "ST", permissions: ["settings.manage"] },
+  { labelKey: "nav.dashboard", href: "/dashboard", marker: "DB", permissions: ["dashboard.page.view"] },
+  { labelKey: "nav.inventoryMovement", href: "/inventory-movement", marker: "IM", permissions: ["inventory.page.view"] },
+  { labelKey: "nav.alerts", href: "/alerts", marker: "AL", permissions: ["alerts.page.view"] },
+  { labelKey: "nav.replenishment", href: "/replenishment", marker: "RP", permissions: ["replenishment.page.view"] },
+  { labelKey: "nav.stockCoverage", href: "/stock-coverage", marker: "SC", permissions: ["stockCoverage.page.view"] },
+  { labelKey: "nav.salesPerformance", href: "/sales-performance", marker: "SP", permissions: ["salesPerformance.page.view"] },
+  { labelKey: "nav.salesmenKpi", href: "/salesmen-kpi", marker: "SK", permissions: ["salesPerformance.page.view"] },
+  { labelKey: "nav.aggregatedStock", href: "/aggregated-stock", marker: "AS", permissions: ["inventory.page.view"] },
+  { labelKey: "nav.stockRules", href: "/stock-rules", marker: "SR", permissions: ["stockRules.page.view"] },
+  { labelKey: "nav.dailySnapshots", href: "/snapshots", marker: "SN", permissions: ["snapshots.page.view"] },
+  { labelKey: "nav.logistics", href: "/logistics", marker: "LG", permissions: ["logistics.page.view"] },
+  { labelKey: "nav.multiLocation", href: "/multi-location", marker: "ML", permissions: ["multiLocation.page.view"] },
+  { labelKey: "nav.multiStatusChassis", href: "/multi-status-chassis", marker: "MC", permissions: ["inventory.page.view"] },
+  { labelKey: "nav.users", href: "/users", marker: "US", permissions: ["users.view", "users.manage"] },
+  { labelKey: "nav.roles", href: "/roles", marker: "RO", permissions: ["roles.view", "roles.manage"] },
+  { labelKey: "nav.settings", href: "/settings", marker: "ST", permissions: ["settings.view"] },
 ];
 
 interface AppSidebarProps {

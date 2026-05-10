@@ -11,7 +11,7 @@ export class LogisticsController {
     constructor(private readonly logisticsService: LogisticsService) {}
 
     @Get()
-    @RequirePermissions('logistics.view')
+    @RequirePermissions('logistics.page.view')
     findAll(@Query() query: InventoryQueryDto) {
         return this.logisticsService.findAll(query);
     }

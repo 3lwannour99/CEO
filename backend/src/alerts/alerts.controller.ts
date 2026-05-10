@@ -11,7 +11,7 @@ export class AlertsController {
     constructor(private readonly alertsService: AlertsService) {}
 
     @Get()
-    @RequirePermissions('alerts.view')
+    @RequirePermissions('alerts.page.view')
     findAll(@Query() query: InventoryQueryDto) {
         return this.alertsService.findAll(query);
     }
