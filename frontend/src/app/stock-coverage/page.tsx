@@ -21,7 +21,7 @@ export default function StockCoveragePage() {
   const rows = useMemo(() => inventoryData.getStockCoverage(filters), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
   const columns: DataTableColumn<StockCoverageItem>[] = [
-    { key: "model", header: t("table.model"), render: (row) => `${row.brand} ${row.model}` },
+    { key: "model", header: t("table.model"), render: (row) => formatValue(row.model) },
     { key: "color", header: t("table.color"), render: (row) => row.exteriorColor },
     { key: "current", header: t("table.currentStock"), render: (row) => formatNumber(row.currentStock) },
     { key: "sold90", header: t("table.soldLast90Days"), render: (row) => formatNumber(row.soldLast90Days) },

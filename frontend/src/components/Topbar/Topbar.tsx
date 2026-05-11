@@ -18,7 +18,7 @@ interface TopbarProps {
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { t } = useI18n();
   const auth = useAuth();
-  const { filters } = useGlobalFilters();
+  const { filters, setFilters } = useGlobalFilters();
   const inventoryData = useInventoryData();
   const { refreshData, isInitialLoading, isRefreshing, isBusy } = inventoryData;
   const alertCount = inventoryData.getAlerts(filters).length;
@@ -34,7 +34,13 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </button>
       <div className={styles.searchWrap}>
         <span className={styles.searchIcon} aria-hidden="true" />
-        <input className={styles.search} type="search" placeholder={t("topbar.searchPlaceholder")} />
+        <input
+          className={styles.search}
+          type="search"
+          placeholder={t("topbar.searchPlaceholder")}
+          value={filters.search}
+          onChange={(event) => setFilters({ ...filters, search: event.target.value })}
+        />
       </div>
       <div className={styles.actions}>
         <div className={styles.statusGroup}>

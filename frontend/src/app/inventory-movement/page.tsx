@@ -39,7 +39,7 @@ export default function InventoryMovementPage() {
   const percent = (value: number) => (currentStock.length > 0 ? `${formatNumber(Math.round((value / currentStock.reduce((sum, item) => sum + (item.quantity || 1), 0)) * 100))}%` : "0%");
   const columns: DataTableColumn<InventoryItem>[] = [
     { key: "chassis", header: t("table.chassis"), render: (row) => formatValue(row.chassis) },
-    { key: "model", header: t("table.model"), render: (row) => `${row.brand} ${row.model}` },
+    { key: "model", header: t("table.model"), render: (row) => formatValue(row.model) },
     { key: "source", header: t("table.source"), render: (row) => row.sourceName },
     { key: "branch", header: t("table.branch"), render: (row) => formatValue(row.branch) },
     { key: "warehouse", header: t("table.warehouse"), render: (row) => formatValue(row.warehouse) },

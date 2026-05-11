@@ -23,12 +23,12 @@ export default function MultiLocationPage() {
     { key: "source", header: t("table.source"), render: (row) => formatValue(row.sourceName) },
     { key: "branch", header: t("table.branch"), render: (row) => formatValue(row.branch) },
     { key: "warehouse", header: t("table.warehouse"), render: (row) => formatValue(row.warehouse) },
-    { key: "model", header: t("table.model"), render: (row) => `${formatValue(row.brand)} ${formatValue(row.model)}` },
+    { key: "model", header: t("table.model"), render: (row) => formatValue(row.model) },
     { key: "color", header: t("table.color"), render: (row) => formatValue(row.exteriorColor) },
     { key: "current", header: t("table.currentStock"), render: (row) => formatNumber(row.currentStock) },
   ];
   const transferColumns: DataTableColumn<RebalancingRecommendation>[] = [
-    { key: "model", header: t("table.model"), render: (row) => `${formatValue(row.brand)} ${formatValue(row.model)}` },
+    { key: "model", header: t("table.model"), render: (row) => formatValue(row.model) },
     { key: "color", header: t("table.color"), render: (row) => formatValue(row.exteriorColor) },
     { key: "from", header: t("table.fromWarehouse"), render: (row) => formatValue(row.fromWarehouse) },
     { key: "to", header: t("table.toWarehouse"), render: (row) => formatValue(row.toWarehouse) },
