@@ -396,13 +396,18 @@ export function calculateReplenishment(
     const averageMonthlySales = soldLast90Days / 3;
     const averageDailySales = soldLast90Days / 90;
     const leadTimeDemand = averageDailySales * rule.leadTimeDays;
-    const suggestedOrderQuantity = Math.max(0, rule.maxStock - currentStock);
+    const targetCoverageDemand = averageMonthlySales * rule.targetCoverageMonths;
+    const projectedStockAtArrival = currentStock - leadTimeDemand;
+    const demandAwareTargetStock = Math.max(rule.maxStock, rule.reorderPoint, rule.minStock, targetCoverageDemand);
+    const suggestedOrderQuantity = Math.ceil(Math.max(0, demandAwareTargetStock - projectedStockAtArrival));
+    const coverageMonths = averageMonthlySales > 0 ? currentStock / averageMonthlySales : null;
+    const isCoverageShort = coverageMonths !== null && coverageMonths < rule.targetCoverageMonths;
     const urgency: ReplenishmentSuggestion["urgency"] =
-      currentStock <= rule.minStock
+      currentStock <= rule.minStock || projectedStockAtArrival <= 0
         ? "critical"
-        : currentStock <= rule.reorderPoint
+        : currentStock <= rule.reorderPoint || projectedStockAtArrival <= rule.minStock
           ? "high"
-          : suggestedOrderQuantity > 0
+          : suggestedOrderQuantity > 0 && isCoverageShort
             ? "medium"
             : "low";
 
@@ -428,11 +433,11 @@ export function calculateReplenishment(
       urgency,
       reason:
         urgency === "critical"
-          ? "Current stock is below minimum stock."
+          ? "Projected stock during lead time is below the safety range."
           : urgency === "high"
-            ? "Current stock is below reorder point."
-            : suggestedOrderQuantity > 0
-              ? "Stock is below max target."
+            ? "Stock is near or below reorder point after lead-time demand."
+            : suggestedOrderQuantity > 0 && isCoverageShort
+              ? "Projected coverage is below the target coverage months."
               : "Stock is within configured range.",
     };
   }).sort(
@@ -445,8 +450,9 @@ export function calculateReplenishment(
 export function calculateStockCoverage(
   items: InventoryItem[],
   rules: Rule[] = [],
+  groupingMode: "modelColor" | "modelOnly" = "modelColor",
 ): StockCoverageItem[] {
-  return calculateReplenishment(items, rules).map((item) => {
+  return calculateReplenishment(items, rules, groupingMode).map((item) => {
     const coverageMonths =
       item.averageMonthlySales > 0 ? round(item.currentStock / item.averageMonthlySales) : null;
     const status =

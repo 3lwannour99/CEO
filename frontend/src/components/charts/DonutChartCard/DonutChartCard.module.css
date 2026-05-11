@@ -18,5 +18,6 @@
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: var(--chart-accent);
+  background: var(--swatch-color, var(--chart-accent));
+  box-shadow: 0 0 0 1px var(--color-border-strong);
 }

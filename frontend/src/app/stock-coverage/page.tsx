@@ -24,6 +24,7 @@ export default function StockCoveragePage() {
   const inventoryData = useInventoryData();
   const { filters, setFilters, resetFilters } = useGlobalFilters();
   const rows = useMemo(() => inventoryData.getStockCoverage(filters), [filters, inventoryData]);
+  const modelOnlyRows = useMemo(() => inventoryData.getStockCoverage(filters, "modelOnly"), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
   const coverageStatusChart = useMemo(() => groupStockCoverage(rows), [rows]);
   const coverageByModelChart = useMemo(() => coverageByModel(rows, 10), [rows]);
@@ -38,6 +39,7 @@ export default function StockCoveragePage() {
     { key: "coverage", header: t("table.coverage"), render: (row) => formatValue(row.coverageMonths) },
     { key: "status", header: t("table.status"), render: (row) => <StatusBadge tone={row.status === "danger" ? "critical" : row.status === "overstock" ? "warning" : "success"}>{row.status}</StatusBadge> },
   ];
+  const modelOnlyColumns = columns.filter((column) => column.key !== "color");
 
   return (
     <>
@@ -55,8 +57,11 @@ export default function StockCoveragePage() {
         <BarChartCard title={t("charts.stockHealth")} subtitle={t("charts.top10")} insight={`${formatNumber(riskModelsChart.length)} ${t("table.model")}`} data={riskModelsChart} isLoading={inventoryData.isInitialLoading} />
       </ChartGrid>
       <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && filteredItems.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={resetFilters} />
-      <SectionCard title={t("sections.coverageByModel")} eyebrow={t("sections.inventoryPlanning")}>
+      <SectionCard title={t("sections.coverageByModelColor")} eyebrow={t("sections.inventoryPlanning")}>
         <DataTable columns={columns} rows={rows} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
+      </SectionCard>
+      <SectionCard title={t("sections.coverageByModel")} eyebrow={t("sections.inventoryPlanning")}>
+        <DataTable columns={modelOnlyColumns} rows={modelOnlyRows} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />
       </SectionCard>
     </>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { chartColorForKey } from "@/constants/chartColors";
 import { formatNumber } from "@/lib/apiClient";
@@ -36,12 +37,17 @@ export function DonutChartCard({ title, subtitle, insight, data, isLoading }: Do
         </PieChart>
       </ResponsiveContainer>
       <div className={styles.legend}>
-        {chartData.slice(0, 6).map((item) => (
+        {chartData.slice(0, 6).map((item, index) => {
+          const color = item.color ?? chartColorForKey(item.name, index);
+          const swatchStyle = { "--swatch-color": color } as CSSProperties;
+
+          return (
           <span className={styles.legendItem} key={item.name}>
-            <span className={styles.swatch} />
+            <span className={styles.swatch} style={swatchStyle} />
             {item.name}: {formatNumber(item.value)}
           </span>
-        ))}
+          );
+        })}
       </div>
     </BiChartCard>
   );

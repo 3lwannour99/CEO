@@ -58,7 +58,7 @@ interface InventoryDataContextValue {
   getDashboardSummary: (filters: InventoryFilters) => DashboardSummary;
   getAlerts: (filters: InventoryFilters) => InventoryAlert[];
   getReplenishment: (filters: InventoryFilters, groupingMode?: "modelColor" | "modelOnly") => ReplenishmentSuggestion[];
-  getStockCoverage: (filters: InventoryFilters) => StockCoverageItem[];
+  getStockCoverage: (filters: InventoryFilters, groupingMode?: "modelColor" | "modelOnly") => StockCoverageItem[];
   getSalesPerformance: (filters: InventoryFilters) => SalesPerformanceResponse;
   getAggregatedStock: (filters: InventoryFilters) => AggregatedStockResponse;
   getInventoryMovementMatrix: (filters: InventoryFilters) => InventoryMovementMatrixItem[];
@@ -263,7 +263,7 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
         calculateDashboardSummary(getFilteredData(filters), meta?.generatedAt ?? new Date().toISOString(), meta?.errors ?? [], stockRules),
       getAlerts: (filters) => calculateAlerts(getFilteredData(filters), meta?.generatedAt ?? new Date().toISOString(), meta?.errors ?? [], stockRules),
       getReplenishment: (filters, groupingMode) => calculateReplenishment(getFilteredData(filters), stockRules, groupingMode),
-      getStockCoverage: (filters) => calculateStockCoverage(getFilteredData(filters), stockRules),
+      getStockCoverage: (filters, groupingMode) => calculateStockCoverage(getFilteredData(filters), stockRules, groupingMode),
       getSalesPerformance: (filters) => calculateSalesPerformance(getFilteredData(filters)),
       getAggregatedStock: (filters) => calculateAggregatedStock(getFilteredData(filters)),
       getInventoryMovementMatrix: (filters) => calculateInventoryMovementMatrix(getFilteredData(filters)),

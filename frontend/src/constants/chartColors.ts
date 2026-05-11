@@ -10,6 +10,7 @@ export const chartColors = {
   slow: "var(--chart-slow)",
   unknown: "var(--chart-unknown)",
   critical: "var(--chart-critical)",
+  high: "var(--chart-high)",
   warning: "var(--chart-warning)",
   info: "var(--chart-info)",
   success: "var(--chart-success)",
@@ -42,7 +43,8 @@ export function chartColorForKey(key: string, index = 0) {
   if (normalized.includes("fast")) return chartColors.fast;
   if (normalized.includes("medium")) return chartColors.medium;
   if (normalized.includes("slow")) return chartColors.slow;
-  if (normalized.includes("critical") || normalized.includes("danger") || normalized.includes("high")) return chartColors.critical;
+  if (normalized.includes("critical") || normalized.includes("danger")) return chartColors.critical;
+  if (normalized.includes("high")) return chartColors.high;
   if (normalized.includes("warning") || normalized.includes("overstock")) return chartColors.warning;
   if (normalized.includes("healthy") || normalized.includes("success")) return chartColors.success;
   if (normalized.includes("info")) return chartColors.info;

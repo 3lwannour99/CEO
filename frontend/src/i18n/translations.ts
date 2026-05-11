@@ -1565,6 +1565,7 @@ export const translations: Record<LanguageCode, TranslationTree> = {
 
 translations.en.charts = {
   noData: "No chart data for selected filters.",
+  coverageByModelColor: "Coverage by Model and Color",
   unitsByStatus: "Units by Status",
   movementCategory: "Movement Category",
   stockByCompany: "Stock by Company",
@@ -1617,8 +1618,14 @@ translations.en.charts = {
   liveFilteredData: "Uses the current filtered report dataset",
 };
 
+(translations.en.sections as TranslationTree) = {
+  ...(translations.en.sections as TranslationTree),
+  coverageByModelColor: "Coverage by model and color",
+};
+
 translations.ar.charts = {
   noData: "لا توجد بيانات للرسم حسب الفلاتر المحددة",
+  coverageByModelColor: "التغطية حسب الموديل واللون",
   unitsByStatus: "الوحدات حسب الحالة",
   movementCategory: "تصنيف حركة المخزون",
   stockByCompany: "المخزون حسب الشركة",
@@ -1669,6 +1676,11 @@ translations.ar.charts = {
   insight: "ملاحظة",
   top10: "أعلى 10 من البيانات المفلترة",
   liveFilteredData: "يعتمد على بيانات التقرير المفلترة الحالية",
+};
+
+(translations.ar.sections as TranslationTree) = {
+  ...(translations.ar.sections as TranslationTree),
+  coverageByModelColor: "التغطية حسب الموديل واللون",
 };
 
 export function resolveTranslation(language: LanguageCode, key: string): string {
