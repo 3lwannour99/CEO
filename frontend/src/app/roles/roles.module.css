@@ -42,6 +42,43 @@
   align-items: start;
 }
 
+.copyPanel {
+  display: grid;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--color-soft);
+}
+
+.copyNotice {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--color-surface);
+}
+
+.copyNotice div {
+  display: grid;
+  gap: 4px;
+}
+
+.copyNotice strong {
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.copyNotice span,
+.copyNotice small {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .input,
 .textarea {
   width: 100%;
@@ -345,6 +382,11 @@
   .roleFields,
   .permissionToolbar {
     grid-template-columns: 1fr;
+  }
+
+  .copyNotice {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .editorTop {

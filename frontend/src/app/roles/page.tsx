@@ -20,12 +20,14 @@ export default function RolesPage() {
   const [query, setQuery] = useState("");
   const [permissionQuery, setPermissionQuery] = useState("");
   const [draft, setDraft] = useState({ name: "", description: "", permissionKeys: [] as string[] });
+  const [copiedFromRoleId, setCopiedFromRoleId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? null;
+  const copiedFromRole = roles.find((role) => role.id === copiedFromRoleId) ?? null;
   const filteredRoles = useMemo(
     () => roles.filter((role) => role.name.toLowerCase().includes(query.toLowerCase())),
     [query, roles],
@@ -65,10 +67,11 @@ export default function RolesPage() {
 
   const startEditRole = useCallback((role: RoleDetail | null) => {
     setSelectedRoleId(role?.id ?? null);
+    setCopiedFromRoleId(null);
     setDraft({
       description: role?.description ?? "",
       name: role?.name ?? "",
-      permissionKeys: role?.permissionKeys ?? [],
+      permissionKeys: deepClonePermissions(role?.permissionKeys ?? []),
     });
   }, []);
 
@@ -134,6 +137,42 @@ export default function RolesPage() {
     });
   }
 
+  function copyPermissionsFromRole(roleId: string) {
+    if (!roleId) {
+      setCopiedFromRoleId(null);
+      return;
+    }
+
+    const sourceRole = roles.find((role) => role.id === roleId);
+    if (!sourceRole) {
+      return;
+    }
+
+    const shouldConfirm = draft.permissionKeys.length > 0 || copiedFromRoleId !== null;
+    if (shouldConfirm && !window.confirm(`${t("roles.replaceCopiedPermissions")}\n\n${t("roles.replaceCopiedPermissionsMessage")}`)) {
+      return;
+    }
+
+    setCopiedFromRoleId(sourceRole.id);
+    setDraft((current) => ({
+      ...current,
+      permissionKeys: deepClonePermissions(sourceRole.permissionKeys),
+    }));
+  }
+
+  function clearCopiedPermissions() {
+    if (!copiedFromRoleId) {
+      return;
+    }
+
+    if (!window.confirm(`${t("roles.replaceCopiedPermissions")}\n\n${t("roles.replaceCopiedPermissionsMessage")}`)) {
+      return;
+    }
+
+    setCopiedFromRoleId(null);
+    setDraft((current) => ({ ...current, permissionKeys: [] }));
+  }
+
   return (
     <div className={styles.page}>
       <PageHeader title={t("roles.title")} description={t("roles.subtitle")} />
@@ -168,6 +207,29 @@ export default function RolesPage() {
                   <textarea className={styles.textarea} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
                 </label>
               </div>
+              {!selectedRole ? (
+                <div className={styles.copyPanel}>
+                  <label className={styles.field}>
+                    <span>{t("roles.copyPermissionsFrom")}</span>
+                    <select className={styles.input} value={copiedFromRoleId ?? ""} onChange={(event) => copyPermissionsFromRole(event.target.value)}>
+                      <option value="">{t("roles.selectRoleToCopy")}</option>
+                      {roles.map((role) => (
+                        <option key={role.id} value={role.id}>{role.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {copiedFromRole ? (
+                    <div className={styles.copyNotice}>
+                      <div>
+                        <strong>{t("roles.copiedFrom")}: {copiedFromRole.name}</strong>
+                        <span>{t("roles.permissionsCopied")}</span>
+                        <small>{t("roles.editCopiedPermissions")}</small>
+                      </div>
+                      <button className={styles.secondaryButton} type="button" onClick={clearCopiedPermissions}>{t("roles.clearCopiedPermissions")}</button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               {selectedRole?.name === "SUPER_ADMIN" ? <p className={styles.warning}>{t("roles.superAdminWarning")}</p> : null}
               <div className={styles.permissionToolbar}>
                 <div>
@@ -355,6 +417,14 @@ function translateCategory(category: string, t: (key: string) => string) {
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function deepClonePermissions(permissions: string[] | null | undefined): string[] {
+  if (typeof structuredClone === "function") {
+    return structuredClone(permissions ?? []);
+  }
+
+  return JSON.parse(JSON.stringify(permissions ?? [])) as string[];
 }
 
 function logError(error: unknown) {
