@@ -1,6 +1,8 @@
 import type { InventoryItem } from "@/types/inventory";
 import { createMoneyTotals, divideMoneyTotals, sumMoney, type MoneyTotals } from "@/lib/currency";
 
+const UNASSIGNED_SALESMAN = "Unassigned";
+
 export interface CountBreakdown {
   label: string;
   count: number;
@@ -50,6 +52,14 @@ function quantity(item: InventoryItem) {
 function validSalesman(value: string) {
   const normalized = value.trim().toLowerCase();
   return normalized && normalized !== "-no sales employee / buyer-";
+}
+
+function salesmanLabel(value: string) {
+  return validSalesman(value) ? value.trim() : UNASSIGNED_SALESMAN;
+}
+
+function assignedSalesman(value: string) {
+  return value !== UNASSIGNED_SALESMAN && validSalesman(value);
 }
 
 function soldItem(item: InventoryItem) {
@@ -141,14 +151,14 @@ function missingBreakdown(overall: CountBreakdown[], group: InventoryItem[], sel
 }
 
 export function calculateSalesmenKpi(items: InventoryItem[]): SalesmenKpiReport {
-  const sold = items.filter((item) => soldItem(item) && validSalesman(item.salesMan));
+  const sold = items.filter(soldItem);
   const totalSoldUnits = sold.reduce((sum, item) => sum + quantity(item), 0);
   const totalRevenue = sumMoney(sold, (item) => item.soldPrice);
   const overallModels = opportunityCounts(sold, (item) => item.model, 10);
   const overallBrands = opportunityCounts(sold, (item) => item.brand, 10);
   const overallColors = opportunityCounts(sold, (item) => item.exteriorColor, 10);
   const groups = sold.reduce<Record<string, InventoryItem[]>>((acc, item) => {
-    const salesman = item.salesMan.trim();
+    const salesman = salesmanLabel(item.salesMan);
     acc[salesman] = acc[salesman] ?? [];
     acc[salesman].push(item);
     return acc;
@@ -189,13 +199,16 @@ export function calculateSalesmenKpi(items: InventoryItem[]): SalesmenKpiReport 
     })
     .sort((a, b) => b.soldUnits - a.soldUnits || b.soldRevenue.usd - a.soldRevenue.usd);
 
+  const assignedSalesmen = salesmen.filter((salesman) => assignedSalesman(salesman.salesman));
+  const assignedSoldUnits = assignedSalesmen.reduce((sum, salesman) => sum + salesman.soldUnits, 0);
+
   return {
     salesmen,
-    totalSalesmen: salesmen.length,
+    totalSalesmen: assignedSalesmen.length,
     totalSoldUnits,
     totalRevenue,
-    averageSalesPerSalesman: salesmen.length > 0 ? totalSoldUnits / salesmen.length : 0,
-    topSalesmanByUnits: salesmen[0]?.salesman ?? "-",
-    topSalesmanByRevenue: [...salesmen].sort((a, b) => b.soldRevenue.usd - a.soldRevenue.usd)[0]?.salesman ?? "-",
+    averageSalesPerSalesman: assignedSalesmen.length > 0 ? assignedSoldUnits / assignedSalesmen.length : 0,
+    topSalesmanByUnits: assignedSalesmen[0]?.salesman ?? "-",
+    topSalesmanByRevenue: [...assignedSalesmen].sort((a, b) => b.soldRevenue.usd - a.soldRevenue.usd)[0]?.salesman ?? "-",
   };
 }
