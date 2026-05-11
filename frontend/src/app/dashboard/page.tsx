@@ -17,8 +17,8 @@ import { DASHBOARD_STATUS_CARDS } from "@/constants/statusCards";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
-import { groupByModel, groupByMovementCategory, groupBySource, groupByStatus, groupSalesByMonth } from "@/lib/chartMetrics";
-import { formatMoneyBundle, formatMoneyTotalsCompact } from "@/lib/currency";
+import { buildSalesRevenueTrend, groupByModel, groupByMovementCategory, groupBySource, groupByStatus, groupSalesByMonth } from "@/lib/chartMetrics";
+import { formatCurrency, formatMoneyBundle, formatMoneyTotalsCompact } from "@/lib/currency";
 import { exportExcel } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
@@ -48,6 +48,11 @@ export default function DashboardPage() {
   const stockBySource = useMemo(() => groupBySource(filteredItems, 10), [filteredItems]);
   const topModelsByUnits = useMemo(() => groupByModel(filteredItems, 10), [filteredItems]);
   const salesTrend = useMemo(() => groupSalesByMonth(filteredItems, 12), [filteredItems]);
+  const salesRevenueTrend = useMemo(() => buildSalesRevenueTrend(filteredItems, 12), [filteredItems]);
+  const revenueCurrencyKeys = useMemo(() => selectedCurrencies.map((currency) => currency.toLowerCase()), [selectedCurrencies]);
+  const revenueLabels = useMemo(() => ({ sar: t("charts.revenueSar"), jod: t("charts.revenueJod"), usd: t("charts.revenueUsd") }), [t]);
+  const latestRevenue = salesRevenueTrend.at(-1);
+  const primaryRevenueCurrency = selectedCurrencies[0] ?? "USD";
   const selectedStatuses = useMemo(
     () => new Set(filters.statuses.map(normalizeStatusValue)),
     [filters.statuses],
@@ -504,7 +509,8 @@ export default function DashboardPage() {
         <DonutChartCard title={t("charts.movementCategory")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(data.metrics.slowMovingUnits)} ${t("table.slow")}`} data={movementByCategory} isLoading={inventoryData.isInitialLoading} />
         <BarChartCard title={t("charts.stockByCompany")} subtitle={t("charts.top10")} insight={`${formatNumber(stockBySource[0]?.value ?? 0)} ${stockBySource[0]?.name ?? ""}`} data={stockBySource} isLoading={inventoryData.isInitialLoading} />
         <BarChartCard title={t("charts.topModelsByUnits")} subtitle={t("charts.top10")} insight={`${formatNumber(topModelsByUnits[0]?.value ?? 0)} ${topModelsByUnits[0]?.name ?? ""}`} data={topModelsByUnits} isLoading={inventoryData.isInitialLoading} />
-        <LineChartCard title={t("charts.salesTrend")} subtitle={t("charts.salesByMonth")} insight={`${formatNumber(data.metrics.soldUnits)} ${t("table.soldUnits")}`} data={salesTrend} keys={["sold"]} isLoading={inventoryData.isInitialLoading} />
+        <LineChartCard title={t("charts.salesUnitsTrend")} subtitle={t("charts.salesByMonth")} insight={`${formatNumber(data.metrics.soldUnits)} ${t("table.soldUnits")}`} data={salesTrend} keys={["sold"]} isLoading={inventoryData.isInitialLoading} />
+        <LineChartCard title={t("charts.salesRevenueTrend")} subtitle={t("charts.salesRevenueByMonth")} insight={formatCurrency(getRevenueTrendValue(latestRevenue, primaryRevenueCurrency), primaryRevenueCurrency, language)} data={salesRevenueTrend} keys={revenueCurrencyKeys} labels={revenueLabels} valueFormatter={(value, key) => formatRevenueTrendValue(value, key, language)} yAxisFormatter={(value) => formatCompactMoney(value, language)} isLoading={inventoryData.isInitialLoading} />
         <BarChartCard title={t("charts.stockHealth")} subtitle={t("sections.stockHealth")} insight={`${formatValue(data.metrics.stockCoverageMonths)} ${t("summary.months")}`} data={[
           { name: t("status.fast"), value: data.metrics.fastMovingUnits },
           { name: t("status.medium"), value: data.metrics.mediumMovingUnits },
@@ -683,4 +689,24 @@ function formatPrice(
 ) {
   const amount = row.soldPrice > 0 ? row.soldPrice : row.price1;
   return formatMoneyBundle(amount, row, language, selectedCurrencies);
+}
+
+function formatRevenueTrendValue(value: number, key: string, language: string) {
+  const currency = key.toLowerCase().includes("sar") ? "SAR" : key.toLowerCase().includes("jod") ? "JOD" : "USD";
+  return formatCurrency(value, currency, language);
+}
+
+function formatCompactMoney(value: number, language: string) {
+  return new Intl.NumberFormat(language, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function getRevenueTrendValue(row: { sar: number; jod: number; usd: number } | undefined, currency: "SAR" | "JOD" | "USD") {
+  if (!row) {
+    return 0;
+  }
+
+  return currency === "SAR" ? row.sar : currency === "JOD" ? row.jod : row.usd;
 }

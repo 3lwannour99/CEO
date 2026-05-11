@@ -12,8 +12,8 @@ import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatNumber } from "@/lib/apiClient";
-import { groupSalesByMonth, salesItemsToBars } from "@/lib/chartMetrics";
-import { formatMoneyTotalsCompact } from "@/lib/currency";
+import { buildSalesRevenueTrend, groupSalesByMonth, salesItemsToBars } from "@/lib/chartMetrics";
+import { formatCurrency, formatMoneyTotalsCompact } from "@/lib/currency";
 import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
@@ -27,6 +27,11 @@ export default function SalesPerformancePage() {
   const data = useMemo(() => inventoryData.getSalesPerformance(filters), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
   const salesByMonth = useMemo(() => groupSalesByMonth(filteredItems, 12), [filteredItems]);
+  const salesRevenueByMonth = useMemo(() => buildSalesRevenueTrend(filteredItems, 12), [filteredItems]);
+  const revenueCurrencyKeys = useMemo(() => selectedCurrencies.map((currency) => currency.toLowerCase()), [selectedCurrencies]);
+  const revenueLabels = useMemo(() => ({ sar: t("charts.revenueSar"), jod: t("charts.revenueJod"), usd: t("charts.revenueUsd") }), [t]);
+  const latestRevenue = salesRevenueByMonth.at(-1);
+  const primaryRevenueCurrency = selectedCurrencies[0] ?? "USD";
   const topSellingModelsChart = useMemo(() => salesItemsToBars(data.topSellingModels, 10), [data.topSellingModels]);
   const salesByColorChart = useMemo(() => (data.bestSellingColors ?? data.breakdownByColor).map((row) => ({ name: row.exteriorColor, value: row.unitsSold })).slice(0, 10), [data.bestSellingColors, data.breakdownByColor]);
   const salesByBranchChart = useMemo(() => data.breakdownByBranch.map((row) => ({ name: row.branch, value: row.unitsSold })).slice(0, 10), [data.breakdownByBranch]);
@@ -78,7 +83,8 @@ export default function SalesPerformancePage() {
         <span>{t("table.averageMovement")}: {formatNumber(data.averageMovement)}</span>
       </section>
       <ChartGrid>
-        <LineChartCard title={t("charts.salesByMonth")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(data.soldRevenue.usd)} USD`} data={salesByMonth} keys={["sold"]} isLoading={inventoryData.isInitialLoading} />
+        <LineChartCard title={t("charts.salesUnitsTrend")} subtitle={t("charts.salesByMonth")} insight={`${formatNumber(data.sellThroughRate)}%`} data={salesByMonth} keys={["sold"]} isLoading={inventoryData.isInitialLoading} />
+        <LineChartCard title={t("charts.salesRevenueTrend")} subtitle={t("charts.salesRevenueByMonth")} insight={formatCurrency(getRevenueTrendValue(latestRevenue, primaryRevenueCurrency), primaryRevenueCurrency, language)} data={salesRevenueByMonth} keys={revenueCurrencyKeys} labels={revenueLabels} valueFormatter={(value, key) => formatRevenueTrendValue(value, key, language)} yAxisFormatter={(value) => formatCompactMoney(value, language)} isLoading={inventoryData.isInitialLoading} />
         <BarChartCard title={t("charts.topModelsByUnits")} subtitle={t("charts.top10")} insight={`${formatNumber(topSellingModelsChart[0]?.value ?? 0)} ${topSellingModelsChart[0]?.name ?? ""}`} data={topSellingModelsChart} isLoading={inventoryData.isInitialLoading} />
         <BarChartCard title={t("charts.salesByColor")} subtitle={t("charts.top10")} insight={`${formatNumber(salesByColorChart[0]?.value ?? 0)} ${salesByColorChart[0]?.name ?? ""}`} data={salesByColorChart} isLoading={inventoryData.isInitialLoading} />
         <BarChartCard title={t("charts.salesByBranch")} subtitle={t("charts.top10")} insight={`${formatNumber(salesByBranchChart[0]?.value ?? 0)} ${salesByBranchChart[0]?.name ?? ""}`} data={salesByBranchChart} isLoading={inventoryData.isInitialLoading} />
@@ -103,5 +109,25 @@ export default function SalesPerformancePage() {
       </SectionCard>
     </>
   );
+}
+
+function formatRevenueTrendValue(value: number, key: string, language: string) {
+  const currency = key.toLowerCase().includes("sar") ? "SAR" : key.toLowerCase().includes("jod") ? "JOD" : "USD";
+  return formatCurrency(value, currency, language);
+}
+
+function formatCompactMoney(value: number, language: string) {
+  return new Intl.NumberFormat(language, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function getRevenueTrendValue(row: { sar: number; jod: number; usd: number } | undefined, currency: "SAR" | "JOD" | "USD") {
+  if (!row) {
+    return 0;
+  }
+
+  return currency === "SAR" ? row.sar : currency === "JOD" ? row.jod : row.usd;
 }
 

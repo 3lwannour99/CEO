@@ -1,4 +1,5 @@
 import { chartColorForKey, chartColors } from "@/constants/chartColors";
+import { addMoneyToTotals, createMoneyTotals } from "@/lib/currency";
 import type {
   AggregatedStockItem,
   InventoryAlert,
@@ -19,6 +20,7 @@ export interface ChartDatum {
 }
 
 export type StackedChartDatum = { name: string } & Record<string, string | number>;
+export type SalesTrendPeriod = "month";
 
 function quantity(item: Pick<InventoryItem, "quantity">) {
   return item.quantity || 1;
@@ -52,6 +54,22 @@ function monthKey(value?: string | null) {
   if (!value) return "";
   const match = value.match(/^(\d{4})-(\d{2})/);
   return match ? `${match[1]}-${match[2]}` : "";
+}
+
+function salesPeriodKey(item: InventoryItem, period: SalesTrendPeriod) {
+  if (period === "month") {
+    return monthKey(item.arInvoiceDate);
+  }
+
+  return monthKey(item.arInvoiceDate);
+}
+
+function isSoldVehicle(item: InventoryItem) {
+  return item.isSold || String(item.normalizedStatus ?? "").toLowerCase() === "sold";
+}
+
+function validMoneyValue(value: number | null | undefined) {
+  return Number.isFinite(value) ? Number(value) : 0;
 }
 
 export function groupByStatus(items: InventoryItem[]): ChartDatum[] {
@@ -117,16 +135,44 @@ export function groupBySource(items: InventoryItem[], limit = 10) {
 }
 
 export function groupSalesByMonth(items: InventoryItem[], limit = 12) {
+  return groupSalesUnitsByPeriod(items, "month", limit);
+}
+
+export function groupSalesUnitsByPeriod(items: InventoryItem[], period: SalesTrendPeriod = "month", limit = 12) {
   const totals = new Map<string, number>();
 
   items.forEach((item) => {
-    if (!item.isSold) return;
-    const key = monthKey(item.arInvoiceDate);
+    if (!isSoldVehicle(item)) return;
+    const key = salesPeriodKey(item, period);
     if (!key) return;
     totals.set(key, (totals.get(key) ?? 0) + quantity(item));
   });
 
   return Array.from(totals, ([name, sold]) => ({ name, sold })).sort((left, right) => left.name.localeCompare(right.name)).slice(-limit);
+}
+
+export function groupSalesRevenueByPeriod(items: InventoryItem[], period: SalesTrendPeriod = "month", limit = 12) {
+  const totals = new Map<string, ReturnType<typeof createMoneyTotals>>();
+
+  items.forEach((item) => {
+    if (!isSoldVehicle(item)) return;
+    const key = salesPeriodKey(item, period);
+    if (!key) return;
+
+    const current = totals.get(key) ?? createMoneyTotals();
+    totals.set(key, addMoneyToTotals(current, validMoneyValue(item.soldPrice), item));
+  });
+
+  return Array.from(totals, ([name, total]) => ({
+    name,
+    sar: total.sar,
+    jod: total.jod,
+    usd: total.usd,
+  })).sort((left, right) => left.name.localeCompare(right.name)).slice(-limit);
+}
+
+export function buildSalesRevenueTrend(items: InventoryItem[], limit = 12) {
+  return groupSalesRevenueByPeriod(items, "month", limit);
 }
 
 export function groupSalesBySalesman(items: InventoryItem[], limit = 10) {
