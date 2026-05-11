@@ -2,6 +2,10 @@
 
 import { useMemo } from "react";
 import { ApiState } from "@/components/ApiState/ApiState";
+import { BarChartCard } from "@/components/charts/BarChartCard/BarChartCard";
+import { ChartGrid } from "@/components/charts/ChartGrid/ChartGrid";
+import { DonutChartCard } from "@/components/charts/DonutChartCard/DonutChartCard";
+import { StackedBarChartCard } from "@/components/charts/StackedBarChartCard/StackedBarChartCard";
 import { DashboardCard } from "@/components/DashboardCard/DashboardCard";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
 import { FilterBar } from "@/components/FilterBar/FilterBar";
@@ -12,6 +16,7 @@ import { StatusBadge } from "@/components/StatusBadge/StatusBadge";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
+import { averageDaysByModel, groupByMovementCategory, groupByWarehouse, movementMatrixRows } from "@/lib/chartMetrics";
 import { formatMoneyBundle } from "@/lib/currency";
 import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
@@ -28,6 +33,10 @@ export default function InventoryMovementPage() {
   const rows = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
   const currentStock = useMemo(() => rows.filter((row) => row.isInStock), [rows]);
   const matrixRows = useMemo(() => inventoryData.getInventoryMovementMatrix(filters), [filters, inventoryData]);
+  const movementChart = useMemo(() => groupByMovementCategory(currentStock), [currentStock]);
+  const movementMatrixChart = useMemo(() => movementMatrixRows(matrixRows, 10), [matrixRows]);
+  const slowStockByWarehouse = useMemo(() => groupByWarehouse(currentStock.filter((row) => row.movementCategory === "slow"), 10), [currentStock]);
+  const averageDaysChart = useMemo(() => averageDaysByModel(matrixRows, 10), [matrixRows]);
   const categoryCounts = useMemo(() => {
     const counts = { fast: 0, medium: 0, slow: 0, unknown: 0 };
     currentStock.forEach((item) => {
@@ -75,6 +84,12 @@ export default function InventoryMovementPage() {
         <button className="report-button" type="button" onClick={() => exportPdf("inventory-movement.pdf", rows)}>{t("actions.exportPdf")}</button>
       </div>
       <MetaStrip meta={inventoryData.meta} />
+      <ChartGrid>
+        <DonutChartCard title={t("charts.movementCategory")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(categoryCounts.slow)} ${t("status.slow")}`} data={movementChart} isLoading={inventoryData.isInitialLoading} />
+        <StackedBarChartCard title={t("charts.modelMovementMatrix")} subtitle={t("charts.top10")} insight={`${formatNumber(matrixRows.length)} ${t("table.model")}`} data={movementMatrixChart} keys={["fast", "medium", "slow", "unknown"]} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.slowStockByWarehouse")} subtitle={t("charts.top10")} insight={`${formatNumber(slowStockByWarehouse[0]?.value ?? 0)} ${slowStockByWarehouse[0]?.name ?? ""}`} data={slowStockByWarehouse} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.avgDaysInStockByModel")} subtitle={t("charts.top10")} insight={`${formatNumber(averageDaysChart[0]?.value ?? 0)} ${t("table.days")}`} data={averageDaysChart} isLoading={inventoryData.isInitialLoading} />
+      </ChartGrid>
       <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && rows.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={resetFilters} />
       <SectionCard title={t("inventoryMovement.categoryCards")} eyebrow={t("sections.inventoryMovement")}>
         <section className={styles.metricGrid}>

@@ -2,6 +2,9 @@
 
 import { useMemo } from "react";
 import { ApiState } from "@/components/ApiState/ApiState";
+import { BarChartCard } from "@/components/charts/BarChartCard/BarChartCard";
+import { ChartGrid } from "@/components/charts/ChartGrid/ChartGrid";
+import { LineChartCard } from "@/components/charts/LineChartCard/LineChartCard";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
 import { FilterBar } from "@/components/FilterBar/FilterBar";
 import { PageHeader } from "@/components/PageHeader/PageHeader";
@@ -9,6 +12,7 @@ import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatNumber } from "@/lib/apiClient";
+import { groupSalesByMonth, salesItemsToBars } from "@/lib/chartMetrics";
 import { formatMoneyTotalsCompact } from "@/lib/currency";
 import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
@@ -22,6 +26,19 @@ export default function SalesPerformancePage() {
   const { filters, setFilters, resetFilters } = useGlobalFilters();
   const data = useMemo(() => inventoryData.getSalesPerformance(filters), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
+  const salesByMonth = useMemo(() => groupSalesByMonth(filteredItems, 12), [filteredItems]);
+  const topSellingModelsChart = useMemo(() => salesItemsToBars(data.topSellingModels, 10), [data.topSellingModels]);
+  const salesByColorChart = useMemo(() => (data.bestSellingColors ?? data.breakdownByColor).map((row) => ({ name: row.exteriorColor, value: row.unitsSold })).slice(0, 10), [data.bestSellingColors, data.breakdownByColor]);
+  const salesByBranchChart = useMemo(() => data.breakdownByBranch.map((row) => ({ name: row.branch, value: row.unitsSold })).slice(0, 10), [data.breakdownByBranch]);
+  const customerGroupRevenueChart = useMemo(() => {
+    const totals = new Map<string, number>();
+    filteredItems.filter((item) => item.isSold).forEach((item) => {
+      const key = item.customerGroup || "Unknown";
+      totals.set(key, (totals.get(key) ?? 0) + (item.soldPrice || 0));
+    });
+    return Array.from(totals, ([name, value]) => ({ name, value })).sort((left, right) => right.value - left.value).slice(0, 10);
+  }, [filteredItems]);
+  const sellThroughChart = useMemo(() => (data.breakdownByModelColor ?? data.breakdownByModel).map((row) => ({ name: row.model, value: row.sellThroughRate ?? 0 })).sort((left, right) => right.value - left.value).slice(0, 10), [data.breakdownByModel, data.breakdownByModelColor]);
   const columns: DataTableColumn<SalesPerformanceItem>[] = [
     { key: "brand", header: t("table.brand"), render: (row) => row.brand },
     { key: "model", header: t("table.model"), render: (row) => row.model },
@@ -60,6 +77,14 @@ export default function SalesPerformancePage() {
         <span>{t("table.inventoryTurnover")}: {formatNumber(data.inventoryTurnover)}</span>
         <span>{t("table.averageMovement")}: {formatNumber(data.averageMovement)}</span>
       </section>
+      <ChartGrid>
+        <LineChartCard title={t("charts.salesByMonth")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(data.soldRevenue.usd)} USD`} data={salesByMonth} keys={["sold"]} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.topModelsByUnits")} subtitle={t("charts.top10")} insight={`${formatNumber(topSellingModelsChart[0]?.value ?? 0)} ${topSellingModelsChart[0]?.name ?? ""}`} data={topSellingModelsChart} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.salesByColor")} subtitle={t("charts.top10")} insight={`${formatNumber(salesByColorChart[0]?.value ?? 0)} ${salesByColorChart[0]?.name ?? ""}`} data={salesByColorChart} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.salesByBranch")} subtitle={t("charts.top10")} insight={`${formatNumber(salesByBranchChart[0]?.value ?? 0)} ${salesByBranchChart[0]?.name ?? ""}`} data={salesByBranchChart} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.customerGroupRevenue")} subtitle="USD" insight={`${formatNumber(customerGroupRevenueChart[0]?.value ?? 0)} USD`} data={customerGroupRevenueChart} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.sellThroughByModel")} subtitle={t("charts.top10")} insight={`${formatNumber(data.sellThroughRate)}%`} data={sellThroughChart} isLoading={inventoryData.isInitialLoading} />
+      </ChartGrid>
       <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && filteredItems.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={resetFilters} />
       <SectionCard title={t("sections.salesPerformanceTable")} eyebrow={t("sections.commercial")} action={t("sections.topSellingModels")}>
         <DataTable columns={columns} rows={data.topSellingModels} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />

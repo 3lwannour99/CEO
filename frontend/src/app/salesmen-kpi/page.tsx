@@ -2,6 +2,8 @@
 
 import { useMemo } from "react";
 import { ApiState } from "@/components/ApiState/ApiState";
+import { BarChartCard } from "@/components/charts/BarChartCard/BarChartCard";
+import { ChartGrid } from "@/components/charts/ChartGrid/ChartGrid";
 import { DashboardCard } from "@/components/DashboardCard/DashboardCard";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
 import { FilterBar } from "@/components/FilterBar/FilterBar";
@@ -63,6 +65,11 @@ export default function SalesmenKpiPage() {
   const { filters, setFilters, resetFilters } = useGlobalFilters();
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
   const report = useMemo(() => calculateSalesmenKpi(filteredItems), [filteredItems]);
+  const salesBySalesman = useMemo(() => report.salesmen.map((row) => ({ name: row.salesman, value: row.soldUnits })).slice(0, 10), [report.salesmen]);
+  const revenueBySalesman = useMemo(() => report.salesmen.map((row) => ({ name: row.salesman, value: row.soldRevenue.usd })).slice(0, 10), [report.salesmen]);
+  const averagePriceBySalesman = useMemo(() => report.salesmen.map((row) => ({ name: row.salesman, value: row.averageSoldPrice.usd })).slice(0, 10), [report.salesmen]);
+  const modelCoverageBySalesman = useMemo(() => report.salesmen.map((row) => ({ name: row.salesman, value: row.topSoldModels.length })).slice(0, 10), [report.salesmen]);
+  const missedBySalesman = useMemo(() => report.salesmen.map((row) => ({ name: row.salesman, value: row.missingModels.length })).slice(0, 10), [report.salesmen]);
 
   const rankingColumns: DataTableColumn<SalesmanKpi>[] = [
     { key: "salesman", header: t("salesmenKpi.salesman"), render: (row) => row.salesman },
@@ -126,6 +133,14 @@ export default function SalesmenKpiPage() {
         <DashboardCard label={t("salesmenKpi.topSalesmanByUnits")} value={report.topSalesmanByUnits} trend={t("salesmenKpi.soldUnits")} tone="warning" />
         <DashboardCard label={t("salesmenKpi.topSalesmanByRevenue")} value={report.topSalesmanByRevenue} trend={t("salesmenKpi.revenue")} tone="warning" />
       </section>
+
+      <ChartGrid>
+        <BarChartCard title={t("charts.salesBySalesman")} subtitle={t("charts.top10")} insight={`${formatNumber(salesBySalesman[0]?.value ?? 0)} ${salesBySalesman[0]?.name ?? ""}`} data={salesBySalesman} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.revenueBySalesman")} subtitle="USD" insight={`${formatNumber(revenueBySalesman[0]?.value ?? 0)} USD`} data={revenueBySalesman} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.averageSoldPriceBySalesman")} subtitle="USD" insight={`${formatNumber(averagePriceBySalesman[0]?.value ?? 0)} USD`} data={averagePriceBySalesman} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("salesmenKpi.topModels")} subtitle={t("charts.top10")} insight={t("charts.liveFilteredData")} data={modelCoverageBySalesman} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.missedOpportunitiesBySalesman")} subtitle={t("charts.top10")} insight={t("salesmenKpi.carsTheyDoNotSell")} data={missedBySalesman} isLoading={inventoryData.isInitialLoading} />
+      </ChartGrid>
 
       <section className={styles.sectionGrid}>
         <div className={styles.wide}>

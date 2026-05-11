@@ -2,6 +2,10 @@
 
 import { useMemo } from "react";
 import { ApiState } from "@/components/ApiState/ApiState";
+import { BarChartCard } from "@/components/charts/BarChartCard/BarChartCard";
+import { ChartGrid } from "@/components/charts/ChartGrid/ChartGrid";
+import { DonutChartCard } from "@/components/charts/DonutChartCard/DonutChartCard";
+import { StackedBarChartCard } from "@/components/charts/StackedBarChartCard/StackedBarChartCard";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
 import { FilterBar } from "@/components/FilterBar/FilterBar";
 import { PageHeader } from "@/components/PageHeader/PageHeader";
@@ -10,6 +14,7 @@ import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
 import { formatNumber, formatValue } from "@/lib/apiClient";
+import { groupReplenishmentUrgency, stockVsReorder, suggestedOrdersByModel } from "@/lib/chartMetrics";
 import { useI18n } from "@/i18n/useI18n";
 import type { ReplenishmentSuggestion } from "@/types/inventory";
 
@@ -20,6 +25,10 @@ export default function ReplenishmentPage() {
   const rows = useMemo(() => inventoryData.getReplenishment(filters), [filters, inventoryData]);
   const modelOnlyRows = useMemo(() => inventoryData.getReplenishment(filters, "modelOnly"), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
+  const suggestedOrdersChart = useMemo(() => suggestedOrdersByModel(rows, 10), [rows]);
+  const urgencyChart = useMemo(() => groupReplenishmentUrgency(rows), [rows]);
+  const stockVsReorderChart = useMemo(() => stockVsReorder(rows, 10), [rows]);
+  const belowReorderChart = useMemo(() => suggestedOrdersByModel(rows.filter((row) => row.currentStock < row.reorderPoint), 10), [rows]);
   const columns: DataTableColumn<ReplenishmentSuggestion>[] = [
     { key: "model", header: t("table.model"), render: (row) => formatValue(row.model) },
     { key: "type", header: t("table.type"), render: (row) => row.type ?? "" },
@@ -46,6 +55,12 @@ export default function ReplenishmentPage() {
         <button className="report-button" type="button" onClick={() => exportCsv("replenishment.csv", rows)}>{t("actions.exportCsv")}</button>
         <button className="report-button" type="button" onClick={() => exportPdf("replenishment.pdf", rows)}>{t("actions.exportPdf")}</button>
       </div>
+      <ChartGrid>
+        <BarChartCard title={t("charts.suggestedOrdersByModel")} subtitle={t("charts.top10")} insight={`${formatNumber(suggestedOrdersChart[0]?.value ?? 0)} ${suggestedOrdersChart[0]?.name ?? ""}`} data={suggestedOrdersChart} isLoading={inventoryData.isInitialLoading} />
+        <DonutChartCard title={t("charts.replenishmentUrgency")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(rows.filter((row) => row.urgency === "critical" || row.urgency === "high").length)} ${t("table.urgency")}`} data={urgencyChart} isLoading={inventoryData.isInitialLoading} />
+        <StackedBarChartCard title={t("charts.stockVsReorderPoint")} subtitle={t("charts.top10")} insight={`${formatNumber(belowReorderChart.length)} ${t("sections.replenishmentSuggestions")}`} data={stockVsReorderChart} keys={["stock", "reorder"]} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.stockVsReorderPoint")} subtitle={t("charts.top10")} insight={`${formatNumber(belowReorderChart[0]?.value ?? 0)} ${belowReorderChart[0]?.name ?? ""}`} data={belowReorderChart} isLoading={inventoryData.isInitialLoading} />
+      </ChartGrid>
       <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && filteredItems.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={resetFilters} />
       <SectionCard title={t("sections.replenishmentSuggestions")} eyebrow={t("sections.planning")} action={formatNumber(rows.length)}>
         <DataTable columns={columns} rows={rows} isLoading={inventoryData.isInitialLoading} emptyMessage={t("filters.emptyFiltered")} />

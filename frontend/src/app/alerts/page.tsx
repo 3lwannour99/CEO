@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { ApiState } from "@/components/ApiState/ApiState";
+import { BarChartCard } from "@/components/charts/BarChartCard/BarChartCard";
+import { ChartGrid } from "@/components/charts/ChartGrid/ChartGrid";
+import { DonutChartCard } from "@/components/charts/DonutChartCard/DonutChartCard";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
 import { FilterBar } from "@/components/FilterBar/FilterBar";
 import { PageHeader } from "@/components/PageHeader/PageHeader";
@@ -10,6 +13,7 @@ import { StatusBadge } from "@/components/StatusBadge/StatusBadge";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatValue } from "@/lib/apiClient";
+import { groupAlertsBySeverity, groupAlertsByType } from "@/lib/chartMetrics";
 import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
 import { useI18n } from "@/i18n/useI18n";
 import type { InventoryAlert, InventoryItem } from "@/types/inventory";
@@ -21,6 +25,17 @@ export default function AlertsPage() {
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const rows = useMemo(() => inventoryData.getAlerts(filters), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
+  const alertsBySeverity = useMemo(() => groupAlertsBySeverity(rows), [rows]);
+  const alertsByType = useMemo(() => groupAlertsByType(rows, 10), [rows]);
+  const alertCountsByType = useMemo(() => groupAlertsByType(rows.map((row) => ({ ...row, affectedUnits: 1, affectedCount: 1 })), 10), [rows]);
+  const topAffectedModels = useMemo(() => {
+    const totals = new Map<string, number>();
+    rows.forEach((row) => {
+      const key = row.model || row.brand || row.title;
+      totals.set(key, (totals.get(key) ?? 0) + (row.affectedUnits ?? row.affectedCount ?? 1));
+    });
+    return Array.from(totals, ([name, value]) => ({ name, value })).sort((left, right) => right.value - left.value).slice(0, 10);
+  }, [rows]);
   const selectedAlert = rows.find((row) => row.id === selectedAlertId) ?? null;
   const columns: DataTableColumn<InventoryAlert>[] = [
     { key: "title", header: t("table.title"), render: (row) => row.title },
@@ -65,6 +80,12 @@ export default function AlertsPage() {
         <button className="report-button" type="button" onClick={() => exportCsv("alerts.csv", rows)}>{t("actions.exportCsv")}</button>
         <button className="report-button" type="button" onClick={() => exportPdf("alerts.pdf", rows)}>{t("actions.exportPdf")}</button>
       </div>
+      <ChartGrid>
+        <DonutChartCard title={t("charts.alertsBySeverity")} subtitle={t("charts.liveFilteredData")} insight={`${criticalCount} / ${warningCount} ${t("table.severity")}`} data={alertsBySeverity} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.alertsByType")} subtitle={t("charts.top10")} insight={`${rows.length} ${t("alerts.totalAlertGroups")}`} data={alertCountsByType} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.affectedUnitsByAlertType")} subtitle={t("charts.top10")} insight={`${totalAffected} ${t("alerts.totalAffectedUnits")}`} data={alertsByType} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.topAffectedModels")} subtitle={t("charts.top10")} insight={`${topAffectedModels[0]?.name ?? ""}`} data={topAffectedModels} isLoading={inventoryData.isInitialLoading} />
+      </ChartGrid>
       <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && filteredItems.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={resetFilters} />
       <SectionCard title={t("sections.alertQueue")} eyebrow={t("summary.liveData")} action={String(rows.length)}>
         <p>{t("alerts.groupedAlertsNote")}</p>

@@ -2,6 +2,10 @@
 
 import { useMemo } from "react";
 import { ApiState } from "@/components/ApiState/ApiState";
+import { BarChartCard } from "@/components/charts/BarChartCard/BarChartCard";
+import { ChartGrid } from "@/components/charts/ChartGrid/ChartGrid";
+import { DonutChartCard } from "@/components/charts/DonutChartCard/DonutChartCard";
+import { LineChartCard } from "@/components/charts/LineChartCard/LineChartCard";
 import { DashboardCard } from "@/components/DashboardCard/DashboardCard";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
 import { FilterBar } from "@/components/FilterBar/FilterBar";
@@ -13,6 +17,7 @@ import { DASHBOARD_STATUS_CARDS } from "@/constants/statusCards";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
+import { groupByModel, groupByMovementCategory, groupBySource, groupByStatus, groupSalesByMonth } from "@/lib/chartMetrics";
 import { formatMoneyBundle, formatMoneyTotalsCompact } from "@/lib/currency";
 import { exportExcel } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
@@ -38,6 +43,11 @@ export default function DashboardPage() {
     () => inventoryData.getFilteredData(filters),
     [filters, inventoryData],
   );
+  const unitsByStatus = useMemo(() => groupByStatus(filteredItems), [filteredItems]);
+  const movementByCategory = useMemo(() => groupByMovementCategory(filteredItems), [filteredItems]);
+  const stockBySource = useMemo(() => groupBySource(filteredItems, 10), [filteredItems]);
+  const topModelsByUnits = useMemo(() => groupByModel(filteredItems, 10), [filteredItems]);
+  const salesTrend = useMemo(() => groupSalesByMonth(filteredItems, 12), [filteredItems]);
   const selectedStatuses = useMemo(
     () => new Set(filters.statuses.map(normalizeStatusValue)),
     [filters.statuses],
@@ -489,6 +499,18 @@ export default function DashboardPage() {
           <DashboardCard key={metric.label} {...metric} />
         ))}
       </section>
+      <ChartGrid>
+        <DonutChartCard title={t("charts.unitsByStatus")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(data.metrics.currentStockUnits)} ${t("table.currentStock")}`} data={unitsByStatus} isLoading={inventoryData.isInitialLoading} />
+        <DonutChartCard title={t("charts.movementCategory")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(data.metrics.slowMovingUnits)} ${t("table.slow")}`} data={movementByCategory} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.stockByCompany")} subtitle={t("charts.top10")} insight={`${formatNumber(stockBySource[0]?.value ?? 0)} ${stockBySource[0]?.name ?? ""}`} data={stockBySource} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.topModelsByUnits")} subtitle={t("charts.top10")} insight={`${formatNumber(topModelsByUnits[0]?.value ?? 0)} ${topModelsByUnits[0]?.name ?? ""}`} data={topModelsByUnits} isLoading={inventoryData.isInitialLoading} />
+        <LineChartCard title={t("charts.salesTrend")} subtitle={t("charts.salesByMonth")} insight={`${formatNumber(data.metrics.soldUnits)} ${t("table.soldUnits")}`} data={salesTrend} keys={["sold"]} isLoading={inventoryData.isInitialLoading} />
+        <BarChartCard title={t("charts.stockHealth")} subtitle={t("sections.stockHealth")} insight={`${formatValue(data.metrics.stockCoverageMonths)} ${t("summary.months")}`} data={[
+          { name: t("status.fast"), value: data.metrics.fastMovingUnits },
+          { name: t("status.medium"), value: data.metrics.mediumMovingUnits },
+          { name: t("status.slow"), value: data.metrics.slowMovingUnits },
+        ]} isLoading={inventoryData.isInitialLoading} />
+      </ChartGrid>
       <section className={styles.sectionGrid}>
         <SectionCard
           title={t("sections.inventoryStatusSummary")}

@@ -1,0 +1,83 @@
+.card {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 320px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-card);
+  padding: var(--space-4);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.header {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 0.98rem;
+  font-weight: 900;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.insight {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.body {
+  min-width: 0;
+  height: 220px;
+}
+
+.empty,
+.skeleton {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  background: var(--color-soft);
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.skeleton::after {
+  width: 62%;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-card) 70%, transparent), transparent);
+  content: "";
+  animation: shimmer 1400ms infinite;
+}
+
+@keyframes shimmer {
+  from {
+    transform: translateX(-40%);
+  }
+
+  to {
+    transform: translateX(40%);
+  }
+}

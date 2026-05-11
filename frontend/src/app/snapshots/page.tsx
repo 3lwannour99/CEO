@@ -1,11 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { BarChartCard } from "@/components/charts/BarChartCard/BarChartCard";
+import { ChartGrid } from "@/components/charts/ChartGrid/ChartGrid";
+import { LineChartCard } from "@/components/charts/LineChartCard/LineChartCard";
+import { StackedBarChartCard } from "@/components/charts/StackedBarChartCard/StackedBarChartCard";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
 import { PageHeader } from "@/components/PageHeader/PageHeader";
 import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatDate, formatNumber } from "@/lib/apiClient";
+import { groupSnapshotMonthlyComparison } from "@/lib/chartMetrics";
 import { exportCsv, exportExcel } from "@/lib/exportData";
 import { getMonthlyComparison, getSnapshot, getSnapshots, runSnapshot } from "@/services/inventoryApi";
 import { useI18n } from "@/i18n/useI18n";
@@ -69,6 +74,8 @@ export default function SnapshotsPage() {
     warehouses: unique(inventoryData.inventoryItems.map((item) => item.warehouse)),
     branches: unique(inventoryData.inventoryItems.map((item) => item.branch)),
   }), [inventoryData.inventoryItems]);
+  const monthlyChart = useMemo(() => groupSnapshotMonthlyComparison(monthly), [monthly]);
+  const selectedBreakdownChart = useMemo(() => (selectedSnapshot?.breakdowns.bySource ?? []).slice(0, 10).map((row) => ({ name: row.label, value: row.units })), [selectedSnapshot]);
 
   const snapshotColumns: DataTableColumn<InventorySnapshot>[] = [
     { key: "date", header: t("table.snapshotDate"), render: (row) => formatDate(row.snapshotDate) },
@@ -164,6 +171,12 @@ export default function SnapshotsPage() {
         <button className="report-button" type="button" onClick={() => exportExcel("snapshots.xls", snapshots)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("snapshots.csv", snapshots)}>{t("actions.exportCsv")}</button>
       </div>
+      <ChartGrid>
+        <LineChartCard title={t("charts.monthlyStockTrend")} subtitle={dateRangeSummary(appliedFilters)} insight={`${formatNumber(monthly.at(-1)?.totalUnits ?? 0)} ${t("table.totalUnits")}`} data={monthlyChart} keys={["stock", "sold", "reserved"]} isLoading={loading} />
+        <StackedBarChartCard title={t("charts.movementCategory")} subtitle={t("charts.monthlyStockTrend")} insight={t("charts.liveFilteredData")} data={monthlyChart} keys={["fast", "medium", "slow"]} isLoading={loading} />
+        <LineChartCard title={t("charts.stockValueTrend")} subtitle="SAR / JOD / USD" insight={`${formatNumber(monthly.at(-1)?.stockValueUsd ?? 0)} USD`} data={monthlyChart} keys={["SAR", "JOD", "USD"]} isLoading={loading} />
+        <BarChartCard title={t("snapshots.bySource")} subtitle={t("snapshots.snapshotDetails")} insight={`${selectedSnapshot?.scopeLabel ?? ""}`} data={selectedBreakdownChart} isLoading={loading} />
+      </ChartGrid>
       <SectionCard title={t("sidebar.snapshots")} eyebrow={t("actions.dailySnapshot")}>
         <DataTable columns={snapshotColumns} rows={snapshots} isLoading={loading} emptyMessage={t("snapshots.noSnapshots")} />
       </SectionCard>

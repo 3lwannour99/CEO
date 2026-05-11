@@ -1,11 +1,15 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { BarChartCard } from "@/components/charts/BarChartCard/BarChartCard";
+import { ChartGrid } from "@/components/charts/ChartGrid/ChartGrid";
+import { DonutChartCard } from "@/components/charts/DonutChartCard/DonutChartCard";
 import { DataTable, type DataTableColumn } from "@/components/DataTable/DataTable";
 import { PageHeader } from "@/components/PageHeader/PageHeader";
 import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { createStockRule, deleteStockRule, getStockRules } from "@/services/inventoryApi";
 import { formatNumber, formatValue } from "@/lib/apiClient";
+import { ruleCountByWarehouse, rulesByMinMax } from "@/lib/chartMetrics";
 import { useI18n } from "@/i18n/useI18n";
 import { useAuth } from "@/providers/AuthProvider/AuthProvider";
 import type { StockRule, StockRuleInput } from "@/types/inventory";
@@ -35,6 +39,8 @@ export default function StockRulesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const rulesByWarehouse = useMemo(() => ruleCountByWarehouse(rules, 10), [rules]);
+  const minMaxRules = useMemo(() => rulesByMinMax(rules), [rules]);
 
   useEffect(() => {
     void loadRules();
@@ -110,6 +116,10 @@ export default function StockRulesPage() {
           </form>
         </SectionCard>
       ) : null}
+      <ChartGrid>
+        <BarChartCard title={t("charts.rulesByWarehouse")} subtitle={t("charts.top10")} insight={`${formatNumber(rulesByWarehouse[0]?.value ?? 0)} ${rulesByWarehouse[0]?.name ?? ""}`} data={rulesByWarehouse} isLoading={loading} />
+        <DonutChartCard title={t("charts.minMaxRules")} subtitle={t("sections.configuration")} insight={`${formatNumber(rules.length)} ${t("sidebar.stockRules")}`} data={minMaxRules} isLoading={loading} />
+      </ChartGrid>
       <SectionCard title={t("sections.systemReadiness")} eyebrow={t("sidebar.stockRules")}>
         <DataTable columns={columns} rows={rules} isLoading={loading} emptyMessage={t("filters.emptyFiltered")} />
       </SectionCard>
