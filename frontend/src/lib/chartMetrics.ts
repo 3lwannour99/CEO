@@ -39,6 +39,13 @@ function cleanLabel(value: unknown, fallback = "Unknown") {
   return label || fallback;
 }
 
+function cleanModelLabel(value: unknown, fallback = "Unknown") {
+  return cleanLabel(value, fallback)
+    .replace(/(\d{4})(GCC|EU|CCC)\b/gi, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function sortDesc<T extends { value: number }>(items: T[]) {
   return [...items].sort((left, right) => right.value - left.value);
 }
@@ -333,7 +340,7 @@ export function groupStockCoverage(rows: StockCoverageItem[]): ChartDatum[] {
 }
 
 export function groupReplenishmentUrgency(rows: ReplenishmentSuggestion[]): ChartDatum[] {
-  return grouped(rows, (row) => cleanLabel(row.urgency), (row) => row.suggestedOrderQuantity || 1, 10).map((item, index) => ({ ...item, color: chartColorForKey(item.name, index) }));
+  return grouped(rows, (row) => cleanLabel(row.urgency), () => 1, 10).map((item, index) => ({ ...item, color: chartColorForKey(item.name, index) }));
 }
 
 export function groupAlertsBySeverity(rows: InventoryAlert[]): ChartDatum[] {
@@ -382,14 +389,30 @@ export function averageDaysByModel(rows: InventoryMovementMatrixItem[], limit = 
 }
 
 export function suggestedOrdersByModel(rows: ReplenishmentSuggestion[], limit = 10) {
-  return topN(rows.map((row) => ({ name: cleanLabel(row.model), value: row.suggestedOrderQuantity })), limit);
+  return grouped(rows, (row) => cleanModelLabel(row.model), (row) => row.suggestedOrderQuantity, limit);
 }
 
 export function stockVsReorder(rows: ReplenishmentSuggestion[], limit = 10): StackedChartDatum[] {
-  return [...rows]
-    .sort((left, right) => (right.reorderPoint - right.currentStock) - (left.reorderPoint - left.currentStock))
+  const totals = new Map<string, { stock: number; reorder: number; shortage: number }>();
+
+  rows.forEach((row) => {
+    const name = cleanModelLabel(row.model);
+    const current = totals.get(name) ?? { stock: 0, reorder: 0, shortage: 0 };
+    current.stock += row.currentStock;
+    current.reorder += row.reorderPoint;
+    current.shortage += Math.max(0, row.reorderPoint - row.currentStock);
+    totals.set(name, current);
+  });
+
+  return Array.from(totals, ([name, total]) => ({
+    name,
+    stock: total.stock,
+    reorder: total.reorder,
+    value: total.shortage,
+  }))
+    .sort((left, right) => Number(right.value) - Number(left.value))
     .slice(0, limit)
-    .map((row) => ({ name: cleanLabel(row.model), stock: row.currentStock, reorder: row.reorderPoint }));
+    .map(({ name, stock, reorder }) => ({ name, stock, reorder }));
 }
 
 export function coverageByModel(rows: StockCoverageItem[], limit = 10) {

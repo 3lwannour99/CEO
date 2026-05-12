@@ -25,10 +25,10 @@ export default function ReplenishmentPage() {
   const rows = useMemo(() => inventoryData.getReplenishment(filters), [filters, inventoryData]);
   const modelOnlyRows = useMemo(() => inventoryData.getReplenishment(filters, "modelOnly"), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
-  const suggestedOrdersChart = useMemo(() => suggestedOrdersByModel(rows, 10), [rows]);
-  const urgencyChart = useMemo(() => groupReplenishmentUrgency(rows), [rows]);
-  const stockVsReorderChart = useMemo(() => stockVsReorder(rows, 10), [rows]);
-  const belowReorderChart = useMemo(() => suggestedOrdersByModel(rows.filter((row) => row.currentStock < row.reorderPoint), 10), [rows]);
+  const suggestedOrdersChart = useMemo(() => suggestedOrdersByModel(modelOnlyRows, 10), [modelOnlyRows]);
+  const urgencyChart = useMemo(() => groupReplenishmentUrgency(modelOnlyRows), [modelOnlyRows]);
+  const stockVsReorderChart = useMemo(() => stockVsReorder(modelOnlyRows, 10), [modelOnlyRows]);
+  const belowReorderCount = useMemo(() => modelOnlyRows.filter((row) => row.currentStock < row.reorderPoint).length, [modelOnlyRows]);
   const columns: DataTableColumn<ReplenishmentSuggestion>[] = [
     { key: "model", header: t("table.model"), render: (row) => formatValue(row.model) },
     { key: "type", header: t("table.type"), render: (row) => row.type ?? "" },
@@ -61,9 +61,8 @@ export default function ReplenishmentPage() {
       </div>
       <ChartGrid>
         <BarChartCard title={t("charts.suggestedOrdersByModel")} subtitle={t("charts.top10")} insight={`${formatNumber(suggestedOrdersChart[0]?.value ?? 0)} ${suggestedOrdersChart[0]?.name ?? ""}`} data={suggestedOrdersChart} isLoading={inventoryData.isInitialLoading} />
-        <DonutChartCard title={t("charts.replenishmentUrgency")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(rows.filter((row) => row.urgency === "critical" || row.urgency === "high").length)} ${t("table.urgency")}`} data={urgencyChart} isLoading={inventoryData.isInitialLoading} />
-        <StackedBarChartCard title={t("charts.stockVsReorderPoint")} subtitle={t("charts.top10")} insight={`${formatNumber(belowReorderChart.length)} ${t("sections.replenishmentSuggestions")}`} data={stockVsReorderChart} keys={["stock", "reorder"]} isLoading={inventoryData.isInitialLoading} />
-        <BarChartCard title={t("charts.stockVsReorderPoint")} subtitle={t("charts.top10")} insight={`${formatNumber(belowReorderChart[0]?.value ?? 0)} ${belowReorderChart[0]?.name ?? ""}`} data={belowReorderChart} isLoading={inventoryData.isInitialLoading} />
+        <DonutChartCard title={t("charts.replenishmentUrgency")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(modelOnlyRows.filter((row) => row.urgency === "critical" || row.urgency === "high").length)} ${t("table.urgency")}`} data={urgencyChart} isLoading={inventoryData.isInitialLoading} />
+        <StackedBarChartCard title={t("charts.stockVsReorderPoint")} subtitle={t("charts.top10")} insight={`${formatNumber(belowReorderCount)} ${t("sections.replenishmentSuggestions")}`} data={stockVsReorderChart} keys={["stock", "reorder"]} isLoading={inventoryData.isInitialLoading} />
       </ChartGrid>
       <ApiState loading={inventoryData.isInitialLoading} refreshing={inventoryData.isRefreshing} error={inventoryData.error} partial={(inventoryData.meta?.failedSources ?? 0) > 0} empty={!inventoryData.isInitialLoading && filteredItems.length === 0} onRetry={() => void inventoryData.refreshData()} onReset={resetFilters} />
       <SectionCard title={t("sections.replenishmentSuggestions")} eyebrow={t("sections.planning")} action={formatNumber(rows.length)}>
