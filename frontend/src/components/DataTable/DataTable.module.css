@@ -90,8 +90,8 @@
   scrollbar-gutter: stable;
   overscroll-behavior-inline: contain;
   --table-row-height: 52px;
-  --table-header-height: 44px;
-  --table-search-height: 52px;
+  --table-header-height: 40px;
+  --table-search-height: 44px;
 }
 
 .scrollArea {
@@ -205,24 +205,30 @@
 
 .table th,
 .table td {
-  min-height: var(--table-row-height);
   border-block-end: 1px solid var(--color-border);
   max-width: clamp(96px, 18vw, 260px);
-  padding: 10px 12px;
+  padding: 8px 12px;
   text-align: start;
   overflow-wrap: anywhere;
+  vertical-align: middle;
   white-space: normal;
   word-break: normal;
 }
 
+.table th {
+  height: var(--table-header-height);
+}
+
 .table td {
+  height: var(--table-row-height);
   color: var(--color-text);
   font-size: 0.9rem;
   background: var(--color-card);
 }
 
 .searchRow th {
-  padding-block: 8px;
+  height: var(--table-search-height);
+  padding-block: 5px;
   background: var(--color-table-head);
 }
 
