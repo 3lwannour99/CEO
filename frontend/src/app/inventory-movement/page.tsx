@@ -18,7 +18,7 @@ import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
 import { averageDaysByModel, groupByMovementCategory, groupByWarehouse, movementMatrixRows } from "@/lib/chartMetrics";
 import { formatMoneyBundle } from "@/lib/currency";
-import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
+import { exportCsv, exportExcel } from "@/lib/exportData";
 import { classifyTransaction, transactionClassLabelKey } from "@/lib/transactionClassification";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
@@ -93,7 +93,6 @@ export default function InventoryMovementPage() {
       <div className="report-actions">
         <button className="report-button primary" type="button" onClick={() => exportExcel("inventory-movement.xls", exportRows)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("inventory-movement.csv", exportRows)}>{t("actions.exportCsv")}</button>
-        <button className="report-button" type="button" onClick={() => exportPdf("inventory-movement.pdf", exportRows)}>{t("actions.exportPdf")}</button>
       </div>
       <MetaStrip meta={inventoryData.meta} />
       <ChartGrid>

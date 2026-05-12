@@ -14,7 +14,7 @@ import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatNumber } from "@/lib/apiClient";
 import { buildSalesRevenueTrendByDateFilter, groupSalesUnitsByDateFilter, salesItemsToBars } from "@/lib/chartMetrics";
 import { formatCurrency, formatMoneyTotalsCompact } from "@/lib/currency";
-import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
+import { exportCsv, exportExcel } from "@/lib/exportData";
 import { calculateSalesPerformance } from "@/lib/reports/inventoryReports";
 import { classifyTransaction } from "@/lib/transactionClassification";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
@@ -93,7 +93,6 @@ export default function SalesPerformancePage() {
       <div className="report-actions">
         <button className="report-button primary" type="button" onClick={() => exportExcel("sales-performance.xls", data.breakdownByModel)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("sales-performance.csv", data.breakdownByModel)}>{t("actions.exportCsv")}</button>
-        <button className="report-button" type="button" onClick={() => exportPdf("sales-performance.pdf", data.breakdownByModel)}>{t("actions.exportPdf")}</button>
       </div>
       <section className="report-actions" aria-label={t("sections.sales")}>
         <span>{t("transaction.totalSales")}: {formatNumber(comparisonData.soldUnitsTotal ?? 0)}</span>

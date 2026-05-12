@@ -13,7 +13,7 @@ import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatNumber, formatValue } from "@/lib/apiClient";
 import { stackedKeys, type StackedChartDatum } from "@/lib/chartMetrics";
-import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
+import { exportCsv, exportExcel } from "@/lib/exportData";
 import { useI18n } from "@/i18n/useI18n";
 import type { LocationStock, RebalancingRecommendation } from "@/types/inventory";
 
@@ -75,7 +75,6 @@ export default function MultiLocationPage() {
       <div className="report-actions">
         <button className="report-button primary" type="button" onClick={() => exportExcel("multi-location.xls", rows.stockByLocation)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("multi-location.csv", rows.stockByLocation)}>{t("actions.exportCsv")}</button>
-        <button className="report-button" type="button" onClick={() => exportPdf("multi-location.pdf", rows.stockByLocation)}>{t("actions.exportPdf")}</button>
       </div>
       <ChartGrid>
         <BarChartCard title={t("charts.stockByCountry")} subtitle={t("charts.top10")} insight={`${formatNumber(stockByCountry[0]?.value ?? 0)} ${stockByCountry[0]?.name ?? ""}`} data={stockByCountry} isLoading={inventoryData.isInitialLoading} />

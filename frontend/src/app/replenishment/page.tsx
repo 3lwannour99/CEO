@@ -12,7 +12,7 @@ import { PageHeader } from "@/components/PageHeader/PageHeader";
 import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
-import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
+import { exportCsv, exportExcel } from "@/lib/exportData";
 import { formatNumber, formatValue } from "@/lib/apiClient";
 import { groupReplenishmentUrgency, stockVsReorder, suggestedOrdersByModel } from "@/lib/chartMetrics";
 import { useI18n } from "@/i18n/useI18n";
@@ -58,7 +58,6 @@ export default function ReplenishmentPage() {
       <div className="report-actions">
         <button className="report-button primary" type="button" onClick={() => exportExcel("replenishment.xls", rows)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("replenishment.csv", rows)}>{t("actions.exportCsv")}</button>
-        <button className="report-button" type="button" onClick={() => exportPdf("replenishment.pdf", rows)}>{t("actions.exportPdf")}</button>
       </div>
       <ChartGrid>
         <BarChartCard title={t("charts.suggestedOrdersByModel")} subtitle={t("charts.top10")} insight={`${formatNumber(suggestedOrdersChart[0]?.value ?? 0)} ${suggestedOrdersChart[0]?.name ?? ""}`} data={suggestedOrdersChart} isLoading={inventoryData.isInitialLoading} />

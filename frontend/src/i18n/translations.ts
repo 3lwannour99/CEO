@@ -274,7 +274,6 @@ export const translations: Record<LanguageCode, TranslationTree> = {
     },
     actions: {
       exportExcel: "Export Excel",
-      exportPdf: "Export PDF",
       exportCsv: "Export CSV",
       runSnapshot: "Run Snapshot",
       monthlyComparison: "Monthly Comparison",
@@ -1053,7 +1052,6 @@ export const translations: Record<LanguageCode, TranslationTree> = {
     },
     actions: {
       exportExcel: "تصدير Excel",
-      exportPdf: "تصدير PDF",
       exportCsv: "تصدير CSV",
       runSnapshot: "تشغيل لقطة الآن",
       monthlyComparison: "مقارنة شهرية",

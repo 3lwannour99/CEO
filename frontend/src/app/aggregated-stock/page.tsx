@@ -14,7 +14,7 @@ import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { aggregatedByWarehouse, aggregatedColorDistribution, aggregatedTypeColor, stackedKeys } from "@/lib/chartMetrics";
 import { formatNumber } from "@/lib/apiClient";
-import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
+import { exportCsv, exportExcel } from "@/lib/exportData";
 import { useI18n } from "@/i18n/useI18n";
 import type { AggregatedStockItem } from "@/types/inventory";
 
@@ -45,7 +45,6 @@ export default function AggregatedStockPage() {
       <div className="report-actions">
         <button className="report-button primary" type="button" onClick={() => exportExcel("aggregated-stock.xls", rows.byModelColor)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("aggregated-stock.csv", rows.byModelColor)}>{t("actions.exportCsv")}</button>
-        <button className="report-button" type="button" onClick={() => exportPdf("aggregated-stock.pdf", rows.byModelColor)}>{t("actions.exportPdf")}</button>
       </div>
       <ChartGrid>
         <StackedBarChartCard title={t("charts.stockByTypeColor")} subtitle={t("charts.top10")} insight={t("charts.liveFilteredData")} data={typeColorChart} keys={typeColorKeys} isLoading={inventoryData.isInitialLoading} />

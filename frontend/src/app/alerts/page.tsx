@@ -14,7 +14,7 @@ import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatValue } from "@/lib/apiClient";
 import { groupAlertsBySeverity, groupAlertsByType } from "@/lib/chartMetrics";
-import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
+import { exportCsv, exportExcel } from "@/lib/exportData";
 import { classifyTransaction, transactionClassLabelKey } from "@/lib/transactionClassification";
 import { useI18n } from "@/i18n/useI18n";
 import type { InventoryAlert, InventoryItem } from "@/types/inventory";
@@ -81,7 +81,6 @@ export default function AlertsPage() {
       <div className="report-actions">
         <button className="report-button primary" type="button" onClick={() => exportExcel("alerts.xls", rows)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("alerts.csv", rows)}>{t("actions.exportCsv")}</button>
-        <button className="report-button" type="button" onClick={() => exportPdf("alerts.pdf", rows)}>{t("actions.exportPdf")}</button>
       </div>
       <ChartGrid>
         <DonutChartCard title={t("charts.alertsBySeverity")} subtitle={t("charts.liveFilteredData")} insight={`${criticalCount} / ${warningCount} ${t("table.severity")}`} data={alertsBySeverity} isLoading={inventoryData.isInitialLoading} />

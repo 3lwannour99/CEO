@@ -15,7 +15,7 @@ import { useInventoryData } from "@/hooks/useInventoryData";
 import { useI18n } from "@/i18n/useI18n";
 import { formatDate, formatNumber } from "@/lib/apiClient";
 import { formatMoneyTotalsBreakdown, formatMoneyTotalsCompact } from "@/lib/currency";
-import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
+import { exportCsv, exportExcel } from "@/lib/exportData";
 import { calculateSalesmenKpi, type CountBreakdown, type SalesmanKpi } from "@/lib/reports/salesmenKpi";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import styles from "./page.module.css";
@@ -117,7 +117,6 @@ export default function SalesmenKpiPage() {
       <div className="report-actions">
         <button className="report-button primary" type="button" onClick={() => exportExcel("salesmen-kpi.xls", report.salesmen)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("salesmen-kpi.csv", report.salesmen)}>{t("actions.exportCsv")}</button>
-        <button className="report-button" type="button" onClick={() => exportPdf("salesmen-kpi.pdf", report.salesmen)}>{t("actions.exportPdf")}</button>
       </div>
       <MetaStrip meta={inventoryData.meta} />
       <ApiState

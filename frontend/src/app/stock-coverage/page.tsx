@@ -15,7 +15,7 @@ import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatNumber, formatValue } from "@/lib/apiClient";
 import { coverageByModel, groupStockCoverage } from "@/lib/chartMetrics";
-import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
+import { exportCsv, exportExcel } from "@/lib/exportData";
 import { useI18n } from "@/i18n/useI18n";
 import type { StockCoverageItem } from "@/types/inventory";
 
@@ -53,7 +53,6 @@ export default function StockCoveragePage() {
       <div className="report-actions">
         <button className="report-button primary" type="button" onClick={() => exportExcel("stock-coverage.xls", rows)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("stock-coverage.csv", rows)}>{t("actions.exportCsv")}</button>
-        <button className="report-button" type="button" onClick={() => exportPdf("stock-coverage.pdf", rows)}>{t("actions.exportPdf")}</button>
       </div>
       <ChartGrid>
         <DonutChartCard title={t("charts.coverageStatus")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(rows.filter((row) => row.status === "danger").length)} danger`} data={coverageStatusChart} isLoading={inventoryData.isInitialLoading} />

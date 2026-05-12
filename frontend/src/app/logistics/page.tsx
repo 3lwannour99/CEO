@@ -14,7 +14,7 @@ import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
 import { delayedShipmentsBySource, groupLogisticsStatus, logisticsCycleBySource } from "@/lib/chartMetrics";
-import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
+import { exportCsv, exportExcel } from "@/lib/exportData";
 import { useI18n } from "@/i18n/useI18n";
 import type { LogisticsStatus } from "@/types/inventory";
 
@@ -55,7 +55,6 @@ export default function LogisticsPage() {
       <div className="report-actions">
         <button className="report-button primary" type="button" onClick={() => exportExcel("logistics.xls", rows)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("logistics.csv", rows)}>{t("actions.exportCsv")}</button>
-        <button className="report-button" type="button" onClick={() => exportPdf("logistics.pdf", rows)}>{t("actions.exportPdf")}</button>
       </div>
       <ChartGrid>
         <DonutChartCard title={t("charts.logisticsStatus")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(rows.length)} ${t("sections.inboundOperations")}`} data={statusChart} isLoading={inventoryData.isInitialLoading} />
