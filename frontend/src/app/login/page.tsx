@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     if (auth.isAuthenticated) {
@@ -26,6 +27,10 @@ export default function LoginPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting || isRedirecting || auth.isLoading) {
+      return;
+    }
+
     const trimmedUsername = username.trim();
 
     if (!trimmedUsername) {
@@ -43,6 +48,7 @@ export default function LoginPage() {
 
     try {
       await auth.login(trimmedUsername, password);
+      setIsRedirecting(true);
       router.replace("/dashboard");
     } catch (loginError) {
       if (process.env.NODE_ENV === "development") {
@@ -54,13 +60,20 @@ export default function LoginPage() {
       } else {
         setError(t("auth.loginFailed"));
       }
-    } finally {
       setIsSubmitting(false);
     }
   }
 
+  const isBusy = isSubmitting || isRedirecting || auth.isLoading;
+
   return (
-    <main className={styles.page} dir={languageMeta.direction}>
+    <main className={styles.page} dir={languageMeta.direction} aria-busy={isBusy}>
+      {isRedirecting ? (
+        <div className={styles.loadingOverlay} role="status" aria-live="polite">
+          <span className={styles.spinner} aria-hidden="true" />
+          <span>{t("auth.loggingIn")}</span>
+        </div>
+      ) : null}
       <section className={styles.card} aria-labelledby="login-title">
         <div className={styles.toolbar}>
           <LanguageToggle />
@@ -85,6 +98,7 @@ export default function LoginPage() {
               type="text"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
+              disabled={isBusy}
               aria-invalid={Boolean(error) && !username.trim()}
             />
           </label>
@@ -96,12 +110,13 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              disabled={isBusy}
               aria-invalid={Boolean(error) && !password}
             />
           </label>
           {error ? <p className={styles.error} role="alert">{error}</p> : null}
-          <button className={styles.submit} type="submit" disabled={isSubmitting || auth.isLoading}>
-            {isSubmitting ? t("auth.loggingIn") : t("auth.accessDashboard")}
+          <button className={styles.submit} type="submit" disabled={isBusy}>
+            {isBusy ? t("auth.loggingIn") : t("auth.accessDashboard")}
           </button>
         </form>
         {process.env.NODE_ENV === "development" ? (

@@ -17,7 +17,7 @@ import { DASHBOARD_STATUS_CARDS } from "@/constants/statusCards";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
-import { buildSalesRevenueTrend, groupByModel, groupByMovementCategory, groupBySource, groupByStatus, groupSalesByMonth } from "@/lib/chartMetrics";
+import { buildSalesRevenueTrendByDateFilter, groupByModel, groupByMovementCategory, groupBySource, groupByStatus, groupSalesUnitsByDateFilter } from "@/lib/chartMetrics";
 import { formatCurrency, formatMoneyBundle, formatMoneyTotalsCompact } from "@/lib/currency";
 import { exportExcel } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
@@ -47,8 +47,8 @@ export default function DashboardPage() {
   const movementByCategory = useMemo(() => groupByMovementCategory(filteredItems), [filteredItems]);
   const stockBySource = useMemo(() => groupBySource(filteredItems, 10), [filteredItems]);
   const topModelsByUnits = useMemo(() => groupByModel(filteredItems, 10), [filteredItems]);
-  const salesTrend = useMemo(() => groupSalesByMonth(filteredItems, 12), [filteredItems]);
-  const salesRevenueTrend = useMemo(() => buildSalesRevenueTrend(filteredItems, 12), [filteredItems]);
+  const salesTrend = useMemo(() => groupSalesUnitsByDateFilter(filteredItems, filters), [filteredItems, filters]);
+  const salesRevenueTrend = useMemo(() => buildSalesRevenueTrendByDateFilter(filteredItems, filters), [filteredItems, filters]);
   const revenueCurrencyKeys = useMemo(() => selectedCurrencies.map((currency) => currency.toLowerCase()), [selectedCurrencies]);
   const revenueLabels = useMemo(() => ({ sar: t("charts.revenueSar"), jod: t("charts.revenueJod"), usd: t("charts.revenueUsd") }), [t]);
   const latestRevenue = salesRevenueTrend.at(-1);
@@ -509,8 +509,8 @@ export default function DashboardPage() {
         <DonutChartCard title={t("charts.movementCategory")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(data.metrics.slowMovingUnits)} ${t("table.slow")}`} data={movementByCategory} isLoading={inventoryData.isInitialLoading} />
         <BarChartCard title={t("charts.stockByCompany")} subtitle={t("charts.top10")} insight={`${formatNumber(stockBySource[0]?.value ?? 0)} ${stockBySource[0]?.name ?? ""}`} data={stockBySource} isLoading={inventoryData.isInitialLoading} />
         <BarChartCard title={t("charts.topModelsByUnits")} subtitle={t("charts.top10")} insight={`${formatNumber(topModelsByUnits[0]?.value ?? 0)} ${topModelsByUnits[0]?.name ?? ""}`} data={topModelsByUnits} isLoading={inventoryData.isInitialLoading} />
-        <LineChartCard title={t("charts.salesUnitsTrend")} subtitle={t("charts.salesByMonth")} insight={`${formatNumber(data.metrics.soldUnits)} ${t("table.soldUnits")}`} data={salesTrend} keys={["sold"]} isLoading={inventoryData.isInitialLoading} />
-        <LineChartCard title={t("charts.salesRevenueTrend")} subtitle={t("charts.salesRevenueByMonth")} insight={formatCurrency(getRevenueTrendValue(latestRevenue, primaryRevenueCurrency), primaryRevenueCurrency, language)} data={salesRevenueTrend} keys={revenueCurrencyKeys} labels={revenueLabels} valueFormatter={(value, key) => formatRevenueTrendValue(value, key, language)} yAxisFormatter={(value) => formatCompactMoney(value, language)} isLoading={inventoryData.isInitialLoading} />
+        <LineChartCard title={t("charts.salesUnitsTrend")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(data.metrics.soldUnits)} ${t("table.soldUnits")}`} data={salesTrend} keys={["sold"]} isLoading={inventoryData.isInitialLoading} />
+        <LineChartCard title={t("charts.salesRevenueTrend")} subtitle={t("charts.liveFilteredData")} insight={formatCurrency(getRevenueTrendValue(latestRevenue, primaryRevenueCurrency), primaryRevenueCurrency, language)} data={salesRevenueTrend} keys={revenueCurrencyKeys} labels={revenueLabels} valueFormatter={(value, key) => formatRevenueTrendValue(value, key, language)} yAxisFormatter={(value) => formatCompactMoney(value, language)} isLoading={inventoryData.isInitialLoading} />
         <BarChartCard title={t("charts.stockHealth")} subtitle={t("sections.stockHealth")} insight={`${formatValue(data.metrics.stockCoverageMonths)} ${t("summary.months")}`} data={[
           { name: t("status.fast"), value: data.metrics.fastMovingUnits },
           { name: t("status.medium"), value: data.metrics.mediumMovingUnits },

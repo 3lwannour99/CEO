@@ -12,7 +12,7 @@ import { SectionCard } from "@/components/SectionCard/SectionCard";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatNumber } from "@/lib/apiClient";
-import { buildSalesRevenueTrend, groupSalesByMonth, salesItemsToBars } from "@/lib/chartMetrics";
+import { buildSalesRevenueTrendByDateFilter, groupSalesUnitsByDateFilter, salesItemsToBars } from "@/lib/chartMetrics";
 import { formatCurrency, formatMoneyTotalsCompact } from "@/lib/currency";
 import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
@@ -26,8 +26,8 @@ export default function SalesPerformancePage() {
   const { filters, setFilters, resetFilters } = useGlobalFilters();
   const data = useMemo(() => inventoryData.getSalesPerformance(filters), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
-  const salesByMonth = useMemo(() => groupSalesByMonth(filteredItems, 12), [filteredItems]);
-  const salesRevenueByMonth = useMemo(() => buildSalesRevenueTrend(filteredItems, 12), [filteredItems]);
+  const salesByMonth = useMemo(() => groupSalesUnitsByDateFilter(filteredItems, filters), [filteredItems, filters]);
+  const salesRevenueByMonth = useMemo(() => buildSalesRevenueTrendByDateFilter(filteredItems, filters), [filteredItems, filters]);
   const revenueCurrencyKeys = useMemo(() => selectedCurrencies.map((currency) => currency.toLowerCase()), [selectedCurrencies]);
   const revenueLabels = useMemo(() => ({ sar: t("charts.revenueSar"), jod: t("charts.revenueJod"), usd: t("charts.revenueUsd") }), [t]);
   const latestRevenue = salesRevenueByMonth.at(-1);
@@ -83,8 +83,8 @@ export default function SalesPerformancePage() {
         <span>{t("table.averageMovement")}: {formatNumber(data.averageMovement)}</span>
       </section>
       <ChartGrid>
-        <LineChartCard title={t("charts.salesUnitsTrend")} subtitle={t("charts.salesByMonth")} insight={`${formatNumber(data.sellThroughRate)}%`} data={salesByMonth} keys={["sold"]} isLoading={inventoryData.isInitialLoading} />
-        <LineChartCard title={t("charts.salesRevenueTrend")} subtitle={t("charts.salesRevenueByMonth")} insight={formatCurrency(getRevenueTrendValue(latestRevenue, primaryRevenueCurrency), primaryRevenueCurrency, language)} data={salesRevenueByMonth} keys={revenueCurrencyKeys} labels={revenueLabels} valueFormatter={(value, key) => formatRevenueTrendValue(value, key, language)} yAxisFormatter={(value) => formatCompactMoney(value, language)} isLoading={inventoryData.isInitialLoading} />
+        <LineChartCard title={t("charts.salesUnitsTrend")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(data.sellThroughRate)}%`} data={salesByMonth} keys={["sold"]} isLoading={inventoryData.isInitialLoading} />
+        <LineChartCard title={t("charts.salesRevenueTrend")} subtitle={t("charts.liveFilteredData")} insight={formatCurrency(getRevenueTrendValue(latestRevenue, primaryRevenueCurrency), primaryRevenueCurrency, language)} data={salesRevenueByMonth} keys={revenueCurrencyKeys} labels={revenueLabels} valueFormatter={(value, key) => formatRevenueTrendValue(value, key, language)} yAxisFormatter={(value) => formatCompactMoney(value, language)} isLoading={inventoryData.isInitialLoading} />
         <BarChartCard title={t("charts.topModelsByUnits")} subtitle={t("charts.top10")} insight={`${formatNumber(topSellingModelsChart[0]?.value ?? 0)} ${topSellingModelsChart[0]?.name ?? ""}`} data={topSellingModelsChart} isLoading={inventoryData.isInitialLoading} />
         <BarChartCard title={t("charts.salesByColor")} subtitle={t("charts.top10")} insight={`${formatNumber(salesByColorChart[0]?.value ?? 0)} ${salesByColorChart[0]?.name ?? ""}`} data={salesByColorChart} isLoading={inventoryData.isInitialLoading} />
         <BarChartCard title={t("charts.salesByBranch")} subtitle={t("charts.top10")} insight={`${formatNumber(salesByBranchChart[0]?.value ?? 0)} ${salesByBranchChart[0]?.name ?? ""}`} data={salesByBranchChart} isLoading={inventoryData.isInitialLoading} />

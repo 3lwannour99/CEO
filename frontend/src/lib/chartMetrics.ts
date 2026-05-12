@@ -1,5 +1,7 @@
 import { chartColorForKey, chartColors } from "@/constants/chartColors";
 import { addMoneyToTotals, createMoneyTotals } from "@/lib/currency";
+import { getPresetRange, parseCalendarDate, toDateInputValue } from "@/lib/dateFilters";
+import type { InventoryFilters } from "@/types/filters";
 import type {
   AggregatedStockItem,
   InventoryAlert,
@@ -20,7 +22,13 @@ export interface ChartDatum {
 }
 
 export type StackedChartDatum = { name: string } & Record<string, string | number>;
-export type SalesTrendPeriod = "month";
+export type SalesTrendPeriod = "day" | "week" | "month";
+
+interface SalesTrendRange {
+  end: Date;
+  period: SalesTrendPeriod;
+  start: Date;
+}
 
 function quantity(item: Pick<InventoryItem, "quantity">) {
   return item.quantity || 1;
@@ -56,7 +64,25 @@ function monthKey(value?: string | null) {
   return match ? `${match[1]}-${match[2]}` : "";
 }
 
+function dayKey(value?: string | null) {
+  const date = parseCalendarDate(value);
+  return date ? toDateInputValue(date) : "";
+}
+
+function weekKey(value?: string | null) {
+  const date = parseCalendarDate(value);
+  return date ? `Wk ${toDateInputValue(startOfWeek(date))}` : "";
+}
+
 function salesPeriodKey(item: InventoryItem, period: SalesTrendPeriod) {
+  if (period === "day") {
+    return dayKey(item.arInvoiceDate);
+  }
+
+  if (period === "week") {
+    return weekKey(item.arInvoiceDate);
+  }
+
   if (period === "month") {
     return monthKey(item.arInvoiceDate);
   }
@@ -70,6 +96,84 @@ function isSoldVehicle(item: InventoryItem) {
 
 function validMoneyValue(value: number | null | undefined) {
   return Number.isFinite(value) ? Number(value) : 0;
+}
+
+function startOfWeek(date: Date) {
+  const start = new Date(date);
+  const day = start.getDay();
+  const daysSinceMonday = day === 0 ? 6 : day - 1;
+  start.setDate(start.getDate() - daysSinceMonday);
+  return start;
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function addMonths(date: Date, months: number) {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + months, 1);
+  return next;
+}
+
+function daysBetween(start: Date, end: Date) {
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / 86_400_000));
+}
+
+function salesTrendRangeFromFilters(filters: InventoryFilters): SalesTrendRange | null {
+  const presetRange = filters.datePreset ? getPresetRange(filters.datePreset) : {};
+  const exactDate = parseCalendarDate(filters.exactDate);
+  const fromDate = parseCalendarDate(presetRange.fromDate ?? filters.fromDate);
+  const toDate = parseCalendarDate(presetRange.toDate ?? filters.toDate);
+
+  const start = exactDate ?? fromDate;
+  const end = exactDate ?? toDate ?? fromDate;
+
+  if (!start || !end) {
+    return null;
+  }
+
+  const orderedStart = start <= end ? start : end;
+  const orderedEnd = start <= end ? end : start;
+  const rangeDays = daysBetween(orderedStart, orderedEnd) + 1;
+
+  if (rangeDays >= 90) {
+    return { start: startOfMonth(orderedStart), end: startOfMonth(orderedEnd), period: "month" };
+  }
+
+  if (rangeDays > 31) {
+    return { start: startOfWeek(orderedStart), end: startOfWeek(orderedEnd), period: "week" };
+  }
+
+  return { start: orderedStart, end: orderedEnd, period: "day" };
+}
+
+function bucketKey(date: Date, period: SalesTrendPeriod) {
+  if (period === "day") {
+    return toDateInputValue(date);
+  }
+
+  if (period === "week") {
+    return `Wk ${toDateInputValue(date)}`;
+  }
+
+  return toDateInputValue(date).slice(0, 7);
+}
+
+function buildPeriodBuckets(range: SalesTrendRange) {
+  const buckets: string[] = [];
+  for (let cursor = new Date(range.start); cursor <= range.end;) {
+    buckets.push(bucketKey(cursor, range.period));
+    cursor = range.period === "month" ? addMonths(cursor, 1) : addDays(cursor, range.period === "week" ? 7 : 1);
+  }
+
+  return buckets;
 }
 
 export function groupByStatus(items: InventoryItem[]): ChartDatum[] {
@@ -151,6 +255,25 @@ export function groupSalesUnitsByPeriod(items: InventoryItem[], period: SalesTre
   return Array.from(totals, ([name, sold]) => ({ name, sold })).sort((left, right) => left.name.localeCompare(right.name)).slice(-limit);
 }
 
+export function groupSalesUnitsByDateFilter(items: InventoryItem[], filters: InventoryFilters, limit = 12) {
+  const range = salesTrendRangeFromFilters(filters);
+
+  if (!range) {
+    return groupSalesUnitsByPeriod(items, "month", limit);
+  }
+
+  const totals = new Map(buildPeriodBuckets(range).map((name) => [name, 0]));
+
+  items.forEach((item) => {
+    if (!isSoldVehicle(item)) return;
+    const key = salesPeriodKey(item, range.period);
+    if (!key || !totals.has(key)) return;
+    totals.set(key, (totals.get(key) ?? 0) + quantity(item));
+  });
+
+  return Array.from(totals, ([name, sold]) => ({ name, sold }));
+}
+
 export function groupSalesRevenueByPeriod(items: InventoryItem[], period: SalesTrendPeriod = "month", limit = 12) {
   const totals = new Map<string, ReturnType<typeof createMoneyTotals>>();
 
@@ -173,6 +296,32 @@ export function groupSalesRevenueByPeriod(items: InventoryItem[], period: SalesT
 
 export function buildSalesRevenueTrend(items: InventoryItem[], limit = 12) {
   return groupSalesRevenueByPeriod(items, "month", limit);
+}
+
+export function buildSalesRevenueTrendByDateFilter(items: InventoryItem[], filters: InventoryFilters, limit = 12) {
+  const range = salesTrendRangeFromFilters(filters);
+
+  if (!range) {
+    return groupSalesRevenueByPeriod(items, "month", limit);
+  }
+
+  const totals = new Map(buildPeriodBuckets(range).map((name) => [name, createMoneyTotals()]));
+
+  items.forEach((item) => {
+    if (!isSoldVehicle(item)) return;
+    const key = salesPeriodKey(item, range.period);
+    if (!key || !totals.has(key)) return;
+
+    const current = totals.get(key) ?? createMoneyTotals();
+    totals.set(key, addMoneyToTotals(current, validMoneyValue(item.soldPrice), item));
+  });
+
+  return Array.from(totals, ([name, total]) => ({
+    name,
+    sar: total.sar,
+    jod: total.jod,
+    usd: total.usd,
+  }));
 }
 
 export function groupSalesBySalesman(items: InventoryItem[], limit = 10) {
