@@ -35,6 +35,8 @@ export default function StockCoveragePage() {
     { key: "color", header: t("table.color"), render: (row) => row.exteriorColor },
     { key: "current", header: t("table.currentStock"), render: (row) => formatNumber(row.currentStock) },
     { key: "sold90", header: t("table.soldLast90Days"), render: (row) => formatNumber(row.soldLast90Days) },
+    { key: "totalDemand", header: t("transaction.totalSales"), render: (row) => formatNumber(row.totalSalesDemand ?? row.soldLast90Days) },
+    { key: "internalDemand", header: t("transaction.internalSales"), render: (row) => formatNumber(row.internalSalesCount ?? 0) },
     { key: "target", header: t("table.targetCoverageMonths"), render: (row) => formatNumber(row.targetCoverageMonths) },
     { key: "coverage", header: t("table.coverage"), render: (row) => formatValue(row.coverageMonths) },
     { key: "status", header: t("table.status"), render: (row) => <StatusBadge tone={row.status === "danger" ? "critical" : row.status === "overstock" ? "warning" : "success"}>{row.status}</StatusBadge> },
@@ -45,6 +47,9 @@ export default function StockCoveragePage() {
     <>
       <PageHeader title={t("pages.stockCoverage.title")} description={t("pages.stockCoverage.description")} />
       <FilterBar filters={filters} inventoryItems={inventoryData.inventoryItems} sources={inventoryData.sources} onChange={setFilters} />
+      <section className="report-actions" aria-label={t("transaction.coverageRealSalesNote")}>
+        <span>{t("transaction.coverageRealSalesNote")}</span>
+      </section>
       <div className="report-actions">
         <button className="report-button primary" type="button" onClick={() => exportExcel("stock-coverage.xls", rows)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("stock-coverage.csv", rows)}>{t("actions.exportCsv")}</button>

@@ -15,6 +15,7 @@ import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatValue } from "@/lib/apiClient";
 import { groupAlertsBySeverity, groupAlertsByType } from "@/lib/chartMetrics";
 import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
+import { classifyTransaction, transactionClassLabelKey } from "@/lib/transactionClassification";
 import { useI18n } from "@/i18n/useI18n";
 import type { InventoryAlert, InventoryItem } from "@/types/inventory";
 
@@ -62,6 +63,8 @@ export default function AlertsPage() {
     { key: "chassis", header: t("alerts.chassis"), render: (row) => formatValue(row.chassis) },
     { key: "model", header: t("table.model"), render: (row) => formatValue(row.model) },
     { key: "status", header: t("table.status"), render: (row) => formatValue(row.displayStatus || row.normalizedStatus) },
+    { key: "transactionClass", header: t("transaction.class"), render: (row) => t(transactionClassLabelKey(classifyTransaction(row))) },
+    { key: "customerGroup", header: t("table.columns.customerGroup"), render: (row) => formatValue(row.customerGroup) },
     { key: "warehouse", header: t("table.warehouse"), render: (row) => formatValue(row.warehouse) },
     { key: "branch", header: t("table.branch"), render: (row) => formatValue(row.branch) },
     { key: "age", header: t("table.stockAgeDays"), render: (row) => formatValue(row.stockAgeDays) },

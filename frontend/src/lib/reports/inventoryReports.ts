@@ -15,6 +15,7 @@ import type {
   StockCoverageItem,
 } from "@/types/inventory";
 import { createMoneyTotals, divideMoneyTotals, sumMoney } from "@/lib/currency";
+import { classifyTransaction, isSoldTransaction } from "@/lib/transactionClassification";
 
 type Rule = {
   sourceId?: string | null;
@@ -44,6 +45,30 @@ function sumQuantity(items: InventoryItem[]) {
   return items.reduce((sum, item) => sum + (item.quantity || 1), 0);
 }
 
+function externalSales(items: InventoryItem[]) {
+  return items.filter((item) => isSoldTransaction(item) && classifyTransaction(item) === "external");
+}
+
+function internalSales(items: InventoryItem[]) {
+  return items.filter((item) => isSoldTransaction(item) && classifyTransaction(item) === "internal");
+}
+
+function soldItems(items: InventoryItem[]) {
+  return items.filter(isSoldTransaction);
+}
+
+function reservationItems(items: InventoryItem[]) {
+  return items.filter((item) => item.isReserved || item.normalizedStatus === "reserve" || item.normalizedStatus === "reservationForCompanies");
+}
+
+function externalReservations(items: InventoryItem[]) {
+  return reservationItems(items).filter((item) => classifyTransaction(item) === "external");
+}
+
+function internalReservations(items: InventoryItem[]) {
+  return reservationItems(items).filter((item) => classifyTransaction(item) === "internal");
+}
+
 function round(value: number) {
   return Math.round(value * 100) / 100;
 }
@@ -64,7 +89,7 @@ function groupBy<T, R>(
 }
 
 function soldInLast90Days(item: InventoryItem) {
-  if (!item.isSold || !item.arInvoiceDate) {
+  if (!isSoldTransaction(item) || classifyTransaction(item) !== "external" || !item.arInvoiceDate) {
     return false;
   }
 
@@ -72,13 +97,16 @@ function soldInLast90Days(item: InventoryItem) {
   return !Number.isNaN(date.getTime()) && Date.now() - date.getTime() <= 90 * 86_400_000;
 }
 
-function soldInLast30Days(item: InventoryItem) {
-  if (!item.isSold || !item.arInvoiceDate) {
+function saleInLastDays(item: InventoryItem, days: number, mode: "externalSales" | "allSales" = "externalSales") {
+  if (!isSoldTransaction(item) || !item.arInvoiceDate) {
+    return false;
+  }
+  if (mode === "externalSales" && classifyTransaction(item) !== "external") {
     return false;
   }
 
   const date = new Date(item.arInvoiceDate);
-  return !Number.isNaN(date.getTime()) && Date.now() - date.getTime() <= 30 * 86_400_000;
+  return !Number.isNaN(date.getTime()) && Date.now() - date.getTime() <= days * 86_400_000;
 }
 
 function stockKey(item: InventoryItem) {
@@ -121,6 +149,12 @@ export function calculateInventorySummary(items: InventoryItem[]): InventorySumm
   const currentStock = items.filter((item) => item.isInStock);
   const soldLast90Days = sumQuantity(items.filter(soldInLast90Days));
   const averageMonthlySales = soldLast90Days / 3;
+  const sold = soldItems(items);
+  const externalSold = externalSales(items);
+  const internalSold = internalSales(items);
+  const reserved = reservationItems(items);
+  const externalReserved = externalReservations(items);
+  const internalReserved = internalReservations(items);
   const chassisGroups = groupBy(
     items.filter((item) => Boolean(item.chassis)),
     chassisGroupKey,
@@ -135,8 +169,12 @@ export function calculateInventorySummary(items: InventoryItem[]): InventorySumm
     rowsInMultiStatusChassisGroups: multiStatusGroups.reduce((sum, group) => sum + group.length, 0),
     totalUnits: sumQuantity(currentStock),
     currentStockUnits: sumQuantity(currentStock),
-    soldUnits: sumQuantity(items.filter((item) => item.isSold)),
-    reservedUnits: sumQuantity(items.filter((item) => item.isReserved)),
+    soldUnits: sumQuantity(sold),
+    reservedUnits: sumQuantity(reserved),
+    externalSoldUnits: sumQuantity(externalSold),
+    internalSoldUnits: sumQuantity(internalSold),
+    externalReservedUnits: sumQuantity(externalReserved),
+    internalReservedUnits: sumQuantity(internalReserved),
     fastMovingUnits: sumQuantity(currentStock.filter((item) => movementCategory(item) === "fast")),
     mediumMovingUnits: sumQuantity(
       currentStock.filter((item) => movementCategory(item) === "medium"),
@@ -344,15 +382,16 @@ export function calculateAlerts(
     ),
     ...groupAlertVehicles(
       items.filter((item) => item.isReserved && reservationAgeDays(item) > 30),
-      (item) => groupKey(item, ["source", "brand", "model", "salesman"]),
+      (item) => `${classifyTransaction(item)}|${groupKey(item, ["source", "brand", "model", "salesman"])}`,
       (group) => {
         const sample = group[0];
         const ages = group.map(reservationAgeDays).filter((value) => value > 30);
+        const transactionClass = classifyTransaction(sample);
         return {
-        id: `old-reservation-${groupKey(sample, ["source", "brand", "model", "salesman"])}`,
+        id: `old-reservation-${transactionClass}-${groupKey(sample, ["source", "brand", "model", "salesman"])}`,
         type: "oldReservation" as const,
-        title: "Old Reservation",
-        message: `${sample?.brand ?? ""} ${sample?.model ?? ""} has ${sumQuantity(group)} old reservations.`,
+        title: `Old ${transactionAlertLabel(sample)}`,
+        message: `${sample?.brand ?? ""} ${sample?.model ?? ""} has ${sumQuantity(group)} old ${transactionAlertLabel(sample).toLowerCase()} records.`,
         severity: "warning" as const,
         ...alertGroupFields(sample),
         chassis: "-",
@@ -391,8 +430,12 @@ export function calculateReplenishment(
     const sample = group[0];
     const rule = sample ? resolveRule(sample, rules) : defaultRule;
     const currentStock = sumQuantity(group.filter((item) => item.isInStock));
-    const soldLast90Days = sumQuantity(group.filter(soldInLast90Days));
-    const soldLast30Days = sumQuantity(group.filter(soldInLast30Days));
+    const soldLast90Days = sumQuantity(group.filter((item) => saleInLastDays(item, 90, "externalSales")));
+    const soldLast30Days = sumQuantity(group.filter((item) => saleInLastDays(item, 30, "externalSales")));
+    const soldLast60Days = sumQuantity(group.filter((item) => saleInLastDays(item, 60, "externalSales")));
+    const soldLast180Days = sumQuantity(group.filter((item) => saleInLastDays(item, 180, "externalSales")));
+    const totalSalesDemand = sumQuantity(group.filter((item) => saleInLastDays(item, 90, "allSales")));
+    const internalSalesCount = sumQuantity(group.filter((item) => saleInLastDays(item, 90, "allSales") && classifyTransaction(item) === "internal"));
     const averageMonthlySales = soldLast90Days / 3;
     const averageDailySales = soldLast90Days / 90;
     const leadTimeDemand = averageDailySales * rule.leadTimeDays;
@@ -424,6 +467,12 @@ export function calculateReplenishment(
       maxStock: rule.maxStock,
       soldLast90Days,
       soldLast30Days,
+      soldLast60Days,
+      soldLast180Days,
+      totalSalesDemand,
+      externalSalesDemand: soldLast90Days,
+      internalSalesCount,
+      demandMode: "externalSales" as const,
       averageMonthlySales: round(averageMonthlySales),
       leadTimeDays: rule.leadTimeDays,
       leadTimeDemand: round(leadTimeDemand),
@@ -530,7 +579,9 @@ export function calculateInventoryMovementMatrix(items: InventoryItem[]): Invent
 }
 
 export function calculateSalesPerformance(items: InventoryItem[]): SalesPerformanceResponse {
-  const sold = items.filter((item) => item.isSold);
+  const allSold = soldItems(items);
+  const sold = externalSales(items);
+  const internalSold = internalSales(items);
   const currentStock = items.filter((item) => item.isInStock);
   const byModel = groupBy(
     sold,
@@ -633,6 +684,14 @@ export function calculateSalesPerformance(items: InventoryItem[]): SalesPerforma
       }),
     ),
     soldRevenue: sumMoney(sold, (item) => item.soldPrice),
+    soldRevenueBreakdown: {
+      total: sumMoney(allSold, (item) => item.soldPrice),
+      external: sumMoney(sold, (item) => item.soldPrice),
+      internal: sumMoney(internalSold, (item) => item.soldPrice),
+    },
+    soldUnitsTotal: sumQuantity(allSold),
+    soldUnitsExternal: sumQuantity(sold),
+    soldUnitsInternal: sumQuantity(internalSold),
     customerGroupBreakdown: groupBy(
       sold,
       (item) => item.customerGroup || "Unknown",
@@ -820,6 +879,9 @@ export function calculateDashboardSummary(
   const replenishment = calculateReplenishment(items, rules);
   const logistics = calculateLogistics(items);
   const currentStock = items.filter((item) => item.isInStock);
+  const allSold = soldItems(items);
+  const externalSold = externalSales(items);
+  const internalSold = internalSales(items);
 
   return {
     metrics: {
@@ -831,6 +893,13 @@ export function calculateDashboardSummary(
       currentStockUnits: summary.currentStockUnits,
       soldUnits: summary.soldUnits,
       reservedUnits: summary.reservedUnits,
+      externalSoldUnits: summary.externalSoldUnits,
+      internalSoldUnits: summary.internalSoldUnits,
+      externalReservedUnits: summary.externalReservedUnits,
+      internalReservedUnits: summary.internalReservedUnits,
+      totalSalesRevenue: sumMoney(allSold, (item) => item.soldPrice),
+      externalSalesRevenue: sumMoney(externalSold, (item) => item.soldPrice),
+      internalSalesRevenue: sumMoney(internalSold, (item) => item.soldPrice),
       fastMovingUnits: summary.fastMovingUnits,
       mediumMovingUnits: summary.mediumMovingUnits,
       slowMovingUnits: summary.slowMovingUnits,
@@ -986,15 +1055,26 @@ function chassisSamples(items: InventoryItem[], limit: number) {
   return Array.from(new Set(items.map((item) => item.chassis).filter(Boolean))).slice(0, limit) as string[];
 }
 
+function transactionAlertLabel(item?: InventoryItem) {
+  if (!item) {
+    return "External Reservation";
+  }
+
+  if (classifyTransaction(item) === "internal") {
+    return "Internal Reservation";
+  }
+  return "External Reservation";
+}
+
 function sellThroughRate(items: InventoryItem[]) {
-  const soldUnits = sumQuantity(items.filter((item) => item.isSold));
+  const soldUnits = sumQuantity(externalSales(items));
   const stockUnits = sumQuantity(items.filter((item) => item.isInStock));
   const denominator = soldUnits + stockUnits;
   return denominator > 0 ? round((soldUnits / denominator) * 100) : 0;
 }
 
 function inventoryTurnover(items: InventoryItem[]) {
-  const soldUnits = sumQuantity(items.filter((item) => item.isSold));
+  const soldUnits = sumQuantity(externalSales(items));
   const stockUnits = sumQuantity(items.filter((item) => item.isInStock));
   // Current stock is a fallback for average inventory until historical snapshots accumulate.
   return round(soldUnits / Math.max(1, stockUnits));

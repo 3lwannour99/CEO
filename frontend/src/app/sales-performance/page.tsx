@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ApiState } from "@/components/ApiState/ApiState";
 import { BarChartCard } from "@/components/charts/BarChartCard/BarChartCard";
 import { ChartGrid } from "@/components/charts/ChartGrid/ChartGrid";
@@ -15,19 +15,26 @@ import { formatNumber } from "@/lib/apiClient";
 import { buildSalesRevenueTrendByDateFilter, groupSalesUnitsByDateFilter, salesItemsToBars } from "@/lib/chartMetrics";
 import { formatCurrency, formatMoneyTotalsCompact } from "@/lib/currency";
 import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
+import { calculateSalesPerformance } from "@/lib/reports/inventoryReports";
+import { classifyTransaction } from "@/lib/transactionClassification";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
 import type { SalesPerformanceItem } from "@/types/inventory";
+
+type SalesMode = "all" | "external" | "internal";
 
 export default function SalesPerformancePage() {
   const { language, t } = useI18n();
   const { selectedCurrencies } = useCurrencyDisplay();
   const inventoryData = useInventoryData();
   const { filters, setFilters, resetFilters } = useGlobalFilters();
-  const data = useMemo(() => inventoryData.getSalesPerformance(filters), [filters, inventoryData]);
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
-  const salesByMonth = useMemo(() => groupSalesUnitsByDateFilter(filteredItems, filters), [filteredItems, filters]);
-  const salesRevenueByMonth = useMemo(() => buildSalesRevenueTrendByDateFilter(filteredItems, filters), [filteredItems, filters]);
+  const [salesMode, setSalesMode] = useState<SalesMode>("external");
+  const salesModeItems = useMemo(() => filterSalesByMode(filteredItems, salesMode), [filteredItems, salesMode]);
+  const data = useMemo(() => calculateSalesPerformance(salesModeItems), [salesModeItems]);
+  const comparisonData = useMemo(() => calculateSalesPerformance(filteredItems), [filteredItems]);
+  const salesByMonth = useMemo(() => groupSalesUnitsByDateFilter(salesModeItems, filters), [salesModeItems, filters]);
+  const salesRevenueByMonth = useMemo(() => buildSalesRevenueTrendByDateFilter(salesModeItems, filters), [salesModeItems, filters]);
   const revenueCurrencyKeys = useMemo(() => selectedCurrencies.map((currency) => currency.toLowerCase()), [selectedCurrencies]);
   const revenueLabels = useMemo(() => ({ sar: t("charts.revenueSar"), jod: t("charts.revenueJod"), usd: t("charts.revenueUsd") }), [t]);
   const latestRevenue = salesRevenueByMonth.at(-1);
@@ -37,12 +44,12 @@ export default function SalesPerformancePage() {
   const salesByBranchChart = useMemo(() => data.breakdownByBranch.map((row) => ({ name: row.branch, value: row.unitsSold })).slice(0, 10), [data.breakdownByBranch]);
   const customerGroupRevenueChart = useMemo(() => {
     const totals = new Map<string, number>();
-    filteredItems.filter((item) => item.isSold).forEach((item) => {
+    salesModeItems.filter((item) => item.isSold).forEach((item) => {
       const key = item.customerGroup || "Unknown";
       totals.set(key, (totals.get(key) ?? 0) + (item.soldPrice || 0));
     });
     return Array.from(totals, ([name, value]) => ({ name, value })).sort((left, right) => right.value - left.value).slice(0, 10);
-  }, [filteredItems]);
+  }, [salesModeItems]);
   const sellThroughChart = useMemo(() => (data.breakdownByModelColor ?? data.breakdownByModel).map((row) => ({ name: row.model, value: row.sellThroughRate ?? 0 })).sort((left, right) => right.value - left.value).slice(0, 10), [data.breakdownByModel, data.breakdownByModelColor]);
   const columns: DataTableColumn<SalesPerformanceItem>[] = [
     { key: "brand", header: t("table.brand"), render: (row) => row.brand },
@@ -72,12 +79,29 @@ export default function SalesPerformancePage() {
     <>
       <PageHeader title={t("pages.salesPerformance.title")} description={t("pages.salesPerformance.description")} />
       <FilterBar filters={filters} inventoryItems={inventoryData.inventoryItems} sources={inventoryData.sources} onChange={setFilters} />
+      <section className="report-actions" aria-label={t("transaction.class")}>
+        {[
+          ["all", t("transaction.allSales")],
+          ["external", t("transaction.externalSales")],
+          ["internal", t("transaction.internalSales")],
+        ].map(([value, label]) => (
+          <button key={value} className={`report-button ${salesMode === value ? "primary" : ""}`} type="button" onClick={() => setSalesMode(value as SalesMode)}>
+            {label}
+          </button>
+        ))}
+      </section>
       <div className="report-actions">
         <button className="report-button primary" type="button" onClick={() => exportExcel("sales-performance.xls", data.breakdownByModel)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("sales-performance.csv", data.breakdownByModel)}>{t("actions.exportCsv")}</button>
         <button className="report-button" type="button" onClick={() => exportPdf("sales-performance.pdf", data.breakdownByModel)}>{t("actions.exportPdf")}</button>
       </div>
       <section className="report-actions" aria-label={t("sections.sales")}>
+        <span>{t("transaction.totalSales")}: {formatNumber(comparisonData.soldUnitsTotal ?? 0)}</span>
+        <span>{t("transaction.externalSales")}: {formatNumber(comparisonData.soldUnitsExternal ?? 0)}</span>
+        <span>{t("transaction.internalSales")}: {formatNumber(comparisonData.soldUnitsInternal ?? 0)}</span>
+        <span>{t("transaction.totalRevenue")}: {formatMoneyTotalsCompact(comparisonData.soldRevenueBreakdown?.total ?? comparisonData.soldRevenue, language, selectedCurrencies)}</span>
+        <span>{t("transaction.externalRevenue")}: {formatMoneyTotalsCompact(comparisonData.soldRevenueBreakdown?.external ?? comparisonData.soldRevenue, language, selectedCurrencies)}</span>
+        <span>{t("transaction.internalRevenue")}: {formatMoneyTotalsCompact(comparisonData.soldRevenueBreakdown?.internal ?? comparisonData.soldRevenue, language, selectedCurrencies)}</span>
         <span>{t("table.sellThroughRate")}: {formatNumber(data.sellThroughRate)}%</span>
         <span>{t("table.inventoryTurnover")}: {formatNumber(data.inventoryTurnover)}</span>
         <span>{t("table.averageMovement")}: {formatNumber(data.averageMovement)}</span>
@@ -109,6 +133,16 @@ export default function SalesPerformancePage() {
       </SectionCard>
     </>
   );
+}
+
+function filterSalesByMode(items: import("@/types/inventory").InventoryItem[], mode: SalesMode) {
+  if (mode === "all") {
+    return items;
+  }
+
+  return items.filter((item) => {
+    return classifyTransaction(item) === mode;
+  });
 }
 
 function formatRevenueTrendValue(value: number, key: string, language: string) {

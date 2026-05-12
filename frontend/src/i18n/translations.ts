@@ -1703,6 +1703,48 @@ translations.ar.charts = {
   coverageByModelColor: "التغطية حسب الموديل واللون",
 };
 
+translations.en.transaction = {
+  class: "Transaction Class",
+  all: "All",
+  total: "Total",
+  external: "External",
+  internal: "Internal",
+  externalSales: "External Sales",
+  internalSales: "Internal Sales",
+  externalReservations: "External Reservations",
+  internalReservations: "Internal Reservations",
+  totalSales: "Total Sales",
+  totalReservations: "Total Reservations",
+  totalRevenue: "Total Revenue",
+  externalRevenue: "External Revenue",
+  internalRevenue: "Internal Revenue",
+  customerGroupInternalNote: "Internal transfers are detected from sister-company customer groups.",
+  replenishmentRealSalesNote: "Replenishment demand is based on external sales by default.",
+  coverageRealSalesNote: "Coverage is calculated from external sales by default.",
+  allSales: "All Sales",
+};
+
+translations.ar.transaction = {
+  class: "تصنيف العملية",
+  all: "الكل",
+  total: "الإجمالي",
+  external: "خارجي",
+  internal: "داخلي",
+  externalSales: "المبيعات الخارجية",
+  internalSales: "المبيعات الداخلية",
+  externalReservations: "الحجوزات الخارجية",
+  internalReservations: "الحجوزات الداخلية",
+  totalSales: "إجمالي المبيعات",
+  totalReservations: "إجمالي الحجوزات",
+  totalRevenue: "إجمالي الإيرادات",
+  externalRevenue: "الإيرادات الخارجية",
+  internalRevenue: "الإيرادات الداخلية",
+  customerGroupInternalNote: "يتم تحديد التحويلات الداخلية من مجموعات عملاء الشركات الشقيقة.",
+  replenishmentRealSalesNote: "يتم حساب طلب إعادة الطلب بناءً على المبيعات الخارجية بشكل افتراضي.",
+  coverageRealSalesNote: "يتم حساب التغطية بناءً على المبيعات الخارجية بشكل افتراضي.",
+  allSales: "كل المبيعات",
+};
+
 export function resolveTranslation(language: LanguageCode, key: string): string {
   const parts = key.split(".");
   let value: string | TranslationTree | undefined = translations[language];

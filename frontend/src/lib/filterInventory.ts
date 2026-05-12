@@ -1,4 +1,5 @@
 import { itemMatchesDateFilters } from "@/lib/dateFilters";
+import { classifyTransaction, transactionClassLabel } from "@/lib/transactionClassification";
 import type { InventoryFilters } from "@/types/filters";
 import type { InventoryItem } from "@/types/inventory";
 
@@ -53,6 +54,7 @@ function buildSearchableText(item: InventoryItem) {
     item.arInvoiceNo,
     item.apInvoiceNo,
     item.customerNumber,
+    transactionClassLabel(classifyTransaction(item)),
   ]
     .join(" ")
     .toLowerCase();
@@ -97,6 +99,7 @@ export function filterInventory(items: InventoryItem[], filters: InventoryFilter
       matchesAny(readyStatus, filters.readyStatuses) &&
       matchesAny(item.customerGroup, filters.customerGroups) &&
       matchesAny(item.salesMan, filters.salesmen) &&
+      matchesAny(classifyTransaction(item), filters.transactionClasses) &&
       (!search || getFilterIndex(item).searchText.includes(search)) &&
       itemMatchesDateFilters(item, filters)
     );

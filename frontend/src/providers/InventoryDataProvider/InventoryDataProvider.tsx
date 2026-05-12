@@ -15,6 +15,7 @@ import {
   calculateSalesPerformance,
   calculateStockCoverage,
 } from "@/lib/reports/inventoryReports";
+import { withTransactionClassification } from "@/lib/transactionClassification";
 import { getInventory, getSources, getStockRules } from "@/services/inventoryApi";
 import { useAuth } from "@/providers/AuthProvider/AuthProvider";
 import type { InventoryFilters } from "@/types/filters";
@@ -127,7 +128,7 @@ export function InventoryDataProvider({ children }: Readonly<{ children: React.R
           throw inventoryResult.reason;
         }
 
-        setInventoryItems(inventoryResult.value.data);
+        setInventoryItems(inventoryResult.value.data.map(withTransactionClassification));
         setMeta(inventoryResult.value.meta);
 
         if (sourcesResult.status === "fulfilled") {

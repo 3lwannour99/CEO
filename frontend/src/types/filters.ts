@@ -35,6 +35,7 @@ export interface InventoryFilters {
   readyStatuses: string[];
   customerGroups: string[];
   salesmen: string[];
+  transactionClasses: string[];
   search: string;
   dateField: DateField;
   fromDate?: string;
@@ -72,6 +73,7 @@ export function createDefaultInventoryFilters(): InventoryFilters {
     readyStatuses: [],
     customerGroups: [],
     salesmen: [],
+    transactionClasses: [],
     search: "",
     dateField: "arInvoiceDate",
     fromDate: toDateInputValue(firstDay),

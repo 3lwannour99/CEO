@@ -65,18 +65,23 @@ export default function SalesmenKpiPage() {
   const { filters, setFilters, resetFilters } = useGlobalFilters();
   const filteredItems = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
   const report = useMemo(() => calculateSalesmenKpi(filteredItems), [filteredItems]);
-  const salesBySalesman = useMemo(() => report.salesmen.map((row) => ({ name: row.salesman, value: row.soldUnits })).slice(0, 10), [report.salesmen]);
-  const revenueBySalesman = useMemo(() => report.salesmen.map((row) => ({ name: row.salesman, value: row.soldRevenue.usd })).slice(0, 10), [report.salesmen]);
+  const salesBySalesman = useMemo(() => report.salesmen.map((row) => ({ name: row.salesman, value: row.externalSoldUnits })).slice(0, 10), [report.salesmen]);
+  const revenueBySalesman = useMemo(() => report.salesmen.map((row) => ({ name: row.salesman, value: row.externalRevenue.usd })).slice(0, 10), [report.salesmen]);
   const averagePriceBySalesman = useMemo(() => report.salesmen.map((row) => ({ name: row.salesman, value: row.averageSoldPrice.usd })).slice(0, 10), [report.salesmen]);
   const modelCoverageBySalesman = useMemo(() => report.salesmen.map((row) => ({ name: row.salesman, value: row.topSoldModels.length })).slice(0, 10), [report.salesmen]);
   const missedBySalesman = useMemo(() => report.salesmen.map((row) => ({ name: row.salesman, value: row.missingModels.length })).slice(0, 10), [report.salesmen]);
 
   const rankingColumns: DataTableColumn<SalesmanKpi>[] = [
     { key: "salesman", header: t("salesmenKpi.salesman"), render: (row) => row.salesman },
-    { key: "soldUnits", header: t("salesmenKpi.soldUnits"), render: (row) => formatNumber(row.soldUnits) },
-    { key: "revenue", header: t("salesmenKpi.revenue"), render: (row) => formatMoneyTotalsCompact(row.soldRevenue, locale, selectedCurrencies) },
+    { key: "externalSoldUnits", header: t("transaction.externalSales"), render: (row) => formatNumber(row.externalSoldUnits) },
+    { key: "internalSoldUnits", header: t("transaction.internalSales"), render: (row) => formatNumber(row.internalSoldUnits) },
+    { key: "soldUnits", header: t("transaction.totalSales"), render: (row) => formatNumber(row.soldUnits) },
+    { key: "externalRevenue", header: t("transaction.externalRevenue"), render: (row) => formatMoneyTotalsCompact(row.externalRevenue, locale, selectedCurrencies) },
+    { key: "internalRevenue", header: t("transaction.internalRevenue"), render: (row) => formatMoneyTotalsCompact(row.internalRevenue, locale, selectedCurrencies) },
+    { key: "revenue", header: t("transaction.totalRevenue"), render: (row) => formatMoneyTotalsCompact(row.soldRevenue, locale, selectedCurrencies) },
     { key: "average", header: t("salesmenKpi.averageSoldPrice"), render: (row) => formatMoneyTotalsCompact(row.averageSoldPrice, locale, selectedCurrencies) },
-    { key: "shareSales", header: t("salesmenKpi.shareOfSales"), render: (row) => formatPercent(row.shareOfTotalSales) },
+    { key: "shareExternalSales", header: t("salesmenKpi.shareOfSales"), render: (row) => formatPercent(row.shareOfExternalSales) },
+    { key: "shareSales", header: t("transaction.totalSales"), render: (row) => formatPercent(row.shareOfTotalSales) },
     { key: "shareRevenue", header: t("salesmenKpi.shareOfRevenue"), render: (row) => formatPercent(row.shareOfTotalRevenue) },
     { key: "lastSale", header: t("salesmenKpi.lastSaleDate"), render: (row) => formatDate(row.lastSaleDate) },
   ];
@@ -127,8 +132,12 @@ export default function SalesmenKpiPage() {
 
       <section className={styles.metricGrid}>
         <DashboardCard label={t("salesmenKpi.totalSalesmen")} value={formatNumber(report.totalSalesmen)} trend={t("summary.liveData")} />
-        <DashboardCard label={t("salesmenKpi.totalSoldUnits")} value={formatNumber(report.totalSoldUnits)} trend={t("salesmenKpi.soldUnits")} tone="positive" />
+        <DashboardCard label={t("salesmenKpi.totalSoldUnits")} value={formatNumber(report.totalSoldUnits)} trend={t("transaction.totalSales")} tone="positive" />
+        <DashboardCard label={t("transaction.externalSales")} value={formatNumber(report.externalSoldUnits)} trend={t("salesmenKpi.soldUnits")} tone="green" />
+        <DashboardCard label={t("transaction.internalSales")} value={formatNumber(report.internalSoldUnits)} trend={t("transaction.internal")} tone="warning" />
         <DashboardCard label={t("salesmenKpi.totalRevenue")} value={formatMoneyTotalsCompact(report.totalRevenue, locale, selectedCurrencies)} trend={formatMoneyTotalsBreakdown(report.totalRevenue, locale, currencyLabels, selectedCurrencies)} tone="positive" />
+        <DashboardCard label={t("transaction.externalRevenue")} value={formatMoneyTotalsCompact(report.externalRevenue, locale, selectedCurrencies)} trend={formatMoneyTotalsBreakdown(report.externalRevenue, locale, currencyLabels, selectedCurrencies)} tone="green" />
+        <DashboardCard label={t("transaction.internalRevenue")} value={formatMoneyTotalsCompact(report.internalRevenue, locale, selectedCurrencies)} trend={formatMoneyTotalsBreakdown(report.internalRevenue, locale, currencyLabels, selectedCurrencies)} tone="warning" />
         <DashboardCard label={t("salesmenKpi.averageSalesPerSalesman")} value={formatNumber(report.averageSalesPerSalesman)} trend={t("salesmenKpi.shareOfSales")} />
         <DashboardCard label={t("salesmenKpi.topSalesmanByUnits")} value={report.topSalesmanByUnits} trend={t("salesmenKpi.soldUnits")} tone="warning" />
         <DashboardCard label={t("salesmenKpi.topSalesmanByRevenue")} value={report.topSalesmanByRevenue} trend={t("salesmenKpi.revenue")} tone="warning" />

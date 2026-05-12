@@ -19,6 +19,7 @@ import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
 import { averageDaysByModel, groupByMovementCategory, groupByWarehouse, movementMatrixRows } from "@/lib/chartMetrics";
 import { formatMoneyBundle } from "@/lib/currency";
 import { exportCsv, exportExcel, exportPdf } from "@/lib/exportData";
+import { classifyTransaction, transactionClassLabelKey } from "@/lib/transactionClassification";
 import { useCurrencyDisplay } from "@/providers/CurrencyDisplayProvider/CurrencyDisplayProvider";
 import { useI18n } from "@/i18n/useI18n";
 import type { InventoryItem } from "@/types/inventory";
@@ -31,6 +32,15 @@ export default function InventoryMovementPage() {
   const inventoryData = useInventoryData();
   const { filters, setFilters, resetFilters } = useGlobalFilters();
   const rows = useMemo(() => inventoryData.getFilteredData(filters), [filters, inventoryData]);
+  const exportRows = useMemo(
+    () =>
+      rows.map((row) => ({
+        ...row,
+        [t("transaction.class")]: t(transactionClassLabelKey(classifyTransaction(row))),
+        [t("table.columns.customerGroup")]: row.customerGroup,
+      })),
+    [rows, t],
+  );
   const currentStock = useMemo(() => rows.filter((row) => row.isInStock), [rows]);
   const matrixRows = useMemo(() => inventoryData.getInventoryMovementMatrix(filters), [filters, inventoryData]);
   const movementChart = useMemo(() => groupByMovementCategory(currentStock), [currentStock]);
@@ -53,6 +63,8 @@ export default function InventoryMovementPage() {
     { key: "branch", header: t("table.branch"), render: (row) => formatValue(row.branch) },
     { key: "warehouse", header: t("table.warehouse"), render: (row) => formatValue(row.warehouse) },
     { key: "status", header: t("table.status"), render: (row) => <StatusBadge tone={row.normalizedStatus || "unknown"} /> },
+    { key: "transactionClass", header: t("transaction.class"), render: (row) => t(transactionClassLabelKey(classifyTransaction(row))) },
+    { key: "customerGroup", header: t("table.columns.customerGroup"), render: (row) => formatValue(row.customerGroup) },
     { key: "age", header: t("table.stockAgeDays"), render: (row) => formatValue(row.stockAgeDays) },
     { key: "movement", header: t("table.movementCategory"), render: (row) => <StatusBadge tone={row.movementCategory} /> },
     { key: "grpo", header: t("table.grpoDate"), render: (row) => formatDate(row.grpoDate) },
@@ -79,9 +91,9 @@ export default function InventoryMovementPage() {
       <PageHeader title={t("pages.inventoryMovement.title")} description={t("pages.inventoryMovement.description")} />
       <FilterBar filters={filters} inventoryItems={inventoryData.inventoryItems} sources={inventoryData.sources} onChange={setFilters} />
       <div className="report-actions">
-        <button className="report-button primary" type="button" onClick={() => exportExcel("inventory-movement.xls", rows)}>{t("actions.exportExcel")}</button>
-        <button className="report-button" type="button" onClick={() => exportCsv("inventory-movement.csv", rows)}>{t("actions.exportCsv")}</button>
-        <button className="report-button" type="button" onClick={() => exportPdf("inventory-movement.pdf", rows)}>{t("actions.exportPdf")}</button>
+        <button className="report-button primary" type="button" onClick={() => exportExcel("inventory-movement.xls", exportRows)}>{t("actions.exportExcel")}</button>
+        <button className="report-button" type="button" onClick={() => exportCsv("inventory-movement.csv", exportRows)}>{t("actions.exportCsv")}</button>
+        <button className="report-button" type="button" onClick={() => exportPdf("inventory-movement.pdf", exportRows)}>{t("actions.exportPdf")}</button>
       </div>
       <MetaStrip meta={inventoryData.meta} />
       <ChartGrid>

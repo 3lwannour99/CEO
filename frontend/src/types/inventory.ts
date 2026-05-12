@@ -18,6 +18,7 @@ export type InventoryStatus =
   | "service-hold";
 
 export type AlertSeverity = "critical" | "warning" | "info" | "success";
+export type TransactionClass = "external" | "internal";
 
 export interface CounterScreenSource {
   id: string;
@@ -214,6 +215,7 @@ export interface InventoryItem {
   isInStock: boolean;
   isReadyForSale: boolean;
   rawStatus: string;
+  transactionClass?: TransactionClass;
 }
 
 export interface InventorySummary {
@@ -225,6 +227,10 @@ export interface InventorySummary {
   currentStockUnits: number;
   soldUnits: number;
   reservedUnits: number;
+  externalSoldUnits?: number;
+  internalSoldUnits?: number;
+  externalReservedUnits?: number;
+  internalReservedUnits?: number;
   fastMovingUnits: number;
   mediumMovingUnits: number;
   slowMovingUnits: number;
@@ -347,6 +353,12 @@ export interface SalesPerformanceItem {
   unitsSold: number;
   revenue: MoneyTotals;
   averageSoldPrice?: MoneyTotals;
+  unitsSoldTotal?: number;
+  unitsSoldExternal?: number;
+  unitsSoldInternal?: number;
+  revenueTotal?: MoneyTotals;
+  revenueExternal?: MoneyTotals;
+  revenueInternal?: MoneyTotals;
   customerGroupBreakdown?: Array<{ customerGroup: string; unitsSold: number }>;
   branch?: string;
   sourceName?: string;
@@ -388,6 +400,12 @@ export interface ReplenishmentSuggestion {
   maxStock: number;
   soldLast90Days: number;
   soldLast30Days: number;
+  soldLast60Days?: number;
+  soldLast180Days?: number;
+  totalSalesDemand?: number;
+  externalSalesDemand?: number;
+  internalSalesCount?: number;
+  demandMode?: "externalSales" | "allSales";
   averageMonthlySales: number;
   leadTimeDays: number;
   leadTimeDemand: number;
@@ -454,6 +472,14 @@ export interface SalesPerformanceResponse {
     unitsSold: number;
   }>;
   soldRevenue: MoneyTotals;
+  soldRevenueBreakdown?: {
+    total: MoneyTotals;
+    external: MoneyTotals;
+    internal: MoneyTotals;
+  };
+  soldUnitsTotal?: number;
+  soldUnitsExternal?: number;
+  soldUnitsInternal?: number;
   customerGroupBreakdown: Array<{ customerGroup: string; unitsSold: number }>;
   topSellingModels: SalesPerformanceItem[];
   lowestSellingModels: SalesPerformanceItem[];
@@ -480,6 +506,13 @@ export interface DashboardSummary {
     currentStockUnits: number;
     soldUnits: number;
     reservedUnits: number;
+    externalSoldUnits?: number;
+    internalSoldUnits?: number;
+    externalReservedUnits?: number;
+    internalReservedUnits?: number;
+    totalSalesRevenue?: MoneyTotals;
+    externalSalesRevenue?: MoneyTotals;
+    internalSalesRevenue?: MoneyTotals;
     fastMovingUnits: number;
     mediumMovingUnits: number;
     slowMovingUnits: number;

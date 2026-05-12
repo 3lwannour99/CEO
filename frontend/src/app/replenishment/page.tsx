@@ -36,6 +36,8 @@ export default function ReplenishmentPage() {
     { key: "current", header: t("table.currentStock"), render: (row) => formatNumber(row.currentStock) },
     { key: "sold30", header: t("table.soldLast30Days"), render: (row) => formatNumber(row.soldLast30Days) },
     { key: "sold90", header: t("table.soldLast90Days"), render: (row) => formatNumber(row.soldLast90Days) },
+    { key: "totalDemand", header: t("transaction.totalSales"), render: (row) => formatNumber(row.totalSalesDemand ?? row.soldLast90Days) },
+    { key: "internalDemand", header: t("transaction.internalSales"), render: (row) => formatNumber(row.internalSalesCount ?? 0) },
     { key: "avg", header: t("table.averageMonthlySales"), render: (row) => formatNumber(row.averageMonthlySales) },
     { key: "min", header: t("table.minStock"), render: (row) => formatNumber(row.minStock) },
     { key: "max", header: t("table.maxStock"), render: (row) => formatNumber(row.maxStock) },
@@ -50,6 +52,9 @@ export default function ReplenishmentPage() {
     <>
       <PageHeader title={t("pages.replenishment.title")} description={t("pages.replenishment.description")} />
       <FilterBar filters={filters} inventoryItems={inventoryData.inventoryItems} sources={inventoryData.sources} onChange={setFilters} />
+      <section className="report-actions" aria-label={t("transaction.replenishmentRealSalesNote")}>
+        <span>{t("transaction.replenishmentRealSalesNote")}</span>
+      </section>
       <div className="report-actions">
         <button className="report-button primary" type="button" onClick={() => exportExcel("replenishment.xls", rows)}>{t("actions.exportExcel")}</button>
         <button className="report-button" type="button" onClick={() => exportCsv("replenishment.csv", rows)}>{t("actions.exportCsv")}</button>

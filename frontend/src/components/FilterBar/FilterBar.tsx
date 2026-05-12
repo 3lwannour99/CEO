@@ -6,6 +6,7 @@ import { MultiSelect } from "@/components/MultiSelect/MultiSelect";
 import { OFFICIAL_VEHICLE_STATUSES } from "@/constants/statuses";
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { getFilterOptions } from "@/lib/filterOptions";
+import { transactionClassOptions } from "@/lib/transactionClassification";
 import { useI18n } from "@/i18n/useI18n";
 import { createDefaultInventoryFilters, type InventoryFilters } from "@/types/filters";
 import type { CounterScreenSource, InventoryItem } from "@/types/inventory";
@@ -39,6 +40,10 @@ export function FilterBar({ compact = false, filters, inventoryItems, sources, o
         { label: t("status.readyForSale"), value: "ready" },
         { label: t("status.unknown"), value: "not-ready" },
       ],
+      transactionClasses: transactionClassOptions.map((value) => ({
+        label: t(`transaction.${value}`),
+        value,
+      })),
     }),
     [options, t],
   );
@@ -74,6 +79,7 @@ export function FilterBar({ compact = false, filters, inventoryItems, sources, o
       <MultiSelect label={t("filters.readyStatus")} options={translatedOptions.readyStatuses} values={filters.readyStatuses} onChange={(readyStatuses) => onChange({ ...filters, readyStatuses })} />
       <MultiSelect label={t("filters.customerGroup")} options={translatedOptions.customerGroups} values={filters.customerGroups} onChange={(customerGroups) => onChange({ ...filters, customerGroups })} />
       <MultiSelect label={t("filters.salesman")} options={translatedOptions.salesmen} values={filters.salesmen} onChange={(salesmen) => onChange({ ...filters, salesmen })} />
+      <MultiSelect label={t("transaction.class")} options={translatedOptions.transactionClasses} values={filters.transactionClasses} onChange={(transactionClasses) => onChange({ ...filters, transactionClasses })} />
       <label className={styles.field}>
         <span>{t("filters.search")}</span>
         <input key={filters.search} defaultValue={filters.search} onChange={(event) => updateSearch(event.target.value)} placeholder={t("topbar.searchPlaceholder")} disabled={isBusy} />
