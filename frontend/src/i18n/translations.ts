@@ -148,6 +148,8 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       deleteFailed: "The sales location could not be deleted.",
       deleteLocationConfirm: "Delete this sales location? Its salesmen will return to Unassigned.",
       searchSalesman: "Search salesman",
+      dragLocation: "Drag to reorder location",
+      reorderFailed: "The sales-location order could not be saved.",
     },
     users: {
       title: "Users",
@@ -1002,6 +1004,8 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       deleteFailed: "تعذر حذف موقع البيع.",
       deleteLocationConfirm: "هل تريد حذف موقع البيع؟ سيعود موظفو المبيعات إلى قائمة غير الموزعين.",
       searchSalesman: "البحث عن موظف مبيعات",
+      dragLocation: "اسحب لإعادة ترتيب موقع البيع",
+      reorderFailed: "تعذر حفظ ترتيب مواقع البيع.",
     },
     users: {
       title: "المستخدمون",

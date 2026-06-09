@@ -9,6 +9,7 @@ import { MonthlySalesReportQueryDto } from './dto/monthly-sales-report-query.dto
 import {
     MonthlySalesAssignmentDto,
     MonthlySalesLocationDto,
+    ReorderMonthlySalesLocationsDto,
 } from './dto/monthly-sales-target.dto';
 import {
     calculateMonthlySalesReport,
@@ -31,7 +32,7 @@ export class MonthlySalesService {
             this.inventoryService.findAll({}),
             this.prisma.monthlySalesLocation.findMany({
                 where: { targetMonth: range.targetMonth, isActive: true },
-                orderBy: { salesLocation: 'asc' },
+                orderBy: [{ sortOrder: 'asc' }, { salesLocation: 'asc' }],
             }),
             this.prisma.monthlySalesAssignment.findMany({
                 where: {
@@ -83,7 +84,7 @@ export class MonthlySalesService {
                         orderBy: { salesmanName: 'asc' },
                     },
                 },
-                orderBy: { salesLocation: 'asc' },
+                orderBy: [{ sortOrder: 'asc' }, { salesLocation: 'asc' }],
             }),
             this.prisma.monthlySalesAssignment.findMany({
                 where: { targetMonth, isActive: true },
@@ -137,9 +138,20 @@ export class MonthlySalesService {
         };
     }
 
-    createLocation(dto: MonthlySalesLocationDto) {
+    async createLocation(dto: MonthlySalesLocationDto) {
+        const location = sanitizeLocation(dto);
+        const lastLocation = await this.prisma.monthlySalesLocation.findFirst({
+            where: { targetMonth: location.targetMonth },
+            orderBy: { sortOrder: 'desc' },
+            select: { sortOrder: true },
+        });
         return this.prisma.monthlySalesLocation
-            .create({ data: sanitizeLocation(dto) })
+            .create({
+                data: {
+                    ...location,
+                    sortOrder: (lastLocation?.sortOrder ?? -1) + 1,
+                },
+            })
             .then(serializeLocation);
     }
 
@@ -165,6 +177,37 @@ export class MonthlySalesService {
             }),
             this.prisma.monthlySalesLocation.delete({ where: { id } }),
         ]);
+        return { ok: true };
+    }
+
+    async reorderLocations(dto: ReorderMonthlySalesLocationsDto) {
+        validateTargetMonth(dto.targetMonth);
+        const locationIds = [...new Set(dto.locationIds)];
+        if (locationIds.length !== dto.locationIds.length) {
+            throw new BadRequestException(
+                'Location order cannot contain duplicate IDs.',
+            );
+        }
+        const locations = await this.prisma.monthlySalesLocation.findMany({
+            where: { targetMonth: dto.targetMonth },
+            select: { id: true },
+        });
+        if (
+            locations.length !== locationIds.length ||
+            locations.some((location) => !locationIds.includes(location.id))
+        ) {
+            throw new BadRequestException(
+                'Location order must contain every location for the selected month.',
+            );
+        }
+        await this.prisma.$transaction(
+            locationIds.map((id, sortOrder) =>
+                this.prisma.monthlySalesLocation.update({
+                    where: { id },
+                    data: { sortOrder },
+                }),
+            ),
+        );
         return { ok: true };
     }
 

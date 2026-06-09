@@ -53,6 +53,13 @@ export function deleteMonthlySalesLocation(id: string) {
   return apiDelete<{ ok: boolean }>(`/monthly-sales-targets/locations/${id}`);
 }
 
+export function reorderMonthlySalesLocations(targetMonth: string, locationIds: string[]) {
+  return apiPut<{ ok: boolean }>("/monthly-sales-targets/locations/reorder", {
+    targetMonth,
+    locationIds,
+  });
+}
+
 export function assignMonthlySalesman(input: MonthlySalesAssignmentInput) {
   return apiPut<MonthlySalesAssignment>("/monthly-sales-targets/assignments", input);
 }

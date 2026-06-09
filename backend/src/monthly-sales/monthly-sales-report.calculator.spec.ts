@@ -188,6 +188,38 @@ describe('calculateMonthlySalesReport', () => {
         expect(report.grandTotal.target).toBe(4);
     });
 
+    it('keeps the configured sales-location order in report options and totals', () => {
+        const firstLocation = {
+            ...location,
+            id: 'location-first',
+            salesLocation: 'Zarqa',
+            sortOrder: 0,
+        };
+        const secondLocation = {
+            ...location,
+            id: 'location-second',
+            salesLocation: 'Amman',
+            sortOrder: 1,
+        };
+        const report = calculateMonthlySalesReport(
+            [],
+            [firstLocation, secondLocation],
+            [],
+            {
+                dateFrom: '2026-06-01',
+                dateTo: '2026-06-30',
+                salesLocations: [],
+                salesmen: [],
+                brands: ['JAC', 'FORTHING', 'ROX'],
+            },
+        );
+
+        expect(report.options.salesLocations).toEqual(['Zarqa', 'Amman']);
+        expect(
+            report.locationTotals.map((total) => total.salesLocation),
+        ).toEqual(['Zarqa', 'Amman']);
+    });
+
     it('applies country filters to invoices and reservations without date-filtering reservations', () => {
         const report = calculate(
             [

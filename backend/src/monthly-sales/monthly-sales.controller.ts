@@ -18,6 +18,7 @@ import { MonthlySalesReportQueryDto } from './dto/monthly-sales-report-query.dto
 import {
     MonthlySalesAssignmentDto,
     MonthlySalesLocationDto,
+    ReorderMonthlySalesLocationsDto,
 } from './dto/monthly-sales-target.dto';
 import { MonthlySalesService } from './monthly-sales.service';
 
@@ -53,6 +54,13 @@ export class MonthlySalesController {
     @RequirePermissions('monthlySalesTargets.manage')
     createLocation(@Body() dto: MonthlySalesLocationDto) {
         return this.monthlySalesService.createLocation(dto);
+    }
+
+    @Put('monthly-sales-targets/locations/reorder')
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
+    @RequirePermissions('monthlySalesTargets.manage')
+    reorderLocations(@Body() dto: ReorderMonthlySalesLocationsDto) {
+        return this.monthlySalesService.reorderLocations(dto);
     }
 
     @Put('monthly-sales-targets/locations/:id')

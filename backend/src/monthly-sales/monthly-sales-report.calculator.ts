@@ -32,6 +32,7 @@ export interface MonthlySalesLocationRecord {
     id: string;
     salesLocation: string;
     target: number;
+    sortOrder?: number;
 }
 
 export interface MonthlySalesAssignmentRecord {
@@ -119,7 +120,7 @@ export function calculateMonthlySalesReport(
         location.salesLocation.trim(),
     );
     const allOptions = {
-        salesLocations: [...new Set(configuredLocations)].sort(),
+        salesLocations: [...new Set(configuredLocations)],
         salesmen: [...salesmanNames.values()].sort(),
         brands: [...MONTHLY_SALES_BRANDS],
         countries: uniqueValues(inventory, (item) => item.sourceCountry),
@@ -243,7 +244,15 @@ export function calculateMonthlySalesReport(
             }
         }
     }
-    const locationTotals = [...visibleLocations].sort().map((salesLocation) => {
+    const orderedVisibleLocations = [
+        ...configuredLocations.filter((location) =>
+            visibleLocations.has(location),
+        ),
+        ...[...visibleLocations].filter(
+            (location) => !configuredLocations.includes(location),
+        ),
+    ];
+    const locationTotals = orderedVisibleLocations.map((salesLocation) => {
         const group = locationGroups.get(salesLocation) ?? [];
         const target = targetByLocation.get(normalizeText(salesLocation)) ?? 0;
         return {

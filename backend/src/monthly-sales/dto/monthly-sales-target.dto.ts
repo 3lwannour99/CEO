@@ -46,3 +46,14 @@ export class MonthlySalesAssignmentDto {
     @IsString({ each: true })
     allowedBrands!: string[];
 }
+
+export class ReorderMonthlySalesLocationsDto {
+    @IsString()
+    @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
+    targetMonth!: string;
+
+    @IsArray()
+    @ArrayNotEmpty()
+    @IsString({ each: true })
+    locationIds!: string[];
+}

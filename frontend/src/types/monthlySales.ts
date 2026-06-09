@@ -64,6 +64,7 @@ export interface MonthlySalesLocation {
   normalizedLocation: string;
   target: number;
   isActive: boolean;
+  sortOrder: number;
   assignments: MonthlySalesAssignment[];
 }
 

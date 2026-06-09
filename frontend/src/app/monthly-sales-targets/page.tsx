@@ -14,6 +14,7 @@ import {
   createMonthlySalesLocation,
   deleteMonthlySalesLocation,
   getMonthlySalesManagementBoard,
+  reorderMonthlySalesLocations,
   setMonthlySalesLocationActive,
   unassignMonthlySalesman,
   updateMonthlySalesLocation,
@@ -54,6 +55,8 @@ export default function MonthlySalesTargetsPage() {
   const [saving, setSaving] = useState(false);
   const [dragged, setDragged] = useState<DraggedSalesman | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [draggedLocationId, setDraggedLocationId] = useState<string | null>(null);
+  const [locationDropTarget, setLocationDropTarget] = useState<string | null>(null);
   const [columnSearches, setColumnSearches] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
@@ -154,6 +157,33 @@ export default function MonthlySalesTargetsPage() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function dropLocationBefore(targetLocationId: string) {
+    if (!board || !draggedLocationId || draggedLocationId === targetLocationId) {
+      setDraggedLocationId(null);
+      setLocationDropTarget(null);
+      return;
+    }
+    const previousLocations = board.locations;
+    const nextLocations = reorderLocations(previousLocations, draggedLocationId, targetLocationId);
+    setBoard({ ...board, locations: nextLocations });
+    setDraggedLocationId(null);
+    setLocationDropTarget(null);
+    try {
+      await reorderMonthlySalesLocations(
+        targetMonth,
+        nextLocations.map((location) => location.id),
+      );
+      await loadBoard();
+    } catch (reorderError) {
+      setBoard((current) => (current ? { ...current, locations: previousLocations } : current));
+      setError(
+        reorderError instanceof Error
+          ? reorderError.message
+          : t("monthlySalesTargets.reorderFailed"),
+      );
     }
   }
 
@@ -292,15 +322,38 @@ export default function MonthlySalesTargetsPage() {
                 title={location.salesLocation}
                 count={visibleAssignments.length}
                 active={dropTarget === location.id}
+                locationDropActive={locationDropTarget === location.id}
                 muted={!location.isActive}
+                locationId={location.id}
+                locationDragLabel={t("monthlySalesTargets.dragLocation")}
                 searchValue={searchValue}
                 searchPlaceholder={t("monthlySalesTargets.searchSalesman")}
                 onSearchChange={(value) =>
                   setColumnSearches((current) => ({ ...current, [location.id]: value }))
                 }
-                onDragOver={(event) => dragOver(event, location.id, setDropTarget)}
+                onLocationDragStart={(locationId) => {
+                  setDragged(null);
+                  setDraggedLocationId(locationId);
+                }}
+                onLocationDragEnd={() => {
+                  setDraggedLocationId(null);
+                  setLocationDropTarget(null);
+                }}
+                onDragOver={(event) => {
+                  if (draggedLocationId) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    setLocationDropTarget(location.id);
+                    return;
+                  }
+                  dragOver(event, location.id, setDropTarget);
+                }}
                 onDragLeave={() => setDropTarget(null)}
-                onDrop={() => void dropOnLocation(location.id)}
+                onDrop={() =>
+                  void (draggedLocationId
+                    ? dropLocationBefore(location.id)
+                    : dropOnLocation(location.id))
+                }
                 headerActions={
                   <>
                     <strong>
@@ -352,12 +405,17 @@ function DropColumn({
   title,
   count,
   active,
+  locationDropActive,
   muted,
   className = "",
   headerActions,
+  locationId,
+  locationDragLabel,
   searchValue,
   searchPlaceholder,
   children,
+  onLocationDragStart,
+  onLocationDragEnd,
   onSearchChange,
   onDragOver,
   onDragLeave,
@@ -366,12 +424,17 @@ function DropColumn({
   title: string;
   count: number;
   active: boolean;
+  locationDropActive?: boolean;
   muted?: boolean;
   className?: string;
   headerActions?: React.ReactNode;
+  locationId?: string;
+  locationDragLabel?: string;
   searchValue: string;
   searchPlaceholder: string;
   children: React.ReactNode;
+  onLocationDragStart?: (locationId: string) => void;
+  onLocationDragEnd?: () => void;
   onSearchChange: (value: string) => void;
   onDragOver: (event: DragEvent<HTMLDivElement>) => void;
   onDragLeave: () => void;
@@ -379,14 +442,34 @@ function DropColumn({
 }) {
   return (
     <div
-      className={`${styles.column} ${className} ${active ? styles.dropActive : ""} ${muted ? styles.muted : ""}`}
+      className={`${styles.column} ${className} ${active ? styles.dropActive : ""} ${locationDropActive ? styles.locationDropActive : ""} ${muted ? styles.muted : ""}`}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
       <div className={styles.columnHeader}>
         <div>
-          <h3>{title}</h3>
+          <div className={styles.columnTitle}>
+            {locationId ? (
+              <button
+                className={styles.locationDragHandle}
+                type="button"
+                draggable
+                aria-label={`${locationDragLabel} - ${title}`}
+                title={locationDragLabel}
+                onDragStart={(event) => {
+                  event.stopPropagation();
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/monthly-sales-location", locationId);
+                  onLocationDragStart?.(locationId);
+                }}
+                onDragEnd={() => onLocationDragEnd?.()}
+              >
+                ::
+              </button>
+            ) : null}
+            <h3>{title}</h3>
+          </div>
           <span>{formatNumber(count)}</span>
         </div>
         {headerActions ? <div className={styles.columnActions}>{headerActions}</div> : null}
@@ -458,6 +541,19 @@ function assignmentToDrag(assignment: MonthlySalesAssignment): DraggedSalesman {
     salesmanCode: assignment.salesmanCode ?? undefined,
     allowedBrands: assignment.allowedBrands,
   };
+}
+
+function reorderLocations(locations: MonthlySalesLocation[], draggedId: string, targetId: string) {
+  const next = [...locations];
+  const draggedIndex = next.findIndex((location) => location.id === draggedId);
+  const targetIndex = next.findIndex((location) => location.id === targetId);
+  if (draggedIndex < 0 || targetIndex < 0) return next;
+  const movingForward = draggedIndex < targetIndex;
+  const [draggedLocation] = next.splice(draggedIndex, 1);
+  const currentTargetIndex = next.findIndex((location) => location.id === targetId);
+  const insertionIndex = movingForward ? currentTargetIndex + 1 : currentTargetIndex;
+  next.splice(insertionIndex, 0, draggedLocation);
+  return next.map((location, sortOrder) => ({ ...location, sortOrder }));
 }
 
 function matchesSalesmanSearch(
