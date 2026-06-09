@@ -94,7 +94,10 @@ async function runPrisma(args) {
             cwd: rootDir,
             env: {
                 ...process.env,
-                DATABASE_URL: getProviderUrl(provider),
+                DATABASE_URL: getProviderUrl(
+                    provider,
+                    action === 'generate' || action === 'validate',
+                ),
                 DATABASE_PROVIDER: provider,
             },
             stdio: 'inherit',
@@ -111,7 +114,7 @@ async function runPrisma(args) {
     });
 }
 
-function getProviderUrl(databaseProvider) {
+function getProviderUrl(databaseProvider, allowPlaceholder = false) {
     const candidates =
         databaseProvider === 'mysql'
             ? [process.env.DATABASE_URL, process.env.MYSQL_DATABASE_URL]
@@ -123,6 +126,12 @@ function getProviderUrl(databaseProvider) {
     const url = candidates.find((candidate) =>
         candidate ? urlMatchesProvider(candidate, databaseProvider) : false,
     );
+
+    if (!url && allowPlaceholder) {
+        return databaseProvider === 'mysql'
+            ? 'mysql://user:password@localhost:3306/build'
+            : 'postgresql://user:password@localhost:5432/build?schema=public';
+    }
 
     if (!url) {
         throw new Error(
