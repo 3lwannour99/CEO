@@ -14,6 +14,7 @@ const navItems = [
   { labelKey: "nav.stockCoverage", href: "/stock-coverage", marker: "SC", permissions: ["stockCoverage.page.view"] },
   { labelKey: "nav.salesPerformance", href: "/sales-performance", marker: "SP", permissions: ["salesPerformance.page.view"] },
   { labelKey: "nav.salesmenKpi", href: "/salesmen-kpi", marker: "SK", permissions: ["salesPerformance.page.view"] },
+  { labelKey: "nav.monthlySalesReport", href: "/dashboard/monthly-sales-report", marker: "MS", permissions: [] },
   { labelKey: "nav.aggregatedStock", href: "/aggregated-stock", marker: "AS", permissions: ["inventory.page.view"] },
   { labelKey: "nav.stockRules", href: "/stock-rules", marker: "SR", permissions: ["stockRules.page.view"] },
   { labelKey: "nav.dailySnapshots", href: "/snapshots", marker: "SN", permissions: ["snapshots.page.view"] },
@@ -23,6 +24,7 @@ const navItems = [
   { labelKey: "nav.users", href: "/users", marker: "US", permissions: ["users.view", "users.manage"] },
   { labelKey: "nav.roles", href: "/roles", marker: "RO", permissions: ["roles.view", "roles.manage"] },
   { labelKey: "nav.settings", href: "/settings", marker: "ST", permissions: ["settings.view"] },
+  { labelKey: "nav.monthlySalesTargets", href: "/monthly-sales-targets", marker: "MT", permissions: ["monthlySalesTargets.view", "monthlySalesTargets.manage"] },
 ];
 
 interface AppSidebarProps {

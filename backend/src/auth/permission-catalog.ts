@@ -20,6 +20,8 @@ const permissionKeys = [
     'users.page.view',
     'roles.page.view',
     'settings.page.view',
+    'monthlySalesTargets.view',
+    'monthlySalesTargets.manage',
     'dashboard.tabs.stockCoverage.view',
     'dashboard.tabs.stockHealth.view',
     'dashboard.tabs.autoAlerts.view',

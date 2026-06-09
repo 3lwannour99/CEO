@@ -1,0 +1,36 @@
+model MonthlySalesLocation {
+  id String @id @default(cuid())
+
+  targetMonth   String
+  salesLocation String
+  normalizedLocation String
+  target        Int
+  isActive      Boolean @default(true)
+
+  assignments MonthlySalesAssignment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([targetMonth, normalizedLocation])
+  @@index([targetMonth, isActive])
+}
+
+model MonthlySalesAssignment {
+  id String @id @default(cuid())
+
+  targetMonth            String
+  salesmanName           String
+  normalizedSalesmanName String
+  salesmanCode           String?
+  allowedBrands          String @default("JAC,FORTHING,ROX")
+  isActive               Boolean @default(true)
+
+  locationId String
+  location   MonthlySalesLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([targetMonth, normalizedSalesmanName])
+  @@index([targetMonth, locationId, isActive])
+}

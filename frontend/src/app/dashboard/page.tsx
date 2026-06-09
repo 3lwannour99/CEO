@@ -17,7 +17,14 @@ import { DASHBOARD_STATUS_CARDS } from "@/constants/statusCards";
 import { useGlobalFilters } from "@/hooks/useGlobalFilters";
 import { useInventoryData } from "@/hooks/useInventoryData";
 import { formatDate, formatNumber, formatValue } from "@/lib/apiClient";
-import { buildSalesRevenueTrendByDateFilter, groupByModel, groupByMovementCategory, groupBySource, groupByStatus, groupSalesUnitsByDateFilter } from "@/lib/chartMetrics";
+import {
+  buildSalesRevenueTrendByDateFilter,
+  groupByModel,
+  groupByMovementCategory,
+  groupBySource,
+  groupByStatus,
+  groupSalesUnitsByDateFilter,
+} from "@/lib/chartMetrics";
 import { formatCurrency, formatMoneyBundle, formatMoneyTotalsCompact } from "@/lib/currency";
 import { exportExcel } from "@/lib/exportData";
 import { classifyTransaction, transactionClassLabelKey } from "@/lib/transactionClassification";
@@ -48,18 +55,48 @@ export default function DashboardPage() {
   const movementByCategory = useMemo(() => groupByMovementCategory(filteredItems), [filteredItems]);
   const stockBySource = useMemo(() => groupBySource(filteredItems, 10), [filteredItems]);
   const topModelsByUnits = useMemo(() => groupByModel(filteredItems, 10), [filteredItems]);
-  const salesTrend = useMemo(() => groupSalesUnitsByDateFilter(filteredItems, filters), [filteredItems, filters]);
-  const salesRevenueTrend = useMemo(() => buildSalesRevenueTrendByDateFilter(filteredItems, filters), [filteredItems, filters]);
-  const salesSplitChart = useMemo(() => [
-    { name: t("transaction.externalSales"), value: data.metrics.externalSoldUnits ?? 0 },
-    { name: t("transaction.internalSales"), value: data.metrics.internalSoldUnits ?? 0 },
-  ].filter((row) => row.value > 0), [data.metrics.externalSoldUnits, data.metrics.internalSoldUnits, t]);
-  const reservationSplitChart = useMemo(() => [
-    { name: t("transaction.externalReservations"), value: data.metrics.externalReservedUnits ?? 0 },
-    { name: t("transaction.internalReservations"), value: data.metrics.internalReservedUnits ?? 0 },
-  ].filter((row) => row.value > 0), [data.metrics.externalReservedUnits, data.metrics.internalReservedUnits, t]);
-  const revenueCurrencyKeys = useMemo(() => selectedCurrencies.map((currency) => currency.toLowerCase()), [selectedCurrencies]);
-  const revenueLabels = useMemo(() => ({ sar: t("charts.revenueSar"), jod: t("charts.revenueJod"), usd: t("charts.revenueUsd") }), [t]);
+  const salesTrend = useMemo(
+    () => groupSalesUnitsByDateFilter(filteredItems, filters),
+    [filteredItems, filters],
+  );
+  const salesRevenueTrend = useMemo(
+    () => buildSalesRevenueTrendByDateFilter(filteredItems, filters),
+    [filteredItems, filters],
+  );
+  const salesSplitChart = useMemo(
+    () =>
+      [
+        { name: t("transaction.externalSales"), value: data.metrics.externalSoldUnits ?? 0 },
+        { name: t("transaction.internalSales"), value: data.metrics.internalSoldUnits ?? 0 },
+      ].filter((row) => row.value > 0),
+    [data.metrics.externalSoldUnits, data.metrics.internalSoldUnits, t],
+  );
+  const reservationSplitChart = useMemo(
+    () =>
+      [
+        {
+          name: t("transaction.externalReservations"),
+          value: data.metrics.externalReservedUnits ?? 0,
+        },
+        {
+          name: t("transaction.internalReservations"),
+          value: data.metrics.internalReservedUnits ?? 0,
+        },
+      ].filter((row) => row.value > 0),
+    [data.metrics.externalReservedUnits, data.metrics.internalReservedUnits, t],
+  );
+  const revenueCurrencyKeys = useMemo(
+    () => selectedCurrencies.map((currency) => currency.toLowerCase()),
+    [selectedCurrencies],
+  );
+  const revenueLabels = useMemo(
+    () => ({
+      sar: t("charts.revenueSar"),
+      jod: t("charts.revenueJod"),
+      usd: t("charts.revenueUsd"),
+    }),
+    [t],
+  );
   const latestRevenue = salesRevenueTrend.at(-1);
   const primaryRevenueCurrency = selectedCurrencies[0] ?? "USD";
   const selectedStatuses = useMemo(
@@ -206,15 +243,82 @@ export default function DashboardPage() {
     },
   ];
   const transactionMetrics: DashboardMetric[] = [
-    { label: t("transaction.totalSales"), value: formatNumber(data.metrics.soldUnits), trend: t("transaction.total"), tone: "positive" },
-    { label: t("transaction.externalSales"), value: formatNumber(data.metrics.externalSoldUnits ?? 0), trend: t("transaction.external"), tone: "green" },
-    { label: t("transaction.internalSales"), value: formatNumber(data.metrics.internalSoldUnits ?? 0), trend: t("transaction.internal"), tone: "warning" },
-    { label: t("transaction.totalReservations"), value: formatNumber(data.metrics.reservedUnits), trend: t("table.reserved"), tone: "neutral" },
-    { label: t("transaction.externalReservations"), value: formatNumber(data.metrics.externalReservedUnits ?? 0), trend: t("transaction.external"), tone: "blue" },
-    { label: t("transaction.internalReservations"), value: formatNumber(data.metrics.internalReservedUnits ?? 0), trend: t("transaction.internal"), tone: "warning" },
-    { label: t("transaction.totalRevenue"), value: formatMoneyTotalsCompact(data.metrics.totalSalesRevenue ?? { original: { SAR: 0, JOD: 0 }, sar: 0, jod: 0, usd: 0 }, language, selectedCurrencies), trend: t("transaction.totalSales"), tone: "positive" },
-    { label: t("transaction.externalRevenue"), value: formatMoneyTotalsCompact(data.metrics.externalSalesRevenue ?? { original: { SAR: 0, JOD: 0 }, sar: 0, jod: 0, usd: 0 }, language, selectedCurrencies), trend: t("transaction.externalSales"), tone: "green" },
-    { label: t("transaction.internalRevenue"), value: formatMoneyTotalsCompact(data.metrics.internalSalesRevenue ?? { original: { SAR: 0, JOD: 0 }, sar: 0, jod: 0, usd: 0 }, language, selectedCurrencies), trend: t("transaction.internalSales"), tone: "warning" },
+    {
+      label: t("transaction.totalSales"),
+      value: formatNumber(data.metrics.soldUnits),
+      trend: t("transaction.total"),
+      tone: "positive",
+    },
+    {
+      label: t("transaction.externalSales"),
+      value: formatNumber(data.metrics.externalSoldUnits ?? 0),
+      trend: t("transaction.external"),
+      tone: "green",
+    },
+    {
+      label: t("transaction.internalSales"),
+      value: formatNumber(data.metrics.internalSoldUnits ?? 0),
+      trend: t("transaction.internal"),
+      tone: "warning",
+    },
+    {
+      label: t("transaction.totalReservations"),
+      value: formatNumber(data.metrics.reservedUnits),
+      trend: t("table.reserved"),
+      tone: "neutral",
+    },
+    {
+      label: t("transaction.externalReservations"),
+      value: formatNumber(data.metrics.externalReservedUnits ?? 0),
+      trend: t("transaction.external"),
+      tone: "blue",
+    },
+    {
+      label: t("transaction.internalReservations"),
+      value: formatNumber(data.metrics.internalReservedUnits ?? 0),
+      trend: t("transaction.internal"),
+      tone: "warning",
+    },
+    {
+      label: t("transaction.totalRevenue"),
+      value: formatMoneyTotalsCompact(
+        data.metrics.totalSalesRevenue ?? { original: { SAR: 0, JOD: 0 }, sar: 0, jod: 0, usd: 0 },
+        language,
+        selectedCurrencies,
+      ),
+      trend: t("transaction.totalSales"),
+      tone: "positive",
+    },
+    {
+      label: t("transaction.externalRevenue"),
+      value: formatMoneyTotalsCompact(
+        data.metrics.externalSalesRevenue ?? {
+          original: { SAR: 0, JOD: 0 },
+          sar: 0,
+          jod: 0,
+          usd: 0,
+        },
+        language,
+        selectedCurrencies,
+      ),
+      trend: t("transaction.externalSales"),
+      tone: "green",
+    },
+    {
+      label: t("transaction.internalRevenue"),
+      value: formatMoneyTotalsCompact(
+        data.metrics.internalSalesRevenue ?? {
+          original: { SAR: 0, JOD: 0 },
+          sar: 0,
+          jod: 0,
+          usd: 0,
+        },
+        language,
+        selectedCurrencies,
+      ),
+      trend: t("transaction.internalSales"),
+      tone: "warning",
+    },
   ];
   const inventoryColumns: DataTableColumn<SlowStockSummaryItem>[] = [
     { key: "model", header: t("table.model"), render: (row) => formatValue(row.model) },
@@ -536,19 +640,82 @@ export default function DashboardPage() {
         ))}
       </section>
       <ChartGrid>
-        <DonutChartCard title={t("transaction.totalSales")} subtitle={t("transaction.customerGroupInternalNote")} insight={`${formatNumber(data.metrics.externalSoldUnits ?? 0)} ${t("transaction.externalSales")}`} data={salesSplitChart} isLoading={inventoryData.isInitialLoading} />
-        <DonutChartCard title={t("transaction.totalReservations")} subtitle={t("transaction.customerGroupInternalNote")} insight={`${formatNumber(data.metrics.externalReservedUnits ?? 0)} ${t("transaction.externalReservations")}`} data={reservationSplitChart} isLoading={inventoryData.isInitialLoading} />
-        <DonutChartCard title={t("charts.unitsByStatus")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(data.metrics.currentStockUnits)} ${t("table.currentStock")}`} data={unitsByStatus} isLoading={inventoryData.isInitialLoading} />
-        <DonutChartCard title={t("charts.movementCategory")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(data.metrics.slowMovingUnits)} ${t("table.slow")}`} data={movementByCategory} isLoading={inventoryData.isInitialLoading} />
-        <BarChartCard title={t("charts.stockByCompany")} subtitle={t("charts.top10")} insight={`${formatNumber(stockBySource[0]?.value ?? 0)} ${stockBySource[0]?.name ?? ""}`} data={stockBySource} isLoading={inventoryData.isInitialLoading} />
-        <BarChartCard title={t("charts.topModelsByUnits")} subtitle={t("charts.top10")} insight={`${formatNumber(topModelsByUnits[0]?.value ?? 0)} ${topModelsByUnits[0]?.name ?? ""}`} data={topModelsByUnits} isLoading={inventoryData.isInitialLoading} />
-        <LineChartCard title={t("charts.salesUnitsTrend")} subtitle={t("charts.liveFilteredData")} insight={`${formatNumber(data.metrics.soldUnits)} ${t("table.soldUnits")}`} data={salesTrend} keys={["sold"]} isLoading={inventoryData.isInitialLoading} />
-        <LineChartCard title={t("charts.salesRevenueTrend")} subtitle={t("charts.liveFilteredData")} insight={formatCurrency(getRevenueTrendValue(latestRevenue, primaryRevenueCurrency), primaryRevenueCurrency, language)} data={salesRevenueTrend} keys={revenueCurrencyKeys} labels={revenueLabels} valueFormatter={(value, key) => formatRevenueTrendValue(value, key, language)} yAxisFormatter={(value) => formatCompactMoney(value, language)} isLoading={inventoryData.isInitialLoading} />
-        <BarChartCard title={t("charts.stockHealth")} subtitle={t("sections.stockHealth")} insight={`${formatValue(data.metrics.stockCoverageMonths)} ${t("summary.months")}`} data={[
-          { name: t("status.fast"), value: data.metrics.fastMovingUnits },
-          { name: t("status.medium"), value: data.metrics.mediumMovingUnits },
-          { name: t("status.slow"), value: data.metrics.slowMovingUnits },
-        ]} isLoading={inventoryData.isInitialLoading} />
+        <DonutChartCard
+          title={t("transaction.totalSales")}
+          subtitle={t("transaction.customerGroupInternalNote")}
+          insight={`${formatNumber(data.metrics.externalSoldUnits ?? 0)} ${t("transaction.externalSales")}`}
+          data={salesSplitChart}
+          isLoading={inventoryData.isInitialLoading}
+        />
+        <DonutChartCard
+          title={t("transaction.totalReservations")}
+          subtitle={t("transaction.customerGroupInternalNote")}
+          insight={`${formatNumber(data.metrics.externalReservedUnits ?? 0)} ${t("transaction.externalReservations")}`}
+          data={reservationSplitChart}
+          isLoading={inventoryData.isInitialLoading}
+        />
+        <DonutChartCard
+          title={t("charts.unitsByStatus")}
+          subtitle={t("charts.liveFilteredData")}
+          insight={`${formatNumber(data.metrics.currentStockUnits)} ${t("table.currentStock")}`}
+          data={unitsByStatus}
+          isLoading={inventoryData.isInitialLoading}
+        />
+        <DonutChartCard
+          title={t("charts.movementCategory")}
+          subtitle={t("charts.liveFilteredData")}
+          insight={`${formatNumber(data.metrics.slowMovingUnits)} ${t("table.slow")}`}
+          data={movementByCategory}
+          isLoading={inventoryData.isInitialLoading}
+        />
+        <BarChartCard
+          title={t("charts.stockByCompany")}
+          subtitle={t("charts.top10")}
+          insight={`${formatNumber(stockBySource[0]?.value ?? 0)} ${stockBySource[0]?.name ?? ""}`}
+          data={stockBySource}
+          isLoading={inventoryData.isInitialLoading}
+        />
+        <BarChartCard
+          title={t("charts.topModelsByUnits")}
+          subtitle={t("charts.top10")}
+          insight={`${formatNumber(topModelsByUnits[0]?.value ?? 0)} ${topModelsByUnits[0]?.name ?? ""}`}
+          data={topModelsByUnits}
+          isLoading={inventoryData.isInitialLoading}
+        />
+        <LineChartCard
+          title={t("charts.salesUnitsTrend")}
+          subtitle={t("charts.liveFilteredData")}
+          insight={`${formatNumber(data.metrics.soldUnits)} ${t("table.soldUnits")}`}
+          data={salesTrend}
+          keys={["sold"]}
+          isLoading={inventoryData.isInitialLoading}
+        />
+        <LineChartCard
+          title={t("charts.salesRevenueTrend")}
+          subtitle={t("charts.liveFilteredData")}
+          insight={formatCurrency(
+            getRevenueTrendValue(latestRevenue, primaryRevenueCurrency),
+            primaryRevenueCurrency,
+            language,
+          )}
+          data={salesRevenueTrend}
+          keys={revenueCurrencyKeys}
+          labels={revenueLabels}
+          valueFormatter={(value, key) => formatRevenueTrendValue(value, key, language)}
+          yAxisFormatter={(value) => formatCompactMoney(value, language)}
+          isLoading={inventoryData.isInitialLoading}
+        />
+        <BarChartCard
+          title={t("charts.stockHealth")}
+          subtitle={t("sections.stockHealth")}
+          insight={`${formatValue(data.metrics.stockCoverageMonths)} ${t("summary.months")}`}
+          data={[
+            { name: t("status.fast"), value: data.metrics.fastMovingUnits },
+            { name: t("status.medium"), value: data.metrics.mediumMovingUnits },
+            { name: t("status.slow"), value: data.metrics.slowMovingUnits },
+          ]}
+          isLoading={inventoryData.isInitialLoading}
+        />
       </ChartGrid>
       <section className={styles.sectionGrid}>
         <SectionCard
@@ -725,7 +892,11 @@ function formatPrice(
 }
 
 function formatRevenueTrendValue(value: number, key: string, language: string) {
-  const currency = key.toLowerCase().includes("sar") ? "SAR" : key.toLowerCase().includes("jod") ? "JOD" : "USD";
+  const currency = key.toLowerCase().includes("sar")
+    ? "SAR"
+    : key.toLowerCase().includes("jod")
+      ? "JOD"
+      : "USD";
   return formatCurrency(value, currency, language);
 }
 
@@ -736,7 +907,10 @@ function formatCompactMoney(value: number, language: string) {
   }).format(value);
 }
 
-function getRevenueTrendValue(row: { sar: number; jod: number; usd: number } | undefined, currency: "SAR" | "JOD" | "USD") {
+function getRevenueTrendValue(
+  row: { sar: number; jod: number; usd: number } | undefined,
+  currency: "SAR" | "JOD" | "USD",
+) {
   if (!row) {
     return 0;
   }

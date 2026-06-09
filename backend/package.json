@@ -34,9 +34,9 @@
         "db:push": "npm run db:sync",
         "db:seed": "npx prisma db seed",
         "seed:prod": "node dist/prisma/seed.js",
-        "clean:generated": "rm -rf src/generated/prisma-client",
+        "clean:generated": "node -e \"require('node:fs').rmSync('src/generated/prisma-client', { recursive: true, force: true })\"",
         "clean:migrations": "rm -rf prisma/migrations",
-        "start:all": "npm run clean:generated && npm run db:sync && npm run db:seed && sh -c 'npm run studio & npm run start:dev'"
+        "start:all": "npm run db:sync && npm run db:seed && sh -c 'npm run studio & npm run start:dev'"
     },
     "dependencies": {
         "@nestjs/common": "^11.0.1",

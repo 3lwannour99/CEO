@@ -1,5 +1,6 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api";
 const ACCESS_TOKEN_KEY = "ceoreport_access_token";
+const PUBLIC_ROUTES = new Set(["/dashboard/monthly-sales-report"]);
 
 export class ApiError extends Error {
   status: number;
@@ -48,7 +49,7 @@ function handleAuthFailure(status: number) {
 
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.dispatchEvent(new Event("ceoreport-auth-token-changed"));
-  if (window.location.pathname !== "/login") {
+  if (window.location.pathname !== "/login" && !PUBLIC_ROUTES.has(window.location.pathname)) {
     window.location.assign("/login");
   }
 }

@@ -27,7 +27,8 @@ export const translations: Record<LanguageCode, TranslationTree> = {
     },
     auth: {
       loginTitle: "Sign in to CEOReport",
-      loginDescription: "Use your username and password to access inventory reports and management tools.",
+      loginDescription:
+        "Use your username and password to access inventory reports and management tools.",
       username: "Username",
       email: "Username",
       password: "Password",
@@ -85,6 +86,68 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       roles: "Roles",
       permissions: "Permissions",
       settings: "Settings",
+      monthlySalesReport: "Monthly Sales Report",
+      monthlySalesTargets: "Sales Target Mapping",
+    },
+    monthlySalesReport: {
+      title: "Monthly Sales Report",
+      description:
+        "Monthly invoiced sales, open reservations, targets, and achievement by sales location and salesman.",
+      publicReport: "Public aggregate report",
+      filters: "Report filters",
+      salesLocation: "Sales Location",
+      salesman: "Salesman",
+      brand: "Brand",
+      allLocations: "All locations",
+      allSalesmen: "All salesmen",
+      allBrands: "All brands",
+      allSources: "All companies",
+      allBranches: "All branches",
+      allWarehouses: "All warehouses",
+      allModels: "All models",
+      allTypes: "All types",
+      allCustomerGroups: "All customer groups",
+      invoiced: "Invoiced",
+      reservations: "Reservations",
+      totalInvoiced: "Total Invoiced",
+      target: "Target",
+      achievement: "Achievement %",
+      locationTotal: "Location Total",
+      grandTotal: "Grand Total",
+      period: "Invoice period",
+      unmapped: "Unmapped",
+      noData: "No monthly sales data matches the selected filters.",
+      loadFailed: "The monthly sales report could not be loaded.",
+      dateRuleNote:
+        "The selected date range applies only to invoice dates. Open reservations are not filtered by date.",
+    },
+    monthlySalesTargets: {
+      title: "Sales Target Mapping",
+      description: "Manage monthly sales locations, location targets, and salesman assignments.",
+      dragDescription:
+        "Create monthly locations, set one target per location, then drag salesmen between location columns.",
+      targetMonth: "Target month",
+      salesmanCode: "Salesman code",
+      allowedBrands: "Allowed brands",
+      addTarget: "Add salesman target",
+      editTarget: "Edit salesman target",
+      addLocation: "Add sales location",
+      editLocation: "Edit sales location",
+      locationTarget: "Location target",
+      assignmentBoard: "Salesman assignment board",
+      dragInstructions:
+        "Drag a salesman card into a location. Drag it back to Unassigned to remove the mapping.",
+      unassigned: "Unassigned",
+      configuredTargets: "Configured targets",
+      unmappedSalesmen: "Unmapped salesmen discovered in inventory data",
+      noTargets: "No targets are configured for this month.",
+      enable: "Enable",
+      disable: "Disable",
+      loadFailed: "Target mappings could not be loaded.",
+      saveFailed: "Target mapping could not be saved.",
+      deleteFailed: "The sales location could not be deleted.",
+      deleteLocationConfirm: "Delete this sales location? Its salesmen will return to Unassigned.",
+      searchSalesman: "Search salesman",
     },
     users: {
       title: "Users",
@@ -128,11 +191,13 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       copyPermissionsFrom: "Copy permissions from existing role",
       selectRoleToCopy: "Select a role to copy",
       copiedFrom: "Copied from",
-      permissionsCopied: "Permissions copied. You can edit them before saving. The original role will not be changed.",
+      permissionsCopied:
+        "Permissions copied. You can edit them before saving. The original role will not be changed.",
       originalRoleNotChanged: "Original role will not be changed.",
       clearCopiedPermissions: "Clear copied permissions",
       replaceCopiedPermissions: "Replace current permission selections?",
-      replaceCopiedPermissionsMessage: "This will replace your current edited permissions with permissions from the selected role.",
+      replaceCopiedPermissionsMessage:
+        "This will replace your current edited permissions with permissions from the selected role.",
       createFromExistingRole: "Create from existing role",
       editCopiedPermissions: "Edit copied permissions before saving",
       editRole: "Edit role",
@@ -347,7 +412,7 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       reserved: "Reserved",
       inTransit: "In transit",
       serviceHold: "Service hold",
-          warehouse: "Warehouse",
+      warehouse: "Warehouse",
     },
     table: {
       id: "ID",
@@ -507,7 +572,8 @@ export const translations: Record<LanguageCode, TranslationTree> = {
     },
     salesmenKpi: {
       title: "Salesmen KPI",
-      description: "Analyze salesman performance based on sold units, revenue, models sold, and missed opportunities.",
+      description:
+        "Analyze salesman performance based on sold units, revenue, models sold, and missed opportunities.",
       totalSalesmen: "Total Salesmen",
       totalSoldUnits: "Total Sold Units",
       totalRevenue: "Total Revenue",
@@ -631,48 +697,59 @@ export const translations: Record<LanguageCode, TranslationTree> = {
     pages: {
       dashboard: {
         title: "Daily Dashboard",
-        description: "A daily operating view for stock availability, movement speed, coverage, reservations, sales, and logistics exceptions.",
+        description:
+          "A daily operating view for stock availability, movement speed, coverage, reservations, sales, and logistics exceptions.",
       },
       inventoryMovement: {
         title: "Inventory Movement",
-        description: "Track units by chassis, warehouse, status, ageing, movement velocity, and branch-level availability.",
+        description:
+          "Track units by chassis, warehouse, status, ageing, movement velocity, and branch-level availability.",
       },
       alerts: {
         title: "Auto Alerts",
-        description: "Mock alert center for stock ageing, low coverage, inbound ETA changes, and reservation follow-up.",
+        description:
+          "Mock alert center for stock ageing, low coverage, inbound ETA changes, and reservation follow-up.",
       },
       replenishment: {
         title: "Replenishment",
-        description: "Suggested reorder priorities based on mock stock coverage, current quantity, and moving speed.",
+        description:
+          "Suggested reorder priorities based on mock stock coverage, current quantity, and moving speed.",
       },
       stockCoverage: {
         title: "Stock Coverage",
-        description: "Coverage analysis by model and branch, ready for future SAP sales velocity and Carflow availability feeds.",
+        description:
+          "Coverage analysis by model and branch, ready for future SAP sales velocity and Carflow availability feeds.",
       },
       salesPerformance: {
-      salesmenKpi: "مؤشرات البائعين",
+        salesmenKpi: "مؤشرات البائعين",
         title: "Sales Performance",
-        description: "Model-level sales snapshot for sold units, revenue, margin, and future sales-team attribution.",
+        description:
+          "Model-level sales snapshot for sold units, revenue, margin, and future sales-team attribution.",
       },
       aggregatedStock: {
         title: "Aggregated Stock",
-        description: "Consolidated inventory by brand, model, type, color, and primary branch for executive stock review.",
+        description:
+          "Consolidated inventory by brand, model, type, color, and primary branch for executive stock review.",
       },
       logistics: {
         title: "Logistics",
-        description: "Inbound stock tracking for shipments, purchase orders, estimated arrivals, clearance, and branch destination.",
+        description:
+          "Inbound stock tracking for shipments, purchase orders, estimated arrivals, clearance, and branch destination.",
       },
       multiLocation: {
         title: "Multi-Location",
-        description: "Location-level stock position across branches, showrooms, warehouse inventory, reserved units, and inbound quantities.",
+        description:
+          "Location-level stock position across branches, showrooms, warehouse inventory, reserved units, and inbound quantities.",
       },
       settings: {
         title: "Settings",
-        description: "Placeholder administration area for future permissions, SAP and Carflow integration settings, exports, and alert channels.",
+        description:
+          "Placeholder administration area for future permissions, SAP and Carflow integration settings, exports, and alert channels.",
       },
       stockRules: {
         title: "Stock Rules",
-        description: "Business configuration for min/max stock, reorder points, lead times, and target coverage.",
+        description:
+          "Business configuration for min/max stock, reorder points, lead times, and target coverage.",
       },
       snapshots: {
         title: "Snapshots",
@@ -805,7 +882,8 @@ export const translations: Record<LanguageCode, TranslationTree> = {
     },
     auth: {
       loginTitle: "تسجيل الدخول إلى CEOReport",
-      loginDescription: "استخدم اسم المستخدم وكلمة المرور للوصول إلى تقارير المخزون وأدوات الإدارة.",
+      loginDescription:
+        "استخدم اسم المستخدم وكلمة المرور للوصول إلى تقارير المخزون وأدوات الإدارة.",
       username: "اسم المستخدم",
       email: "اسم المستخدم",
       password: "كلمة المرور",
@@ -863,6 +941,67 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       roles: "الأدوار",
       permissions: "الصلاحيات",
       settings: "الإعدادات",
+      monthlySalesReport: "تقرير المبيعات الشهري",
+      monthlySalesTargets: "ربط أهداف المبيعات",
+    },
+    monthlySalesReport: {
+      title: "تقرير المبيعات الشهري",
+      description:
+        "المبيعات المفوترة والحجوزات المفتوحة والأهداف ونسبة الإنجاز حسب موقع البيع والبائع.",
+      publicReport: "تقرير تجميعي عام",
+      filters: "مرشحات التقرير",
+      salesLocation: "موقع البيع",
+      salesman: "البائع",
+      brand: "العلامة التجارية",
+      allLocations: "جميع المواقع",
+      allSalesmen: "جميع البائعين",
+      allBrands: "جميع العلامات",
+      allSources: "جميع الشركات",
+      allBranches: "جميع الفروع",
+      allWarehouses: "جميع المستودعات",
+      allModels: "جميع الموديلات",
+      allTypes: "جميع الأنواع",
+      allCustomerGroups: "جميع مجموعات العملاء",
+      invoiced: "مفوتر",
+      reservations: "حجوزات",
+      totalInvoiced: "إجمالي المفوتر",
+      target: "الهدف",
+      achievement: "نسبة الإنجاز",
+      locationTotal: "إجمالي الموقع",
+      grandTotal: "الإجمالي العام",
+      period: "فترة الفواتير",
+      unmapped: "غير مربوط",
+      noData: "لا توجد بيانات مبيعات شهرية مطابقة للمرشحات المحددة.",
+      loadFailed: "تعذر تحميل تقرير المبيعات الشهري.",
+      dateRuleNote:
+        "يطبق نطاق التاريخ المحدد على تاريخ الفاتورة فقط. الحجوزات المفتوحة لا تتأثر بنطاق التاريخ.",
+    },
+    monthlySalesTargets: {
+      title: "ربط أهداف المبيعات",
+      description: "إدارة مواقع البيع الشهرية وأهداف المواقع وتوزيع البائعين.",
+      dragDescription:
+        "أنشئ مواقع البيع وحدد هدفاً واحداً لكل موقع، ثم اسحب البائعين بين أعمدة المواقع.",
+      targetMonth: "شهر الهدف",
+      salesmanCode: "رمز البائع",
+      allowedBrands: "العلامات المسموحة",
+      addTarget: "إضافة هدف بائع",
+      editTarget: "تعديل هدف البائع",
+      addLocation: "إضافة موقع بيع",
+      editLocation: "تعديل موقع البيع",
+      locationTarget: "هدف الموقع",
+      assignmentBoard: "لوحة توزيع البائعين",
+      dragInstructions: "اسحب بطاقة البائع إلى الموقع المطلوب. أعدها إلى غير موزع لإلغاء الربط.",
+      unassigned: "غير موزع",
+      configuredTargets: "الأهداف المعدة",
+      unmappedSalesmen: "بائعون غير مربوطين ظهروا في بيانات المخزون",
+      noTargets: "لا توجد أهداف معدة لهذا الشهر.",
+      enable: "تفعيل",
+      disable: "تعطيل",
+      loadFailed: "تعذر تحميل ربط الأهداف.",
+      saveFailed: "تعذر حفظ ربط الهدف.",
+      deleteFailed: "تعذر حذف موقع البيع.",
+      deleteLocationConfirm: "هل تريد حذف موقع البيع؟ سيعود موظفو المبيعات إلى قائمة غير الموزعين.",
+      searchSalesman: "البحث عن موظف مبيعات",
     },
     users: {
       title: "المستخدمون",
@@ -910,7 +1049,8 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       originalRoleNotChanged: "لن يتم تعديل الدور الأصلي.",
       clearCopiedPermissions: "مسح الصلاحيات المنسوخة",
       replaceCopiedPermissions: "استبدال اختيارات الصلاحيات الحالية؟",
-      replaceCopiedPermissionsMessage: "سيؤدي ذلك إلى استبدال الصلاحيات المعدلة حاليًا بصلاحيات الدور المحدد.",
+      replaceCopiedPermissionsMessage:
+        "سيؤدي ذلك إلى استبدال الصلاحيات المعدلة حاليًا بصلاحيات الدور المحدد.",
       createFromExistingRole: "إنشاء من دور موجود",
       editCopiedPermissions: "تعديل الصلاحيات المنسوخة قبل الحفظ",
       editRole: "تعديل دور",
@@ -1287,7 +1427,8 @@ export const translations: Record<LanguageCode, TranslationTree> = {
     },
     salesmenKpi: {
       title: "مؤشرات البائعين",
-      description: "تحليل أداء البائعين حسب عدد المبيعات، الإيرادات، الموديلات المباعة، والفرص غير المستغلة.",
+      description:
+        "تحليل أداء البائعين حسب عدد المبيعات، الإيرادات، الموديلات المباعة، والفرص غير المستغلة.",
       totalSalesmen: "إجمالي البائعين",
       totalSoldUnits: "إجمالي الوحدات المباعة",
       totalRevenue: "إجمالي الإيرادات",
@@ -1385,47 +1526,58 @@ export const translations: Record<LanguageCode, TranslationTree> = {
     pages: {
       dashboard: {
         title: "لوحة التحكم اليومية",
-        description: "عرض تشغيلي يومي لتوفر المخزون وسرعة الحركة والتغطية والحجوزات والمبيعات واستثناءات اللوجستيات.",
+        description:
+          "عرض تشغيلي يومي لتوفر المخزون وسرعة الحركة والتغطية والحجوزات والمبيعات واستثناءات اللوجستيات.",
       },
       inventoryMovement: {
         title: "حركة المخزون",
-        description: "متابعة الوحدات حسب رقم الشاسيه والمستودع والحالة والعمر وسرعة الحركة والتوفر على مستوى الفروع.",
+        description:
+          "متابعة الوحدات حسب رقم الشاسيه والمستودع والحالة والعمر وسرعة الحركة والتوفر على مستوى الفروع.",
       },
       alerts: {
         title: "التنبيهات الآلية",
-        description: "مركز تنبيهات تجريبي لتقادم المخزون وانخفاض التغطية وتغييرات الوصول والمتابعة على الحجوزات.",
+        description:
+          "مركز تنبيهات تجريبي لتقادم المخزون وانخفاض التغطية وتغييرات الوصول والمتابعة على الحجوزات.",
       },
       replenishment: {
         title: "إعادة الطلب",
-        description: "اقتراحات إعادة الطلب بناء على تغطية المخزون التجريبية والكمية الحالية وسرعة الحركة.",
+        description:
+          "اقتراحات إعادة الطلب بناء على تغطية المخزون التجريبية والكمية الحالية وسرعة الحركة.",
       },
       stockCoverage: {
         title: "تغطية المخزون",
-        description: "تحليل التغطية حسب الموديل والفرع، جاهز لربطه لاحقا بسرعة المبيعات من SAP وتوفر Carflow.",
+        description:
+          "تحليل التغطية حسب الموديل والفرع، جاهز لربطه لاحقا بسرعة المبيعات من SAP وتوفر Carflow.",
       },
       salesPerformance: {
         title: "أداء المبيعات",
-        description: "ملخص مبيعات حسب الموديل للوحدات المباعة والإيراد والهامش ونسب المبيعات المستقبلية.",
+        description:
+          "ملخص مبيعات حسب الموديل للوحدات المباعة والإيراد والهامش ونسب المبيعات المستقبلية.",
       },
       aggregatedStock: {
         title: "تجميع المخزون",
-        description: "عرض موحد للمخزون حسب البراند والموديل والنوع واللون والفرع الرئيسي لمراجعة تنفيذية.",
+        description:
+          "عرض موحد للمخزون حسب البراند والموديل والنوع واللون والفرع الرئيسي لمراجعة تنفيذية.",
       },
       logistics: {
         title: "اللوجستيات",
-        description: "متابعة المخزون الوارد حسب الشحنات وأوامر الشراء والوصول المتوقع والتخليص ووجهة الفرع.",
+        description:
+          "متابعة المخزون الوارد حسب الشحنات وأوامر الشراء والوصول المتوقع والتخليص ووجهة الفرع.",
       },
       multiLocation: {
         title: "توزيع المخزون",
-        description: "وضع المخزون حسب المواقع والفروع والمعارض والمستودعات والوحدات المحجوزة والكميات الواردة.",
+        description:
+          "وضع المخزون حسب المواقع والفروع والمعارض والمستودعات والوحدات المحجوزة والكميات الواردة.",
       },
       settings: {
         title: "الإعدادات",
-        description: "منطقة إدارة مؤقتة للصلاحيات وإعدادات تكامل SAP وCarflow والتصدير وقنوات التنبيه المستقبلية.",
+        description:
+          "منطقة إدارة مؤقتة للصلاحيات وإعدادات تكامل SAP وCarflow والتصدير وقنوات التنبيه المستقبلية.",
       },
       stockRules: {
         title: "قواعد المخزون",
-        description: "إعدادات العمل للحدود الدنيا والعليا وحدود إعادة الطلب ومدة التوريد والتغطية المستهدفة.",
+        description:
+          "إعدادات العمل للحدود الدنيا والعليا وحدود إعادة الطلب ومدة التوريد والتغطية المستهدفة.",
       },
       snapshots: {
         title: "اللقطات اليومية",

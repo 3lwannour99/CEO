@@ -28,6 +28,7 @@ const routePermissions: Array<{ prefix: string; permissions: string[] }> = [
   { prefix: "/settings", permissions: ["settings.view"] },
   { prefix: "/roles", permissions: ["roles.view", "roles.manage"] },
   { prefix: "/users", permissions: ["users.view", "users.manage"] },
+  { prefix: "/monthly-sales-targets", permissions: ["monthlySalesTargets.view", "monthlySalesTargets.manage"] },
 ];
 
 export function DashboardShell({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -37,16 +38,17 @@ export function DashboardShell({ children }: Readonly<{ children: React.ReactNod
   const auth = useAuth();
   const { isInitialLoading, isBusy } = useInventoryData();
   const isLoginRoute = pathname === "/login";
+  const isPublicRoute = pathname === "/dashboard/monthly-sales-report";
   const requiredPermissions = routePermissions.find((route) => pathname.startsWith(route.prefix))?.permissions ?? [];
   const canViewRoute = auth.hasAnyPermission(requiredPermissions);
 
   useEffect(() => {
-    if (!isLoginRoute && !auth.isLoading && !auth.isAuthenticated) {
+    if (!isLoginRoute && !isPublicRoute && !auth.isLoading && !auth.isAuthenticated) {
       router.replace("/login");
     }
-  }, [auth.isAuthenticated, auth.isLoading, isLoginRoute, router]);
+  }, [auth.isAuthenticated, auth.isLoading, isLoginRoute, isPublicRoute, router]);
 
-  if (isLoginRoute) {
+  if (isLoginRoute || isPublicRoute) {
     return <>{children}</>;
   }
 

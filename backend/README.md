@@ -177,7 +177,7 @@ npx prisma db push
 
 For MySQL, use the provider-specific scripts above. Do not commit files from `backend/prisma/.generated/`.
 
-If the generated Prisma client has stale or permission-conflicted files, remove `backend/src/generated/prisma-client` and rerun `npx prisma generate`.
+Prisma generation refreshes `backend/src/generated/prisma-client` in place. On Windows Docker bind mounts, do not delete this directory from inside the Linux container because host-created files may not be removable by the container user. If a manual reset is ever required, stop the backend container, run `npm run clean:generated` from the Windows host, then run `npm run prisma:generate`.
 
 ## Sync Locally
 

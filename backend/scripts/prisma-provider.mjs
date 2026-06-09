@@ -89,7 +89,8 @@ async function buildSchema(databaseProvider) {
 
 async function runPrisma(args) {
     await new Promise((resolve, reject) => {
-        const child = spawn('npx', ['prisma', ...args], {
+        const prismaCli = path.join(rootDir, 'node_modules', 'prisma', 'build', 'index.js');
+        const child = spawn(process.execPath, [prismaCli, ...args], {
             cwd: rootDir,
             env: {
                 ...process.env,

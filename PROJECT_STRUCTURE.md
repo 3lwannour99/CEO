@@ -136,7 +136,7 @@ npm run db:seed
 npm run studio
 ```
 
-The `start:all` script resets generated Prisma client output, pushes the database schema, seeds the database, starts Prisma Studio, and starts the Nest development server.
+The `start:all` script pushes the database schema, regenerates the Prisma client in place, seeds the database, starts Prisma Studio, and starts the Nest development server. It intentionally avoids deleting generated files so startup works with Windows Docker bind mounts.
 
 ## Generated and Build Output
 

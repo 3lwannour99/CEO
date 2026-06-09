@@ -20,6 +20,7 @@ import { SnapshotsModule } from './snapshots/snapshots.module';
 import { StockRulesModule } from './stock-rules/stock-rules.module';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
+import { MonthlySalesModule } from './monthly-sales/monthly-sales.module';
 
 @Module({
     imports: [
@@ -41,6 +42,7 @@ import { RolesModule } from './roles/roles.module';
         StockRulesModule,
         SnapshotsModule,
         SchedulerModule,
+        MonthlySalesModule,
     ],
     controllers: [AppController],
     providers: [AppService],
