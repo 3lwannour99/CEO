@@ -84,6 +84,24 @@ describe('calculateMonthlySalesReport', () => {
         expect(report.rows[0].achievementPercentage).toBe(50);
     });
 
+    it('counts reserved, company reservation, contract, and cession as reservations', () => {
+        const report = calculate(
+            ['reserved', 'reservationForCompanies', 'contract', 'cession'].map(
+                (normalizedStatus, index) =>
+                    row({
+                        chassis: `VIN-RESERVATION-${index}`,
+                        arInvoiceDate: '',
+                        normalizedStatus,
+                        isSold: false,
+                        isReserved: false,
+                    }),
+            ),
+        );
+
+        expect(report.rows[0].brands.JAC.reservations).toBe(4);
+        expect(report.rows[0].achievementPercentage).toBe(100);
+    });
+
     it('counts distinct source and chassis combinations', () => {
         const report = calculate([
             row(),

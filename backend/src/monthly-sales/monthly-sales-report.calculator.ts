@@ -403,7 +403,10 @@ function isOpenReservation(item: MonthlySalesInventoryRow) {
     return (
         item.isReserved ||
         status === 'reserve' ||
-        status === 'reservationforcompanies'
+        status === 'reserved' ||
+        status === 'reservationforcompanies' ||
+        status === 'contract' ||
+        status === 'cession'
     );
 }
 
