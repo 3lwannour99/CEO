@@ -80,6 +80,8 @@ describe('calculateMonthlySalesReport', () => {
 
         expect(report.rows[0].brands.JAC.invoiced).toBe(1);
         expect(report.rows[0].brands.JAC.reservations).toBe(1);
+        expect(report.rows[0].target).toBe(4);
+        expect(report.rows[0].achievementPercentage).toBe(50);
     });
 
     it('counts distinct source and chassis combinations', () => {
@@ -121,6 +123,23 @@ describe('calculateMonthlySalesReport', () => {
 
         expect(report.locationTotals[0].target).toBe(4);
         expect(report.locationTotals[0].achievementPercentage).toBe(25);
+    });
+
+    it('calculates achievement from invoices and reservations', () => {
+        const report = calculate([
+            row({ chassis: 'VIN-SOLD' }),
+            row({
+                chassis: 'VIN-RESERVED',
+                arInvoiceDate: '',
+                normalizedStatus: 'reserve',
+                isSold: false,
+                isReserved: true,
+            }),
+        ]);
+
+        expect(report.locationTotals[0].invoicedTotal).toBe(1);
+        expect(report.locationTotals[0].achievementPercentage).toBe(50);
+        expect(report.grandTotal.achievementPercentage).toBe(50);
     });
 
     it('excludes salesmen who are not assigned to a location', () => {
@@ -168,6 +187,10 @@ describe('calculateMonthlySalesReport', () => {
         );
 
         expect(report.rows).toHaveLength(2);
+        expect(report.rows.map((item) => item.target)).toEqual([2, 2]);
+        expect(report.rows.map((item) => item.achievementPercentage)).toEqual([
+            50, 50,
+        ]);
         expect(report.locationTotals[0].invoicedTotal).toBe(2);
         expect(report.locationTotals[0].target).toBe(4);
         expect(report.grandTotal.target).toBe(4);

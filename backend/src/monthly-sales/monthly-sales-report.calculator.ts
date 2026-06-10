@@ -73,6 +73,8 @@ export interface MonthlySalesReportRow {
     allowedBrands: MonthlySalesBrand[];
     brands: Record<MonthlySalesBrand, BrandCounts>;
     invoicedTotal: number;
+    target: number;
+    achievementPercentage: number | null;
     isMapped: boolean;
 }
 
@@ -105,6 +107,14 @@ export function calculateMonthlySalesReport(
             assignment.salesmanName.trim(),
         ]),
     );
+    const assignmentCountByLocation = new Map<string, number>();
+    for (const assignment of assignments) {
+        const location = normalizeText(assignment.location.salesLocation);
+        assignmentCountByLocation.set(
+            location,
+            (assignmentCountByLocation.get(location) ?? 0) + 1,
+        );
+    }
     const reportInventory = inventory.filter((item) =>
         itemMatchesNonDateFilters(item, filters),
     );
@@ -202,6 +212,13 @@ export function calculateMonthlySalesReport(
         }
 
         const invoicedTotal = sumInvoiced(brandCounts);
+        const locationAssignmentCount =
+            assignmentCountByLocation.get(normalizeText(salesLocation)) ?? 0;
+        const target =
+            locationAssignmentCount > 0
+                ? assignment.location.target / locationAssignmentCount
+                : 0;
+        const totalUnits = sumTotalUnits(brandCounts);
         rows.push({
             mappingId: assignment.id,
             salesmanName,
@@ -210,6 +227,9 @@ export function calculateMonthlySalesReport(
             allowedBrands,
             brands: brandCounts,
             invoicedTotal,
+            target,
+            achievementPercentage:
+                target > 0 ? (totalUnits / target) * 100 : null,
             isMapped: true,
         });
     }
@@ -428,6 +448,14 @@ function sumInvoiced(brands: Record<MonthlySalesBrand, BrandCounts>) {
     );
 }
 
+function sumTotalUnits(brands: Record<MonthlySalesBrand, BrandCounts>) {
+    return MONTHLY_SALES_BRANDS.reduce(
+        (sum, brand) =>
+            sum + brands[brand].invoiced + brands[brand].reservations,
+        0,
+    );
+}
+
 function sumRows(
     rows: MonthlySalesReportRow[],
     target = 0,
@@ -440,12 +468,12 @@ function sumRows(
         }
     }
     const invoicedTotal = sumInvoiced(brands);
+    const totalUnits = sumTotalUnits(brands);
     return {
         brands,
         invoicedTotal,
         target,
-        achievementPercentage:
-            target > 0 ? (invoicedTotal / target) * 100 : null,
+        achievementPercentage: target > 0 ? (totalUnits / target) * 100 : null,
     };
 }
 
@@ -460,11 +488,11 @@ function sumTotals(totals: MonthlySalesReportTotal[]): MonthlySalesReportTotal {
         }
     }
     const invoicedTotal = sumInvoiced(brands);
+    const totalUnits = sumTotalUnits(brands);
     return {
         brands,
         invoicedTotal,
         target,
-        achievementPercentage:
-            target > 0 ? (invoicedTotal / target) * 100 : null,
+        achievementPercentage: target > 0 ? (totalUnits / target) * 100 : null,
     };
 }

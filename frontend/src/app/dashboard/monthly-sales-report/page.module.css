@@ -195,10 +195,22 @@
 }
 
 .reportTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   background: var(--color-table-head);
   color: var(--color-text);
   font-size: 0.78rem;
   font-weight: 800;
+}
+
+.reportTable thead tr:first-child th {
+  height: 39px;
+}
+
+.reportTable thead tr:nth-child(2) th {
+  top: 39px;
+  z-index: 2;
 }
 
 .locationCell {
@@ -243,6 +255,14 @@
   border-block-start: 2px solid var(--color-border-strong);
   background: var(--color-ink);
   color: #fff;
+}
+
+.reportTable tfoot .repeatedHeader th {
+  border: 1px solid var(--color-border);
+  background: var(--color-table-head);
+  color: var(--color-text);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .messageCell {
@@ -305,6 +325,10 @@
 
   .tableWrap {
     overflow: visible;
+  }
+
+  .reportTable thead th {
+    position: static;
   }
 
   .reportTable {

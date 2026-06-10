@@ -324,24 +324,7 @@ export default function MonthlySalesReportPage() {
         <div className={styles.tableWrap}>
           <table className={styles.reportTable}>
             <thead>
-              <tr>
-                <th rowSpan={2}>{t("monthlySalesReport.salesLocation")}</th>
-                <th rowSpan={2}>{t("monthlySalesReport.salesman")}</th>
-                {BRANDS.map((brand) => (
-                  <th colSpan={2} key={brand}>
-                    {brand}
-                  </th>
-                ))}
-                <th rowSpan={2}>{t("monthlySalesReport.totalInvoiced")}</th>
-                <th rowSpan={2}>{t("monthlySalesReport.target")}</th>
-                <th rowSpan={2}>{t("monthlySalesReport.achievement")}</th>
-              </tr>
-              <tr>
-                {BRANDS.flatMap((brand) => [
-                  <th key={`${brand}-invoiced`}>{t("monthlySalesReport.invoiced")}</th>,
-                  <th key={`${brand}-reservations`}>{t("monthlySalesReport.reservations")}</th>,
-                ])}
-              </tr>
+              <ReportHeaderRows t={t} />
             </thead>
             <tbody>
               {loading && !report ? (
@@ -385,6 +368,7 @@ export default function MonthlySalesReportPage() {
             {report ? (
               <tfoot>
                 <TotalRow label={t("monthlySalesReport.grandTotal")} total={report.grandTotal} />
+                <ReportHeaderRows t={t} repeated />
               </tfoot>
             ) : null}
           </table>
@@ -402,7 +386,65 @@ function BrandCells({ value }: { value: MonthlySalesReportRow | MonthlySalesRepo
         <td key={`${brand}-i`}>{formatNumber(value.brands[brand].invoiced)}</td>,
         <td key={`${brand}-r`}>{formatNumber(value.brands[brand].reservations)}</td>,
       ])}
-      <td className={styles.totalCell}>{formatNumber(value.invoicedTotal)}</td>
+      <td className={styles.totalCell}>{formatNumber(totalUnits(value))}</td>
+    </>
+  );
+}
+
+function ReportHeaderRows({
+  t,
+  repeated = false,
+}: {
+  t: (key: string) => string;
+  repeated?: boolean;
+}) {
+  const className = repeated ? styles.repeatedHeader : undefined;
+
+  if (repeated) {
+    return (
+      <>
+        <tr className={className}>
+          <th rowSpan={2}>{t("monthlySalesReport.salesLocation")}</th>
+          <th rowSpan={2}>{t("monthlySalesReport.salesman")}</th>
+          {BRANDS.flatMap((brand) => [
+            <th key={`${brand}-invoiced`}>{t("monthlySalesReport.invoiced")}</th>,
+            <th key={`${brand}-reservations`}>{t("monthlySalesReport.reservations")}</th>,
+          ])}
+          <th rowSpan={2}>{t("monthlySalesReport.total")}</th>
+          <th rowSpan={2}>{t("monthlySalesReport.target")}</th>
+          <th rowSpan={2}>{t("monthlySalesReport.achievement")}</th>
+        </tr>
+        <tr className={className}>
+          {BRANDS.map((brand) => (
+            <th colSpan={2} key={brand}>
+              {brand}
+            </th>
+          ))}
+        </tr>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <tr className={className}>
+        <th rowSpan={2}>{t("monthlySalesReport.salesLocation")}</th>
+        <th rowSpan={2}>{t("monthlySalesReport.salesman")}</th>
+        {BRANDS.map((brand) => (
+          <th colSpan={2} key={brand}>
+            {brand}
+          </th>
+        ))}
+        <th rowSpan={2}>{t("monthlySalesReport.total")}</th>
+        <th rowSpan={2}>{t("monthlySalesReport.target")}</th>
+        <th rowSpan={2}>{t("monthlySalesReport.achievement")}</th>
+      </tr>
+      <tr className={className}>
+        {BRANDS.flatMap((brand) => [
+          <th key={`${brand}-invoiced`}>{t("monthlySalesReport.invoiced")}</th>,
+          <th key={`${brand}-reservations`}>{t("monthlySalesReport.reservations")}</th>,
+        ])}
+      </tr>
     </>
   );
 }
@@ -411,8 +453,10 @@ function RowCountCells({ value }: { value: MonthlySalesReportRow }) {
   return (
     <>
       <BrandCells value={value} />
-      <td className={styles.targetCell}>-</td>
-      <td className={styles.achievementCell}>-</td>
+      <td className={styles.targetCell}>{formatNumber(value.target)}</td>
+      <td className={styles.achievementCell}>
+        {formatAchievement(value.achievementPercentage)}
+      </td>
     </>
   );
 }
@@ -447,6 +491,14 @@ function Field({
 
 function formatAchievement(value: number | null) {
   return value === null ? "-" : `${value.toFixed(1)}%`;
+}
+
+function totalUnits(value: MonthlySalesReportRow | MonthlySalesReportTotal) {
+  return BRANDS.reduce(
+    (total, brand) =>
+      total + value.brands[brand].invoiced + value.brands[brand].reservations,
+    0,
+  );
 }
 
 function defaultFilters(): ReportFilters {
