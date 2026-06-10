@@ -299,7 +299,7 @@ export function normalizeBrand(
 ): MonthlySalesBrand | null {
     const normalized = normalizeText(value).replace(/[^a-z0-9]/g, '');
     if (normalized === 'jac') return 'JAC';
-    if (normalized === 'forthing') return 'FORTHING';
+    if (normalized === 'for' || normalized === 'forthing') return 'FORTHING';
     if (normalized === 'rox') return 'ROX';
     return null;
 }

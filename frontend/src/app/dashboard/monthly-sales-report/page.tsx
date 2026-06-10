@@ -14,7 +14,7 @@ import type {
 } from "@/types/monthlySales";
 import styles from "./page.module.css";
 
-const BRANDS: MonthlySalesBrand[] = ["JAC", "FORTHING", "ROX"];
+const BRANDS: MonthlySalesBrand[] = ["ROX", "FORTHING", "JAC"];
 
 interface ReportFilters {
   dateFrom: string;
@@ -383,8 +383,8 @@ function BrandCells({ value }: { value: MonthlySalesReportRow | MonthlySalesRepo
   return (
     <>
       {BRANDS.flatMap((brand) => [
-        <td key={`${brand}-i`}>{formatNumber(value.brands[brand].invoiced)}</td>,
         <td key={`${brand}-r`}>{formatNumber(value.brands[brand].reservations)}</td>,
+        <td key={`${brand}-i`}>{formatNumber(value.brands[brand].invoiced)}</td>,
       ])}
       <td className={styles.totalCell}>{formatNumber(totalUnits(value))}</td>
     </>
@@ -407,8 +407,8 @@ function ReportHeaderRows({
           <th rowSpan={2}>{t("monthlySalesReport.salesLocation")}</th>
           <th rowSpan={2}>{t("monthlySalesReport.salesman")}</th>
           {BRANDS.flatMap((brand) => [
-            <th key={`${brand}-invoiced`}>{t("monthlySalesReport.invoiced")}</th>,
             <th key={`${brand}-reservations`}>{t("monthlySalesReport.reservations")}</th>,
+            <th key={`${brand}-invoiced`}>{t("monthlySalesReport.invoiced")}</th>,
           ])}
           <th rowSpan={2}>{t("monthlySalesReport.total")}</th>
           <th rowSpan={2}>{t("monthlySalesReport.target")}</th>
@@ -441,8 +441,8 @@ function ReportHeaderRows({
       </tr>
       <tr className={className}>
         {BRANDS.flatMap((brand) => [
-          <th key={`${brand}-invoiced`}>{t("monthlySalesReport.invoiced")}</th>,
           <th key={`${brand}-reservations`}>{t("monthlySalesReport.reservations")}</th>,
+          <th key={`${brand}-invoiced`}>{t("monthlySalesReport.invoiced")}</th>,
         ])}
       </tr>
     </>

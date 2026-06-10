@@ -102,6 +102,23 @@ describe('calculateMonthlySalesReport', () => {
         expect(report.rows[0].achievementPercentage).toBe(100);
     });
 
+    it('maps the FOR source brand code to FORTHING', () => {
+        const report = calculate([
+            row({ chassis: 'VIN-FOR-SOLD', brand: 'FOR' }),
+            row({
+                chassis: 'VIN-FOR-RESERVED',
+                brand: 'FOR',
+                arInvoiceDate: '',
+                normalizedStatus: 'reserve',
+                isSold: false,
+                isReserved: true,
+            }),
+        ]);
+
+        expect(report.rows[0].brands.FORTHING.invoiced).toBe(1);
+        expect(report.rows[0].brands.FORTHING.reservations).toBe(1);
+    });
+
     it('counts distinct source and chassis combinations', () => {
         const report = calculate([
             row(),
