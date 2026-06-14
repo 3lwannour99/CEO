@@ -350,6 +350,7 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       runSnapshot: "Run Snapshot",
       monthlyComparison: "Monthly Comparison",
       dailySnapshot: "Daily Snapshot",
+      edit: "Edit",
       delete: "Delete",
     },
     topbar: {
@@ -1911,6 +1912,11 @@ translations.ar.transaction = {
   ungrouped: "بدون مجموعة",
   deleteGroupConfirm:
     "حذف هذه المجموعة؟ سيبقى موظفو المبيعات في الموقع بدون مجموعة.",
+};
+
+(translations.ar.actions as TranslationTree) = {
+  ...(translations.ar.actions as TranslationTree),
+  edit: "تعديل",
 };
 
 export function resolveTranslation(language: LanguageCode, key: string): string {
