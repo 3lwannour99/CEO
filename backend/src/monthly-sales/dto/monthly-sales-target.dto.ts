@@ -41,10 +41,22 @@ export class MonthlySalesAssignmentDto {
     @IsString()
     locationId!: string;
 
+    @IsOptional()
+    @IsString()
+    groupId?: string;
+
     @IsArray()
     @ArrayNotEmpty()
     @IsString({ each: true })
     allowedBrands!: string[];
+}
+
+export class MonthlySalesGroupDto {
+    @IsString()
+    locationId!: string;
+
+    @IsString()
+    name!: string;
 }
 
 export class ReorderMonthlySalesLocationsDto {
@@ -56,4 +68,17 @@ export class ReorderMonthlySalesLocationsDto {
     @ArrayNotEmpty()
     @IsString({ each: true })
     locationIds!: string[];
+}
+
+export class ReorderMonthlySalesAssignmentsDto {
+    @IsString()
+    locationId!: string;
+
+    @IsOptional()
+    @IsString()
+    groupId?: string;
+
+    @IsArray()
+    @IsString({ each: true })
+    assignmentIds!: string[];
 }

@@ -10,6 +10,9 @@ export interface MonthlySalesReportRow {
   salesmanName: string;
   salesmanCode: string | null;
   salesLocation: string;
+  groupName: string | null;
+  groupSortOrder: number | null;
+  sortOrder: number;
   allowedBrands: MonthlySalesBrand[];
   brands: Record<MonthlySalesBrand, MonthlySalesBrandCounts>;
   invoicedTotal: number;
@@ -55,8 +58,18 @@ export interface MonthlySalesAssignment {
   normalizedSalesmanName: string;
   salesmanCode: string | null;
   locationId: string;
+  groupId: string | null;
+  sortOrder: number;
   allowedBrands: MonthlySalesBrand[];
   isActive: boolean;
+}
+
+export interface MonthlySalesGroup {
+  id: string;
+  locationId: string;
+  name: string;
+  normalizedName: string;
+  sortOrder: number;
 }
 
 export interface MonthlySalesLocation {
@@ -68,6 +81,7 @@ export interface MonthlySalesLocation {
   isActive: boolean;
   sortOrder: number;
   assignments: MonthlySalesAssignment[];
+  groups: MonthlySalesGroup[];
 }
 
 export interface MonthlySalesManagementBoard {
@@ -88,5 +102,17 @@ export interface MonthlySalesAssignmentInput {
   salesmanName: string;
   salesmanCode?: string;
   locationId: string;
+  groupId?: string;
   allowedBrands: MonthlySalesBrand[];
+}
+
+export interface MonthlySalesGroupInput {
+  locationId: string;
+  name: string;
+}
+
+export interface MonthlySalesAssignmentOrderInput {
+  locationId: string;
+  groupId?: string;
+  assignmentIds: string[];
 }

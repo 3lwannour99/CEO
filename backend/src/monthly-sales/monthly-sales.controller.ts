@@ -17,7 +17,9 @@ import { PermissionsGuard } from '../auth/permissions.guard';
 import { MonthlySalesReportQueryDto } from './dto/monthly-sales-report-query.dto';
 import {
     MonthlySalesAssignmentDto,
+    MonthlySalesGroupDto,
     MonthlySalesLocationDto,
+    ReorderMonthlySalesAssignmentsDto,
     ReorderMonthlySalesLocationsDto,
 } from './dto/monthly-sales-target.dto';
 import { MonthlySalesService } from './monthly-sales.service';
@@ -90,11 +92,39 @@ export class MonthlySalesController {
         return this.monthlySalesService.deleteLocation(id);
     }
 
+    @Post('monthly-sales-targets/groups')
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
+    @RequirePermissions('monthlySalesTargets.manage')
+    createGroup(@Body() dto: MonthlySalesGroupDto) {
+        return this.monthlySalesService.createGroup(dto);
+    }
+
+    @Put('monthly-sales-targets/groups/:id')
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
+    @RequirePermissions('monthlySalesTargets.manage')
+    updateGroup(@Param('id') id: string, @Body() dto: MonthlySalesGroupDto) {
+        return this.monthlySalesService.updateGroup(id, dto);
+    }
+
+    @Delete('monthly-sales-targets/groups/:id')
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
+    @RequirePermissions('monthlySalesTargets.manage')
+    deleteGroup(@Param('id') id: string) {
+        return this.monthlySalesService.deleteGroup(id);
+    }
+
     @Put('monthly-sales-targets/assignments')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
     @RequirePermissions('monthlySalesTargets.manage')
     assignSalesman(@Body() dto: MonthlySalesAssignmentDto) {
         return this.monthlySalesService.assignSalesman(dto);
+    }
+
+    @Put('monthly-sales-targets/assignments/reorder')
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
+    @RequirePermissions('monthlySalesTargets.manage')
+    reorderAssignments(@Body() dto: ReorderMonthlySalesAssignmentsDto) {
+        return this.monthlySalesService.reorderAssignments(dto);
     }
 
     @Delete('monthly-sales-targets/assignments/:id')

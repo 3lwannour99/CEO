@@ -351,6 +351,9 @@ export default function MonthlySalesReportPage() {
                         ) : null}
                         <td className={styles.salesmanCell}>
                           {row.salesmanName}
+                          {row.groupName && row.groupName !== row.salesmanName ? (
+                            <small>{row.groupName}</small>
+                          ) : null}
                           {!row.isMapped ? <span>{t("monthlySalesReport.unmapped")}</span> : null}
                         </td>
                         <RowCountCells value={row} />

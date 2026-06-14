@@ -8,7 +8,9 @@ import { InventoryService } from '../inventory/inventory.service';
 import { MonthlySalesReportQueryDto } from './dto/monthly-sales-report-query.dto';
 import {
     MonthlySalesAssignmentDto,
+    MonthlySalesGroupDto,
     MonthlySalesLocationDto,
+    ReorderMonthlySalesAssignmentsDto,
     ReorderMonthlySalesLocationsDto,
 } from './dto/monthly-sales-target.dto';
 import {
@@ -40,7 +42,7 @@ export class MonthlySalesService {
                     isActive: true,
                     location: { isActive: true },
                 },
-                include: { location: true },
+                include: { location: true, group: true },
                 orderBy: { salesmanName: 'asc' },
             }),
         ]);
@@ -81,7 +83,14 @@ export class MonthlySalesService {
                 include: {
                     assignments: {
                         where: { isActive: true },
-                        orderBy: { salesmanName: 'asc' },
+                        orderBy: [
+                            { groupId: 'asc' },
+                            { sortOrder: 'asc' },
+                            { salesmanName: 'asc' },
+                        ],
+                    },
+                    groups: {
+                        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
                     },
                 },
                 orderBy: [{ sortOrder: 'asc' }, { salesLocation: 'asc' }],
@@ -180,6 +189,41 @@ export class MonthlySalesService {
         return { ok: true };
     }
 
+    async createGroup(dto: MonthlySalesGroupDto) {
+        await this.requireLocation(dto.locationId);
+        const group = sanitizeGroup(dto);
+        const lastGroup = await this.prisma.monthlySalesGroup.findFirst({
+            where: { locationId: dto.locationId },
+            orderBy: { sortOrder: 'desc' },
+            select: { sortOrder: true },
+        });
+        return this.prisma.monthlySalesGroup.create({
+            data: {
+                ...group,
+                sortOrder: (lastGroup?.sortOrder ?? -1) + 1,
+            },
+        });
+    }
+
+    async updateGroup(id: string, dto: MonthlySalesGroupDto) {
+        const existing = await this.requireGroup(id);
+        if (existing.locationId !== dto.locationId) {
+            throw new BadRequestException(
+                'A group cannot be moved to another sales location.',
+            );
+        }
+        return this.prisma.monthlySalesGroup.update({
+            where: { id },
+            data: sanitizeGroup(dto),
+        });
+    }
+
+    async deleteGroup(id: string) {
+        await this.requireGroup(id);
+        await this.prisma.monthlySalesGroup.delete({ where: { id } });
+        return { ok: true };
+    }
+
     async reorderLocations(dto: ReorderMonthlySalesLocationsDto) {
         validateTargetMonth(dto.targetMonth);
         const locationIds = [...new Set(dto.locationIds)];
@@ -219,7 +263,30 @@ export class MonthlySalesService {
                 'The location and assignment must belong to the same month.',
             );
         }
+        if (dto.groupId) {
+            const group = await this.requireGroup(dto.groupId);
+            if (group.locationId !== dto.locationId) {
+                throw new BadRequestException(
+                    'The selected group must belong to the selected location.',
+                );
+            }
+        }
         const data = sanitizeAssignment(dto);
+        const existing = await this.prisma.monthlySalesAssignment.findUnique({
+            where: {
+                targetMonth_normalizedSalesmanName: {
+                    targetMonth: dto.targetMonth,
+                    normalizedSalesmanName: data.normalizedSalesmanName,
+                },
+            },
+        });
+        const moved =
+            !existing ||
+            existing.locationId !== data.locationId ||
+            existing.groupId !== data.groupId;
+        const sortOrder = moved
+            ? await this.nextAssignmentSortOrder(data.locationId, data.groupId)
+            : existing.sortOrder;
         return this.prisma.monthlySalesAssignment
             .upsert({
                 where: {
@@ -228,16 +295,70 @@ export class MonthlySalesService {
                         normalizedSalesmanName: data.normalizedSalesmanName,
                     },
                 },
-                create: data,
+                create: { ...data, sortOrder },
                 update: {
                     locationId: data.locationId,
+                    groupId: data.groupId,
                     salesmanName: data.salesmanName,
                     salesmanCode: data.salesmanCode,
                     allowedBrands: data.allowedBrands,
+                    sortOrder,
                     isActive: true,
                 },
             })
             .then(serializeAssignment);
+    }
+
+    async reorderAssignments(dto: ReorderMonthlySalesAssignmentsDto) {
+        await this.requireLocation(dto.locationId);
+        const groupId = dto.groupId?.trim() || null;
+        if (groupId) {
+            const group = await this.requireGroup(groupId);
+            if (group.locationId !== dto.locationId) {
+                throw new BadRequestException(
+                    'The selected group must belong to the selected location.',
+                );
+            }
+        }
+        const assignmentIds = [...new Set(dto.assignmentIds)];
+        if (assignmentIds.length !== dto.assignmentIds.length) {
+            throw new BadRequestException(
+                'Assignment order cannot contain duplicate IDs.',
+            );
+        }
+        const assignments = await this.prisma.monthlySalesAssignment.findMany({
+            where: {
+                locationId: dto.locationId,
+                groupId,
+                isActive: true,
+            },
+            orderBy: [{ sortOrder: 'asc' }, { salesmanName: 'asc' }],
+            select: { id: true },
+        });
+        const existingIds = new Set(
+            assignments.map((assignment) => assignment.id),
+        );
+        if (assignmentIds.some((id) => !existingIds.has(id))) {
+            throw new BadRequestException(
+                'Assignment order contains a salesman outside the selected group.',
+            );
+        }
+        const selectedIds = new Set(assignmentIds);
+        let selectedIndex = 0;
+        const orderedIds = assignments.map((assignment) =>
+            selectedIds.has(assignment.id)
+                ? assignmentIds[selectedIndex++]
+                : assignment.id,
+        );
+        await this.prisma.$transaction(
+            orderedIds.map((id, sortOrder) =>
+                this.prisma.monthlySalesAssignment.update({
+                    where: { id },
+                    data: { sortOrder },
+                }),
+            ),
+        );
+        return { ok: true };
     }
 
     async unassignSalesman(id: string) {
@@ -261,6 +382,29 @@ export class MonthlySalesService {
             throw new NotFoundException('Monthly sales location not found.');
         }
         return location;
+    }
+
+    private async requireGroup(id: string) {
+        const group = await this.prisma.monthlySalesGroup.findUnique({
+            where: { id },
+        });
+        if (!group) {
+            throw new NotFoundException('Monthly sales group not found.');
+        }
+        return group;
+    }
+
+    private async nextAssignmentSortOrder(
+        locationId: string,
+        groupId: string | null,
+    ) {
+        const lastAssignment =
+            await this.prisma.monthlySalesAssignment.findFirst({
+                where: { locationId, groupId, isActive: true },
+                orderBy: { sortOrder: 'desc' },
+                select: { sortOrder: true },
+            });
+        return (lastAssignment?.sortOrder ?? -1) + 1;
     }
 }
 
@@ -320,19 +464,34 @@ function sanitizeAssignment(dto: MonthlySalesAssignmentDto) {
         normalizedSalesmanName: normalizeSalesmanName(salesmanName),
         salesmanCode: dto.salesmanCode?.trim() || null,
         locationId: dto.locationId,
+        groupId: dto.groupId?.trim() || null,
         allowedBrands: allowedBrands.join(','),
         isActive: true,
+    };
+}
+
+function sanitizeGroup(dto: MonthlySalesGroupDto) {
+    const name = dto.name.trim();
+    if (!name) {
+        throw new BadRequestException('Group name is required.');
+    }
+    return {
+        locationId: dto.locationId,
+        name,
+        normalizedName: normalizeText(name),
     };
 }
 
 function serializeLocation<T extends object>(
     location: T & {
         assignments?: Array<{ allowedBrands: string }>;
+        groups?: object[];
     },
 ) {
     return {
         ...location,
         assignments: location.assignments?.map(serializeAssignment) ?? [],
+        groups: location.groups ?? [],
     };
 }
 

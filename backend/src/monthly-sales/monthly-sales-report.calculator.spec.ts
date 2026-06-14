@@ -231,6 +231,119 @@ describe('calculateMonthlySalesReport', () => {
         expect(report.grandTotal.target).toBe(4);
     });
 
+    it('includes group metadata and orders salesmen by group', () => {
+        const firstAssignment: MonthlySalesAssignmentRecord = {
+            ...assignment,
+            id: 'assignment-later-group',
+            salesmanName: 'Ahmad Saleh',
+            normalizedSalesmanName: 'ahmad saleh',
+            group: { id: 'group-b', name: 'Group B', sortOrder: 1 },
+        };
+        const secondAssignment: MonthlySalesAssignmentRecord = {
+            ...assignment,
+            id: 'assignment-first-group',
+            salesmanName: 'Sara Ali',
+            normalizedSalesmanName: 'sara ali',
+            group: { id: 'group-a', name: 'Group A', sortOrder: 0 },
+        };
+        const report = calculateMonthlySalesReport(
+            [row(), row({ chassis: 'VIN-2', salesMan: 'Sara Ali' })],
+            [location],
+            [firstAssignment, secondAssignment],
+            {
+                dateFrom: '2026-06-01',
+                dateTo: '2026-06-30',
+                salesLocations: [],
+                salesmen: [],
+                brands: ['JAC', 'FORTHING', 'ROX'],
+            },
+        );
+
+        expect(report.rows.map((item) => item.salesmanName)).toEqual([
+            'Group A',
+            'Group B',
+        ]);
+        expect(report.rows.map((item) => item.groupName)).toEqual([
+            'Group A',
+            'Group B',
+        ]);
+    });
+
+    it('combines all salesmen in one group into a single report row', () => {
+        const group = { id: 'group-a', name: 'Sales Team', sortOrder: 0 };
+        const secondAssignment: MonthlySalesAssignmentRecord = {
+            ...assignment,
+            id: 'assignment-2',
+            salesmanName: 'Sara Ali',
+            normalizedSalesmanName: 'sara ali',
+            group,
+        };
+        const report = calculateMonthlySalesReport(
+            [
+                row(),
+                row({ chassis: 'VIN-2', salesMan: 'Sara Ali', brand: 'ROX' }),
+            ],
+            [location],
+            [{ ...assignment, group }, secondAssignment],
+            {
+                dateFrom: '2026-06-01',
+                dateTo: '2026-06-30',
+                salesLocations: [],
+                salesmen: [],
+                brands: ['JAC', 'FORTHING', 'ROX'],
+            },
+        );
+
+        expect(report.rows).toHaveLength(1);
+        expect(report.rows[0].salesmanName).toBe('Sales Team');
+        expect(report.rows[0].brands.JAC.invoiced).toBe(1);
+        expect(report.rows[0].brands.ROX.invoiced).toBe(1);
+        expect(report.rows[0].target).toBe(4);
+        expect(report.rows[0].achievementPercentage).toBe(50);
+    });
+
+    it('counts one group and one ungrouped salesman as two target units', () => {
+        const group = { id: 'group-a', name: 'Sales Team', sortOrder: 0 };
+        const groupedAssignment: MonthlySalesAssignmentRecord = {
+            ...assignment,
+            group,
+        };
+        const secondGroupedAssignment: MonthlySalesAssignmentRecord = {
+            ...assignment,
+            id: 'assignment-2',
+            salesmanName: 'Sara Ali',
+            normalizedSalesmanName: 'sara ali',
+            group,
+        };
+        const ungroupedAssignment: MonthlySalesAssignmentRecord = {
+            ...assignment,
+            id: 'assignment-3',
+            salesmanName: 'Omar Ali',
+            normalizedSalesmanName: 'omar ali',
+        };
+        const report = calculateMonthlySalesReport(
+            [
+                row(),
+                row({ chassis: 'VIN-2', salesMan: 'Sara Ali' }),
+                row({ chassis: 'VIN-3', salesMan: 'Omar Ali' }),
+            ],
+            [location],
+            [groupedAssignment, secondGroupedAssignment, ungroupedAssignment],
+            {
+                dateFrom: '2026-06-01',
+                dateTo: '2026-06-30',
+                salesLocations: [],
+                salesmen: [],
+                brands: ['JAC', 'FORTHING', 'ROX'],
+            },
+        );
+
+        expect(report.rows).toHaveLength(2);
+        expect(report.rows.map((item) => item.target)).toEqual([2, 2]);
+        expect(report.rows[0].salesmanName).toBe('Sales Team');
+        expect(report.locationTotals[0].target).toBe(4);
+    });
+
     it('includes an active location target even when no salesman is assigned', () => {
         const report = calculateMonthlySalesReport([], [location], [], {
             dateFrom: '2026-06-01',

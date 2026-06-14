@@ -11,16 +11,21 @@ import { formatNumber } from "@/lib/apiClient";
 import { getFilterOptions } from "@/lib/filterOptions";
 import {
   assignMonthlySalesman,
+  createMonthlySalesGroup,
   createMonthlySalesLocation,
+  deleteMonthlySalesGroup,
   deleteMonthlySalesLocation,
   getMonthlySalesManagementBoard,
+  reorderMonthlySalesAssignments,
   reorderMonthlySalesLocations,
   setMonthlySalesLocationActive,
   unassignMonthlySalesman,
+  updateMonthlySalesGroup,
   updateMonthlySalesLocation,
 } from "@/services/monthlySalesApi";
 import type {
   MonthlySalesAssignment,
+  MonthlySalesGroup,
   MonthlySalesLocation,
   MonthlySalesLocationInput,
   MonthlySalesManagementBoard,
@@ -33,6 +38,8 @@ interface DraggedSalesman {
   assignmentId?: string;
   salesmanName: string;
   salesmanCode?: string;
+  locationId?: string;
+  groupId?: string;
   allowedBrands: Array<(typeof ALL_BRANDS)[number]>;
 }
 
@@ -58,6 +65,7 @@ export default function MonthlySalesTargetsPage() {
   const [draggedLocationId, setDraggedLocationId] = useState<string | null>(null);
   const [locationDropTarget, setLocationDropTarget] = useState<string | null>(null);
   const [columnSearches, setColumnSearches] = useState<Record<string, string>>({});
+  const [groupDrafts, setGroupDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   const loadBoard = useCallback(async () => {
@@ -106,7 +114,7 @@ export default function MonthlySalesTargetsPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function dropOnLocation(locationId: string) {
+  async function dropOnLocation(locationId: string, groupId?: string) {
     if (!dragged) return;
     setDropTarget(null);
     try {
@@ -115,6 +123,7 @@ export default function MonthlySalesTargetsPage() {
         salesmanName: dragged.salesmanName,
         salesmanCode: dragged.salesmanCode,
         locationId,
+        groupId,
         allowedBrands: dragged.allowedBrands,
       });
       setDragged(null);
@@ -122,6 +131,83 @@ export default function MonthlySalesTargetsPage() {
     } catch (moveError) {
       setError(
         moveError instanceof Error ? moveError.message : t("monthlySalesTargets.saveFailed"),
+      );
+    }
+  }
+
+  async function dropSalesmanBefore(
+    locationId: string,
+    groupId: string | undefined,
+    assignments: MonthlySalesAssignment[],
+    targetAssignmentId: string,
+  ) {
+    if (!dragged?.assignmentId) return;
+    if (dragged.locationId !== locationId || dragged.groupId !== groupId) {
+      await dropOnLocation(locationId, groupId);
+      return;
+    }
+    const nextAssignments = reorderAssignments(
+      assignments,
+      dragged.assignmentId,
+      targetAssignmentId,
+    );
+    if (nextAssignments === assignments) return;
+    setDropTarget(null);
+    try {
+      await reorderMonthlySalesAssignments({
+        locationId,
+        groupId,
+        assignmentIds: nextAssignments.map((assignment) => assignment.id),
+      });
+      setDragged(null);
+      await loadBoard();
+    } catch (reorderError) {
+      setError(
+        reorderError instanceof Error
+          ? reorderError.message
+          : t("monthlySalesTargets.reorderFailed"),
+      );
+    }
+  }
+
+  async function addGroup(locationId: string) {
+    const name = groupDrafts[locationId]?.trim();
+    if (!name) return;
+    setSaving(true);
+    try {
+      await createMonthlySalesGroup({ locationId, name });
+      setGroupDrafts((current) => ({ ...current, [locationId]: "" }));
+      await loadBoard();
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error ? saveError.message : t("monthlySalesTargets.saveFailed"),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function renameGroup(group: MonthlySalesGroup) {
+    const name = window.prompt(t("monthlySalesTargets.groupName"), group.name)?.trim();
+    if (!name || name === group.name) return;
+    try {
+      await updateMonthlySalesGroup(group.id, { locationId: group.locationId, name });
+      await loadBoard();
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error ? saveError.message : t("monthlySalesTargets.saveFailed"),
+      );
+    }
+  }
+
+  async function removeGroup(group: MonthlySalesGroup) {
+    if (!window.confirm(t("monthlySalesTargets.deleteGroupConfirm"))) return;
+    try {
+      await deleteMonthlySalesGroup(group.id);
+      await loadBoard();
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error ? deleteError.message : t("monthlySalesTargets.deleteFailed"),
       );
     }
   }
@@ -315,6 +401,12 @@ export default function MonthlySalesTargetsPage() {
             const visibleAssignments = location.assignments.filter((assignment) =>
               matchesSalesmanSearch(assignment.salesmanName, assignment.salesmanCode, searchValue),
             );
+            const ungroupedAssignments = visibleAssignments.filter(
+              (assignment) => !assignment.groupId,
+            );
+            const allUngroupedAssignments = location.assignments.filter(
+              (assignment) => !assignment.groupId,
+            );
 
             return (
               <DropColumn
@@ -385,11 +477,88 @@ export default function MonthlySalesTargetsPage() {
                   </>
                 }
               >
-                {visibleAssignments.map((assignment) => (
-                  <SalesmanCard
-                    key={assignment.id}
-                    salesman={assignmentToDrag(assignment)}
+                <div className={styles.groupCreator}>
+                  <input
+                    value={groupDrafts[location.id] ?? ""}
+                    placeholder={t("monthlySalesTargets.groupName")}
+                    onChange={(event) =>
+                      setGroupDrafts((current) => ({
+                        ...current,
+                        [location.id]: event.target.value,
+                      }))
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void addGroup(location.id);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={saving || !groupDrafts[location.id]?.trim()}
+                    onClick={() => void addGroup(location.id)}
+                  >
+                    {t("monthlySalesTargets.addGroup")}
+                  </button>
+                </div>
+                <GroupSection
+                  title={t("monthlySalesTargets.ungrouped")}
+                  assignments={ungroupedAssignments}
+                  allAssignments={allUngroupedAssignments}
+                  active={dropTarget === `${location.id}:ungrouped`}
+                  onDragOver={(event) =>
+                    dragOver(event, `${location.id}:ungrouped`, setDropTarget)
+                  }
+                  onDrop={(event) => {
+                    event.stopPropagation();
+                    void dropOnLocation(location.id);
+                  }}
+                  onDragStart={setDragged}
+                  onDropBefore={(assignments, targetAssignmentId) =>
+                    void dropSalesmanBefore(
+                      location.id,
+                      undefined,
+                      assignments,
+                      targetAssignmentId,
+                    )
+                  }
+                />
+                {location.groups.map((group) => (
+                  <GroupSection
+                    key={group.id}
+                    title={group.name}
+                    assignments={visibleAssignments.filter(
+                      (assignment) => assignment.groupId === group.id,
+                    )}
+                    allAssignments={location.assignments.filter(
+                      (assignment) => assignment.groupId === group.id,
+                    )}
+                    active={dropTarget === group.id}
+                    onDragOver={(event) => dragOver(event, group.id, setDropTarget)}
+                    onDrop={(event) => {
+                      event.stopPropagation();
+                      void dropOnLocation(location.id, group.id);
+                    }}
                     onDragStart={setDragged}
+                    onDropBefore={(assignments, targetAssignmentId) =>
+                      void dropSalesmanBefore(
+                        location.id,
+                        group.id,
+                        assignments,
+                        targetAssignmentId,
+                      )
+                    }
+                    actions={
+                      <>
+                        <button type="button" onClick={() => void renameGroup(group)}>
+                          {t("actions.edit")}
+                        </button>
+                        <button type="button" onClick={() => void removeGroup(group)}>
+                          {t("actions.delete")}
+                        </button>
+                      </>
+                    }
                   />
                 ))}
               </DropColumn>
@@ -398,6 +567,68 @@ export default function MonthlySalesTargetsPage() {
         </div>
       </SectionCard>
     </>
+  );
+}
+
+function GroupSection({
+  title,
+  assignments,
+  allAssignments,
+  active,
+  actions,
+  onDragOver,
+  onDrop,
+  onDragStart,
+  onDropBefore,
+}: {
+  title: string;
+  assignments: MonthlySalesAssignment[];
+  allAssignments: MonthlySalesAssignment[];
+  active: boolean;
+  actions?: React.ReactNode;
+  onDragOver: (event: DragEvent<HTMLElement>) => void;
+  onDrop: (event: DragEvent<HTMLElement>) => void;
+  onDragStart: (salesman: DraggedSalesman) => void;
+  onDropBefore: (
+    assignments: MonthlySalesAssignment[],
+    targetAssignmentId: string,
+  ) => void;
+}) {
+  return (
+    <section
+      className={`${styles.groupSection} ${active ? styles.groupDropActive : ""}`}
+      onDragOver={(event) => {
+        event.stopPropagation();
+        onDragOver(event);
+      }}
+      onDragLeave={() => undefined}
+      onDrop={onDrop}
+    >
+      <div className={styles.groupHeader}>
+        <strong>{title}</strong>
+        <span>{formatNumber(assignments.length)}</span>
+        {actions ? <div>{actions}</div> : null}
+      </div>
+      <div className={styles.groupCards}>
+        {assignments.map((assignment) => (
+          <SalesmanCard
+            key={assignment.id}
+            salesman={assignmentToDrag(assignment)}
+            onDragStart={onDragStart}
+            onDragOver={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              event.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onDropBefore(allAssignments, assignment.id);
+            }}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -490,14 +721,20 @@ function DropColumn({
 function SalesmanCard({
   salesman,
   onDragStart,
+  onDragOver,
+  onDrop,
 }: {
   salesman: DraggedSalesman;
   onDragStart: (salesman: DraggedSalesman) => void;
+  onDragOver?: (event: DragEvent<HTMLDivElement>) => void;
+  onDrop?: (event: DragEvent<HTMLDivElement>) => void;
 }) {
   return (
     <div
       className={styles.salesmanCard}
       draggable
+      onDragOver={onDragOver}
+      onDrop={onDrop}
       onDragStart={(event) => {
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", salesman.salesmanName);
@@ -525,7 +762,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function dragOver(
-  event: DragEvent<HTMLDivElement>,
+  event: DragEvent<HTMLElement>,
   target: string,
   setTarget: (target: string) => void,
 ) {
@@ -539,8 +776,28 @@ function assignmentToDrag(assignment: MonthlySalesAssignment): DraggedSalesman {
     assignmentId: assignment.id,
     salesmanName: assignment.salesmanName,
     salesmanCode: assignment.salesmanCode ?? undefined,
+    locationId: assignment.locationId,
+    groupId: assignment.groupId ?? undefined,
     allowedBrands: assignment.allowedBrands,
   };
+}
+
+function reorderAssignments(
+  assignments: MonthlySalesAssignment[],
+  draggedId: string,
+  targetId: string,
+) {
+  if (draggedId === targetId) return assignments;
+  const next = [...assignments].sort(
+    (left, right) => left.sortOrder - right.sortOrder || left.salesmanName.localeCompare(right.salesmanName),
+  );
+  const draggedIndex = next.findIndex((assignment) => assignment.id === draggedId);
+  const targetIndex = next.findIndex((assignment) => assignment.id === targetId);
+  if (draggedIndex < 0 || targetIndex < 0) return assignments;
+  const [draggedAssignment] = next.splice(draggedIndex, 1);
+  const nextTargetIndex = next.findIndex((assignment) => assignment.id === targetId);
+  next.splice(nextTargetIndex, 0, draggedAssignment);
+  return next;
 }
 
 function reorderLocations(locations: MonthlySalesLocation[], draggedId: string, targetId: string) {

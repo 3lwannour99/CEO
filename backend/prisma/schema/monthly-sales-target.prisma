@@ -9,12 +9,31 @@ model MonthlySalesLocation {
   sortOrder     Int @default(0)
 
   assignments MonthlySalesAssignment[]
+  groups      MonthlySalesGroup[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@unique([targetMonth, normalizedLocation])
   @@index([targetMonth, sortOrder])
   @@index([targetMonth, isActive])
+}
+
+model MonthlySalesGroup {
+  id String @id @default(cuid())
+
+  name           String
+  normalizedName String
+  sortOrder      Int @default(0)
+
+  locationId String
+  location   MonthlySalesLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  assignments MonthlySalesAssignment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([locationId, normalizedName])
+  @@index([locationId, sortOrder])
 }
 
 model MonthlySalesAssignment {
@@ -26,13 +45,19 @@ model MonthlySalesAssignment {
   salesmanCode           String?
   allowedBrands          String @default("JAC,FORTHING,ROX")
   isActive               Boolean @default(true)
+  sortOrder              Int @default(0)
 
   locationId String
   location   MonthlySalesLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  groupId String?
+  group   MonthlySalesGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([targetMonth, normalizedSalesmanName])
   @@index([targetMonth, locationId, isActive])
+  @@index([locationId, groupId, sortOrder])
+  @@index([groupId])
 }

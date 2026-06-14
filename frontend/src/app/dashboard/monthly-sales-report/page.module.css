@@ -234,6 +234,14 @@
   font-size: 0.7rem;
 }
 
+.salesmanCell small {
+  display: block;
+  margin-block-start: 3px;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
 .totalCell,
 .targetCell,
 .achievementCell {

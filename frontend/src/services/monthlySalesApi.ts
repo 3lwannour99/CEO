@@ -2,6 +2,9 @@ import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/apiClient";
 import type {
   MonthlySalesAssignment,
   MonthlySalesAssignmentInput,
+  MonthlySalesAssignmentOrderInput,
+  MonthlySalesGroup,
+  MonthlySalesGroupInput,
   MonthlySalesLocation,
   MonthlySalesLocationInput,
   MonthlySalesManagementBoard,
@@ -60,8 +63,24 @@ export function reorderMonthlySalesLocations(targetMonth: string, locationIds: s
   });
 }
 
+export function createMonthlySalesGroup(input: MonthlySalesGroupInput) {
+  return apiPost<MonthlySalesGroup>("/monthly-sales-targets/groups", input);
+}
+
+export function updateMonthlySalesGroup(id: string, input: MonthlySalesGroupInput) {
+  return apiPut<MonthlySalesGroup>(`/monthly-sales-targets/groups/${id}`, input);
+}
+
+export function deleteMonthlySalesGroup(id: string) {
+  return apiDelete<{ ok: boolean }>(`/monthly-sales-targets/groups/${id}`);
+}
+
 export function assignMonthlySalesman(input: MonthlySalesAssignmentInput) {
   return apiPut<MonthlySalesAssignment>("/monthly-sales-targets/assignments", input);
+}
+
+export function reorderMonthlySalesAssignments(input: MonthlySalesAssignmentOrderInput) {
+  return apiPut<{ ok: boolean }>("/monthly-sales-targets/assignments/reorder", input);
 }
 
 export function unassignMonthlySalesman(id: string) {

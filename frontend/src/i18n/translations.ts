@@ -150,6 +150,11 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       searchSalesman: "Search salesman",
       dragLocation: "Drag to reorder location",
       reorderFailed: "The sales-location order could not be saved.",
+      addGroup: "Add group",
+      groupName: "Group name",
+      ungrouped: "Ungrouped",
+      deleteGroupConfirm:
+        "Delete this group? Its salespeople will remain in the location as ungrouped.",
     },
     users: {
       title: "Users",
@@ -1897,6 +1902,15 @@ translations.ar.transaction = {
   replenishmentRealSalesNote: "يتم حساب طلب إعادة الطلب بناءً على المبيعات الخارجية بشكل افتراضي.",
   coverageRealSalesNote: "يتم حساب التغطية بناءً على المبيعات الخارجية بشكل افتراضي.",
   allSales: "كل المبيعات",
+};
+
+(translations.ar.monthlySalesTargets as TranslationTree) = {
+  ...(translations.ar.monthlySalesTargets as TranslationTree),
+  addGroup: "إضافة مجموعة",
+  groupName: "اسم المجموعة",
+  ungrouped: "بدون مجموعة",
+  deleteGroupConfirm:
+    "حذف هذه المجموعة؟ سيبقى موظفو المبيعات في الموقع بدون مجموعة.",
 };
 
 export function resolveTranslation(language: LanguageCode, key: string): string {

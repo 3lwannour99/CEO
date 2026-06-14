@@ -194,6 +194,84 @@
   padding: 12px;
 }
 
+.groupCreator {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.groupCreator input,
+.groupCreator button,
+.groupHeader button {
+  min-height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding-inline: 9px;
+}
+
+.groupCreator button,
+.groupHeader button {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.groupCreator button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.groupSection {
+  display: grid;
+  gap: 8px;
+  min-height: 74px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  padding: 9px;
+}
+
+.groupDropActive {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.groupHeader > strong {
+  min-width: 0;
+  margin-inline-end: auto;
+}
+
+.groupHeader > span {
+  border-radius: 999px;
+  background: var(--color-soft);
+  padding: 2px 7px;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.groupHeader > div {
+  display: flex;
+  gap: 5px;
+}
+
+.groupHeader button {
+  min-height: 28px;
+  padding-inline: 7px;
+  font-size: 0.72rem;
+}
+
+.groupCards {
+  display: grid;
+  gap: 7px;
+}
+
 .salesmanCard {
   display: flex;
   align-items: center;

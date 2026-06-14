@@ -41,6 +41,8 @@ export interface MonthlySalesAssignmentRecord {
     normalizedSalesmanName: string;
     salesmanCode: string | null;
     allowedBrands: string;
+    sortOrder?: number;
+    group?: { id: string; name: string; sortOrder: number } | null;
     location: MonthlySalesLocationRecord;
 }
 
@@ -70,6 +72,9 @@ export interface MonthlySalesReportRow {
     salesmanName: string;
     salesmanCode: string | null;
     salesLocation: string;
+    groupName: string | null;
+    groupSortOrder: number | null;
+    sortOrder: number;
     allowedBrands: MonthlySalesBrand[];
     brands: Record<MonthlySalesBrand, BrandCounts>;
     invoicedTotal: number;
@@ -107,13 +112,16 @@ export function calculateMonthlySalesReport(
             assignment.salesmanName.trim(),
         ]),
     );
-    const assignmentCountByLocation = new Map<string, number>();
+    const reportingUnitsByLocation = new Map<string, Set<string>>();
     for (const assignment of assignments) {
         const location = normalizeText(assignment.location.salesLocation);
-        assignmentCountByLocation.set(
-            location,
-            (assignmentCountByLocation.get(location) ?? 0) + 1,
+        const units = reportingUnitsByLocation.get(location) ?? new Set();
+        units.add(
+            assignment.group
+                ? `group:${assignment.group.id}`
+                : `salesman:${assignment.id}`,
         );
+        reportingUnitsByLocation.set(location, units);
     }
     const reportInventory = inventory.filter((item) =>
         itemMatchesNonDateFilters(item, filters),
@@ -212,11 +220,12 @@ export function calculateMonthlySalesReport(
         }
 
         const invoicedTotal = sumInvoiced(brandCounts);
-        const locationAssignmentCount =
-            assignmentCountByLocation.get(normalizeText(salesLocation)) ?? 0;
+        const locationReportingUnitCount =
+            reportingUnitsByLocation.get(normalizeText(salesLocation))?.size ??
+            0;
         const target =
-            locationAssignmentCount > 0
-                ? assignment.location.target / locationAssignmentCount
+            locationReportingUnitCount > 0
+                ? assignment.location.target / locationReportingUnitCount
                 : 0;
         const totalUnits = sumTotalUnits(brandCounts);
         rows.push({
@@ -224,6 +233,9 @@ export function calculateMonthlySalesReport(
             salesmanName,
             salesmanCode: assignment.salesmanCode,
             salesLocation,
+            groupName: assignment.group?.name.trim() || null,
+            groupSortOrder: assignment.group?.sortOrder ?? null,
+            sortOrder: assignment.sortOrder ?? 0,
             allowedBrands,
             brands: brandCounts,
             invoicedTotal,
@@ -234,14 +246,19 @@ export function calculateMonthlySalesReport(
         });
     }
 
-    rows.sort(
+    const displayRows = combineGroupedRows(rows);
+    displayRows.sort(
         (left, right) =>
             left.salesLocation.localeCompare(right.salesLocation) ||
+            (left.groupSortOrder ?? Number.MAX_SAFE_INTEGER) -
+                (right.groupSortOrder ?? Number.MAX_SAFE_INTEGER) ||
+            (left.groupName ?? '').localeCompare(right.groupName ?? '') ||
+            left.sortOrder - right.sortOrder ||
             left.salesmanName.localeCompare(right.salesmanName),
     );
 
     const locationGroups = new Map<string, MonthlySalesReportRow[]>();
-    for (const row of rows) {
+    for (const row of displayRows) {
         const group = locationGroups.get(row.salesLocation) ?? [];
         group.push(row);
         locationGroups.set(row.salesLocation, group);
@@ -283,11 +300,59 @@ export function calculateMonthlySalesReport(
     const grandTotal = sumTotals(locationTotals);
 
     return {
-        rows,
+        rows: displayRows,
         locationTotals,
         grandTotal,
         options: allOptions,
     };
+}
+
+function combineGroupedRows(rows: MonthlySalesReportRow[]) {
+    const combined: MonthlySalesReportRow[] = [];
+    const grouped = new Map<string, MonthlySalesReportRow[]>();
+
+    for (const row of rows) {
+        if (!row.groupName) {
+            combined.push(row);
+            continue;
+        }
+        const key = `${row.salesLocation}|${row.groupSortOrder}|${row.groupName}`;
+        const members = grouped.get(key) ?? [];
+        members.push(row);
+        grouped.set(key, members);
+    }
+
+    for (const members of grouped.values()) {
+        const first = members[0];
+        const brands = emptyBrandCounts();
+        const allowedBrands = new Set<MonthlySalesBrand>();
+        for (const member of members) {
+            for (const brand of MONTHLY_SALES_BRANDS) {
+                brands[brand].invoiced += member.brands[brand].invoiced;
+                brands[brand].reservations += member.brands[brand].reservations;
+                if (member.allowedBrands.includes(brand)) {
+                    allowedBrands.add(brand);
+                }
+            }
+        }
+        const invoicedTotal = sumInvoiced(brands);
+        const totalUnits = sumTotalUnits(brands);
+        combined.push({
+            ...first,
+            mappingId: null,
+            salesmanName: first.groupName!,
+            salesmanCode: null,
+            allowedBrands: [...allowedBrands],
+            brands,
+            invoicedTotal,
+            target: first.target,
+            achievementPercentage:
+                first.target > 0 ? (totalUnits / first.target) * 100 : null,
+            sortOrder: first.groupSortOrder ?? 0,
+        });
+    }
+
+    return combined;
 }
 
 export function normalizeSalesmanName(value: string | null | undefined) {
