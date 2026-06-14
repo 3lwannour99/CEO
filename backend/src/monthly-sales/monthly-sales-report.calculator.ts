@@ -113,6 +113,7 @@ export function calculateMonthlySalesReport(
         ]),
     );
     const reportingUnitsByLocation = new Map<string, Set<string>>();
+    const assignmentCountByGroup = new Map<string, number>();
     for (const assignment of assignments) {
         const location = normalizeText(assignment.location.salesLocation);
         const units = reportingUnitsByLocation.get(location) ?? new Set();
@@ -122,6 +123,12 @@ export function calculateMonthlySalesReport(
                 : `salesman:${assignment.id}`,
         );
         reportingUnitsByLocation.set(location, units);
+        if (assignment.group) {
+            assignmentCountByGroup.set(
+                assignment.group.id,
+                (assignmentCountByGroup.get(assignment.group.id) ?? 0) + 1,
+            );
+        }
     }
     const reportInventory = inventory.filter((item) =>
         itemMatchesNonDateFilters(item, filters),
@@ -223,10 +230,14 @@ export function calculateMonthlySalesReport(
         const locationReportingUnitCount =
             reportingUnitsByLocation.get(normalizeText(salesLocation))?.size ??
             0;
-        const target =
+        const reportingUnitTarget =
             locationReportingUnitCount > 0
                 ? assignment.location.target / locationReportingUnitCount
                 : 0;
+        const groupAssignmentCount = assignment.group
+            ? (assignmentCountByGroup.get(assignment.group.id) ?? 1)
+            : 1;
+        const target = reportingUnitTarget / groupAssignmentCount;
         const totalUnits = sumTotalUnits(brandCounts);
         rows.push({
             mappingId: assignment.id,
@@ -246,8 +257,7 @@ export function calculateMonthlySalesReport(
         });
     }
 
-    const displayRows = combineGroupedRows(rows);
-    displayRows.sort(
+    rows.sort(
         (left, right) =>
             left.salesLocation.localeCompare(right.salesLocation) ||
             (left.groupSortOrder ?? Number.MAX_SAFE_INTEGER) -
@@ -258,7 +268,7 @@ export function calculateMonthlySalesReport(
     );
 
     const locationGroups = new Map<string, MonthlySalesReportRow[]>();
-    for (const row of displayRows) {
+    for (const row of rows) {
         const group = locationGroups.get(row.salesLocation) ?? [];
         group.push(row);
         locationGroups.set(row.salesLocation, group);
@@ -300,59 +310,11 @@ export function calculateMonthlySalesReport(
     const grandTotal = sumTotals(locationTotals);
 
     return {
-        rows: displayRows,
+        rows,
         locationTotals,
         grandTotal,
         options: allOptions,
     };
-}
-
-function combineGroupedRows(rows: MonthlySalesReportRow[]) {
-    const combined: MonthlySalesReportRow[] = [];
-    const grouped = new Map<string, MonthlySalesReportRow[]>();
-
-    for (const row of rows) {
-        if (!row.groupName) {
-            combined.push(row);
-            continue;
-        }
-        const key = `${row.salesLocation}|${row.groupSortOrder}|${row.groupName}`;
-        const members = grouped.get(key) ?? [];
-        members.push(row);
-        grouped.set(key, members);
-    }
-
-    for (const members of grouped.values()) {
-        const first = members[0];
-        const brands = emptyBrandCounts();
-        const allowedBrands = new Set<MonthlySalesBrand>();
-        for (const member of members) {
-            for (const brand of MONTHLY_SALES_BRANDS) {
-                brands[brand].invoiced += member.brands[brand].invoiced;
-                brands[brand].reservations += member.brands[brand].reservations;
-                if (member.allowedBrands.includes(brand)) {
-                    allowedBrands.add(brand);
-                }
-            }
-        }
-        const invoicedTotal = sumInvoiced(brands);
-        const totalUnits = sumTotalUnits(brands);
-        combined.push({
-            ...first,
-            mappingId: null,
-            salesmanName: first.groupName!,
-            salesmanCode: null,
-            allowedBrands: [...allowedBrands],
-            brands,
-            invoicedTotal,
-            target: first.target,
-            achievementPercentage:
-                first.target > 0 ? (totalUnits / first.target) * 100 : null,
-            sortOrder: first.groupSortOrder ?? 0,
-        });
-    }
-
-    return combined;
 }
 
 export function normalizeSalesmanName(value: string | null | undefined) {

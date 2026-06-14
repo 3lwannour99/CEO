@@ -260,8 +260,8 @@ describe('calculateMonthlySalesReport', () => {
         );
 
         expect(report.rows.map((item) => item.salesmanName)).toEqual([
-            'Group A',
-            'Group B',
+            'Sara Ali',
+            'Ahmad Saleh',
         ]);
         expect(report.rows.map((item) => item.groupName)).toEqual([
             'Group A',
@@ -269,7 +269,7 @@ describe('calculateMonthlySalesReport', () => {
         ]);
     });
 
-    it('combines all salesmen in one group into a single report row', () => {
+    it('keeps grouped salesmen as individual rows with a shared group target', () => {
         const group = { id: 'group-a', name: 'Sales Team', sortOrder: 0 };
         const secondAssignment: MonthlySalesAssignmentRecord = {
             ...assignment,
@@ -294,12 +294,20 @@ describe('calculateMonthlySalesReport', () => {
             },
         );
 
-        expect(report.rows).toHaveLength(1);
-        expect(report.rows[0].salesmanName).toBe('Sales Team');
+        expect(report.rows).toHaveLength(2);
+        expect(report.rows.map((item) => item.salesmanName)).toEqual([
+            'Ahmad Saleh',
+            'Sara Ali',
+        ]);
+        expect(report.rows.map((item) => item.groupName)).toEqual([
+            'Sales Team',
+            'Sales Team',
+        ]);
         expect(report.rows[0].brands.JAC.invoiced).toBe(1);
-        expect(report.rows[0].brands.ROX.invoiced).toBe(1);
-        expect(report.rows[0].target).toBe(4);
+        expect(report.rows[1].brands.ROX.invoiced).toBe(1);
+        expect(report.rows.map((item) => item.target)).toEqual([2, 2]);
         expect(report.rows[0].achievementPercentage).toBe(50);
+        expect(report.rows[1].achievementPercentage).toBe(50);
     });
 
     it('counts one group and one ungrouped salesman as two target units', () => {
@@ -338,9 +346,13 @@ describe('calculateMonthlySalesReport', () => {
             },
         );
 
-        expect(report.rows).toHaveLength(2);
-        expect(report.rows.map((item) => item.target)).toEqual([2, 2]);
-        expect(report.rows[0].salesmanName).toBe('Sales Team');
+        expect(report.rows).toHaveLength(3);
+        expect(report.rows.map((item) => item.target)).toEqual([1, 1, 2]);
+        expect(report.rows.map((item) => item.salesmanName)).toEqual([
+            'Ahmad Saleh',
+            'Sara Ali',
+            'Omar Ali',
+        ]);
         expect(report.locationTotals[0].target).toBe(4);
     });
 
