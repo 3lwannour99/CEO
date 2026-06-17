@@ -271,6 +271,7 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       inventory: "Inventory",
       logistics: "Logistics",
       "multi-location": "Multi-location",
+      "monthly-sales-targets": "Sales target mapping",
       pages: "Pages",
       permissions: "Permissions",
       replenishment: "Replenishment",
@@ -1917,6 +1918,11 @@ translations.ar.transaction = {
 (translations.ar.actions as TranslationTree) = {
   ...(translations.ar.actions as TranslationTree),
   edit: "تعديل",
+};
+
+(translations.ar.permissionCategories as TranslationTree) = {
+  ...(translations.ar.permissionCategories as TranslationTree),
+  "monthly-sales-targets": "ربط أهداف المبيعات",
 };
 
 export function resolveTranslation(language: LanguageCode, key: string): string {

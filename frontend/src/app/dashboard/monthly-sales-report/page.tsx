@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LanguageToggle } from "@/components/LanguageToggle/LanguageToggle";
+import { MultiSelect } from "@/components/MultiSelect/MultiSelect";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 import { useI18n } from "@/i18n/useI18n";
 import { formatNumber } from "@/lib/apiClient";
@@ -12,6 +13,7 @@ import type {
   MonthlySalesReportRow,
   MonthlySalesReportTotal,
 } from "@/types/monthlySales";
+import type { PageFilterOption } from "@/types/inventory";
 import styles from "./page.module.css";
 
 const BRANDS: MonthlySalesBrand[] = ["ROX", "FORTHING", "JAC"];
@@ -19,16 +21,16 @@ const BRANDS: MonthlySalesBrand[] = ["ROX", "FORTHING", "JAC"];
 interface ReportFilters {
   dateFrom: string;
   dateTo: string;
-  salesLocation: string;
-  salesman: string;
-  brand: string;
-  country: string;
-  sourceId: string;
-  branch: string;
-  warehouse: string;
-  model: string;
-  type: string;
-  customerGroup: string;
+  salesLocations: string[];
+  salesmen: string[];
+  brands: string[];
+  countries: string[];
+  sourceIds: string[];
+  branches: string[];
+  warehouses: string[];
+  models: string[];
+  types: string[];
+  customerGroups: string[];
   search: string;
 }
 
@@ -45,16 +47,16 @@ export default function MonthlySalesReportPage() {
       const response = await getPublicMonthlySalesReport({
         dateFrom: filters.dateFrom,
         dateTo: filters.dateTo,
-        salesLocation: filters.salesLocation || undefined,
-        salesman: filters.salesman || undefined,
-        brands: filters.brand || undefined,
-        countries: filters.country || undefined,
-        sourceIds: filters.sourceId || undefined,
-        branches: filters.branch || undefined,
-        warehouses: filters.warehouse || undefined,
-        models: filters.model || undefined,
-        types: filters.type || undefined,
-        customerGroups: filters.customerGroup || undefined,
+        salesLocation: toQueryList(filters.salesLocations),
+        salesman: toQueryList(filters.salesmen),
+        brands: toQueryList(filters.brands),
+        countries: toQueryList(filters.countries),
+        sourceIds: toQueryList(filters.sourceIds),
+        branches: toQueryList(filters.branches),
+        warehouses: toQueryList(filters.warehouses),
+        models: toQueryList(filters.models),
+        types: toQueryList(filters.types),
+        customerGroups: toQueryList(filters.customerGroups),
         search: filters.search || undefined,
       });
       setReport(response);
@@ -94,6 +96,23 @@ export default function MonthlySalesReportPage() {
     }));
   }, [report]);
 
+  const reportOptions = useMemo(() => {
+    const options = report?.options;
+
+    return {
+      salesLocations: toOptions(options?.salesLocations ?? []),
+      salesmen: toOptions(options?.salesmen ?? []),
+      brands: toOptions(options?.brands ?? BRANDS),
+      countries: toOptions(options?.countries ?? []),
+      sources: options?.sources ?? [],
+      branches: toOptions(options?.branches ?? []),
+      warehouses: toOptions(options?.warehouses ?? []),
+      models: toOptions(options?.models ?? []),
+      types: toOptions(options?.types ?? []),
+      customerGroups: toOptions(options?.customerGroups ?? []),
+    };
+  }, [report]);
+
   return (
     <main className={styles.page}>
       <header className={styles.header}>
@@ -130,156 +149,16 @@ export default function MonthlySalesReportPage() {
               onChange={(event) => updateDate("dateTo", event.target.value, setFilters)}
             />
           </Field>
-          <Field label={t("monthlySalesReport.salesLocation")}>
-            <select
-              value={filters.salesLocation}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, salesLocation: event.target.value }))
-              }
-            >
-              <option value="">{t("monthlySalesReport.allLocations")}</option>
-              {(report?.options.salesLocations ?? []).map((location) => (
-                <option value={location} key={location}>
-                  {translateUnmapped(location, t)}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t("monthlySalesReport.salesman")}>
-            <select
-              value={filters.salesman}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, salesman: event.target.value }))
-              }
-            >
-              <option value="">{t("monthlySalesReport.allSalesmen")}</option>
-              {(report?.options.salesmen ?? []).map((salesman) => (
-                <option value={salesman} key={salesman}>
-                  {salesman}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t("monthlySalesReport.brand")}>
-            <select
-              value={filters.brand}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, brand: event.target.value }))
-              }
-            >
-              <option value="">{t("monthlySalesReport.allBrands")}</option>
-              {BRANDS.map((brand) => (
-                <option value={brand} key={brand}>
-                  {brand}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t("filters.country")}>
-            <select
-              value={filters.country}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, country: event.target.value }))
-              }
-            >
-              <option value="">{t("topbar.allCountries")}</option>
-              {(report?.options.countries ?? []).map((country) => (
-                <option value={country} key={country}>
-                  {country}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t("filters.source")}>
-            <select
-              value={filters.sourceId}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, sourceId: event.target.value }))
-              }
-            >
-              <option value="">{t("monthlySalesReport.allSources")}</option>
-              {(report?.options.sources ?? []).map((source) => (
-                <option value={source.value} key={source.value}>
-                  {source.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t("filters.branch")}>
-            <select
-              value={filters.branch}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, branch: event.target.value }))
-              }
-            >
-              <option value="">{t("monthlySalesReport.allBranches")}</option>
-              {(report?.options.branches ?? []).map((branch) => (
-                <option value={branch} key={branch}>
-                  {branch}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t("filters.warehouse")}>
-            <select
-              value={filters.warehouse}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, warehouse: event.target.value }))
-              }
-            >
-              <option value="">{t("monthlySalesReport.allWarehouses")}</option>
-              {(report?.options.warehouses ?? []).map((warehouse) => (
-                <option value={warehouse} key={warehouse}>
-                  {warehouse}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t("filters.model")}>
-            <select
-              value={filters.model}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, model: event.target.value }))
-              }
-            >
-              <option value="">{t("monthlySalesReport.allModels")}</option>
-              {(report?.options.models ?? []).map((model) => (
-                <option value={model} key={model}>
-                  {model}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t("filters.type")}>
-            <select
-              value={filters.type}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, type: event.target.value }))
-              }
-            >
-              <option value="">{t("monthlySalesReport.allTypes")}</option>
-              {(report?.options.types ?? []).map((type) => (
-                <option value={type} key={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t("filters.customerGroup")}>
-            <select
-              value={filters.customerGroup}
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, customerGroup: event.target.value }))
-              }
-            >
-              <option value="">{t("monthlySalesReport.allCustomerGroups")}</option>
-              {(report?.options.customerGroups ?? []).map((group) => (
-                <option value={group} key={group}>
-                  {group}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <ReportMultiSelect label={t("monthlySalesReport.salesLocation")} options={reportOptions.salesLocations} values={filters.salesLocations} onChange={(salesLocations) => setFilters((current) => ({ ...current, salesLocations }))} />
+          <ReportMultiSelect label={t("monthlySalesReport.salesman")} options={reportOptions.salesmen} values={filters.salesmen} onChange={(salesmen) => setFilters((current) => ({ ...current, salesmen }))} />
+          <ReportMultiSelect label={t("monthlySalesReport.brand")} options={reportOptions.brands} values={filters.brands} onChange={(brands) => setFilters((current) => ({ ...current, brands }))} />
+          <ReportMultiSelect label={t("filters.country")} options={reportOptions.countries} values={filters.countries} onChange={(countries) => setFilters((current) => ({ ...current, countries }))} />
+          <ReportMultiSelect label={t("filters.source")} options={reportOptions.sources} values={filters.sourceIds} onChange={(sourceIds) => setFilters((current) => ({ ...current, sourceIds }))} />
+          <ReportMultiSelect label={t("filters.branch")} options={reportOptions.branches} values={filters.branches} onChange={(branches) => setFilters((current) => ({ ...current, branches }))} />
+          <ReportMultiSelect label={t("filters.warehouse")} options={reportOptions.warehouses} values={filters.warehouses} onChange={(warehouses) => setFilters((current) => ({ ...current, warehouses }))} />
+          <ReportMultiSelect label={t("filters.model")} options={reportOptions.models} values={filters.models} onChange={(models) => setFilters((current) => ({ ...current, models }))} />
+          <ReportMultiSelect label={t("filters.type")} options={reportOptions.types} values={filters.types} onChange={(types) => setFilters((current) => ({ ...current, types }))} />
+          <ReportMultiSelect label={t("filters.customerGroup")} options={reportOptions.customerGroups} values={filters.customerGroups} onChange={(customerGroups) => setFilters((current) => ({ ...current, customerGroups }))} />
           <Field className={styles.searchField} label={t("filters.search")}>
             <input
               type="search"
@@ -509,18 +388,35 @@ function defaultFilters(): ReportFilters {
   return {
     dateFrom: toDateInput(new Date(year, month, 1)),
     dateTo: toDateInput(new Date(year, month + 1, 0)),
-    salesLocation: "",
-    salesman: "",
-    brand: "",
-    country: "",
-    sourceId: "",
-    branch: "",
-    warehouse: "",
-    model: "",
-    type: "",
-    customerGroup: "",
+    salesLocations: [],
+    salesmen: [],
+    brands: [],
+    countries: [],
+    sourceIds: [],
+    branches: [],
+    warehouses: [],
+    models: [],
+    types: [],
+    customerGroups: [],
     search: "",
   };
+}
+
+function ReportMultiSelect(props: {
+  label: string;
+  options: PageFilterOption[];
+  values: string[];
+  onChange: (values: string[]) => void;
+}) {
+  return <MultiSelect {...props} />;
+}
+
+function toOptions(values: string[]): PageFilterOption[] {
+  return values.map((value) => ({ value, label: value }));
+}
+
+function toQueryList(values: string[]) {
+  return values.length > 0 ? values.join(",") : undefined;
 }
 
 function updateDate(

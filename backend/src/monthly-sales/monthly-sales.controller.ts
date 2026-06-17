@@ -40,7 +40,7 @@ export class MonthlySalesController {
 
     @Get('monthly-sales-targets')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('monthlySalesTargets.view')
+    @RequirePermissions('monthlySalesTargets.page.view')
     getManagementBoard(
         @Query('targetMonth') targetMonth: string,
         @Query('countries') countries?: string,
@@ -53,21 +53,21 @@ export class MonthlySalesController {
 
     @Post('monthly-sales-targets/locations')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('monthlySalesTargets.manage')
+    @RequirePermissions('monthlySalesTargets.locations.manage')
     createLocation(@Body() dto: MonthlySalesLocationDto) {
         return this.monthlySalesService.createLocation(dto);
     }
 
     @Put('monthly-sales-targets/locations/reorder')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('monthlySalesTargets.manage')
+    @RequirePermissions('monthlySalesTargets.order.manage')
     reorderLocations(@Body() dto: ReorderMonthlySalesLocationsDto) {
         return this.monthlySalesService.reorderLocations(dto);
     }
 
     @Put('monthly-sales-targets/locations/:id')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('monthlySalesTargets.manage')
+    @RequirePermissions('monthlySalesTargets.locations.manage')
     updateLocation(
         @Param('id') id: string,
         @Body() dto: MonthlySalesLocationDto,
@@ -77,7 +77,7 @@ export class MonthlySalesController {
 
     @Patch('monthly-sales-targets/locations/:id/active')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('monthlySalesTargets.manage')
+    @RequirePermissions('monthlySalesTargets.locations.manage')
     setLocationActive(
         @Param('id') id: string,
         @Body() dto: SetLocationActiveDto,
@@ -87,49 +87,49 @@ export class MonthlySalesController {
 
     @Delete('monthly-sales-targets/locations/:id')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('monthlySalesTargets.manage')
+    @RequirePermissions('monthlySalesTargets.locations.manage')
     deleteLocation(@Param('id') id: string) {
         return this.monthlySalesService.deleteLocation(id);
     }
 
     @Post('monthly-sales-targets/groups')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('monthlySalesTargets.manage')
+    @RequirePermissions('monthlySalesTargets.groups.manage')
     createGroup(@Body() dto: MonthlySalesGroupDto) {
         return this.monthlySalesService.createGroup(dto);
     }
 
     @Put('monthly-sales-targets/groups/:id')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('monthlySalesTargets.manage')
+    @RequirePermissions('monthlySalesTargets.groups.manage')
     updateGroup(@Param('id') id: string, @Body() dto: MonthlySalesGroupDto) {
         return this.monthlySalesService.updateGroup(id, dto);
     }
 
     @Delete('monthly-sales-targets/groups/:id')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('monthlySalesTargets.manage')
+    @RequirePermissions('monthlySalesTargets.groups.manage')
     deleteGroup(@Param('id') id: string) {
         return this.monthlySalesService.deleteGroup(id);
     }
 
     @Put('monthly-sales-targets/assignments')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('monthlySalesTargets.manage')
+    @RequirePermissions('monthlySalesTargets.assignments.manage')
     assignSalesman(@Body() dto: MonthlySalesAssignmentDto) {
         return this.monthlySalesService.assignSalesman(dto);
     }
 
     @Put('monthly-sales-targets/assignments/reorder')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('monthlySalesTargets.manage')
+    @RequirePermissions('monthlySalesTargets.order.manage')
     reorderAssignments(@Body() dto: ReorderMonthlySalesAssignmentsDto) {
         return this.monthlySalesService.reorderAssignments(dto);
     }
 
     @Delete('monthly-sales-targets/assignments/:id')
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @RequirePermissions('monthlySalesTargets.manage')
+    @RequirePermissions('monthlySalesTargets.assignments.manage')
     unassignSalesman(@Param('id') id: string) {
         return this.monthlySalesService.unassignSalesman(id);
     }

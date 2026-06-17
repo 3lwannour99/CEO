@@ -20,8 +20,11 @@ const permissionKeys = [
     'users.page.view',
     'roles.page.view',
     'settings.page.view',
-    'monthlySalesTargets.view',
-    'monthlySalesTargets.manage',
+    'monthlySalesTargets.page.view',
+    'monthlySalesTargets.locations.manage',
+    'monthlySalesTargets.groups.manage',
+    'monthlySalesTargets.assignments.manage',
+    'monthlySalesTargets.order.manage',
     'dashboard.tabs.stockCoverage.view',
     'dashboard.tabs.stockHealth.view',
     'dashboard.tabs.autoAlerts.view',
@@ -363,6 +366,7 @@ const englishLabels: Record<string, string> = {
     movement: 'Movement',
     movementCategory: 'Movement category',
     multiLocation: 'Multi-location',
+    monthlySalesTargets: 'Sales target mapping',
     normalizedStatus: 'Normalized status',
     notes: 'Notes',
     overview: 'Overview',
@@ -603,6 +607,7 @@ const arabicLabels: Record<string, string> = {
 };
 
 Object.assign(arabicLabels, {
+    monthlySalesTargets: 'ربط أهداف المبيعات',
     affectedUnitsByAlertType: 'الوحدات المتأثرة حسب نوع التنبيه',
     alertsBySeverity: 'التنبيهات حسب الخطورة',
     alertsByType: 'التنبيهات حسب النوع',
@@ -804,6 +809,9 @@ function categoryFromKey(key: string) {
     }
     if (key.startsWith('multiLocation.')) {
         return 'multi-location';
+    }
+    if (key.startsWith('monthlySalesTargets.')) {
+        return 'monthly-sales-targets';
     }
     return 'general';
 }

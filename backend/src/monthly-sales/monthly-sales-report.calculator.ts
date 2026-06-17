@@ -130,36 +130,14 @@ export function calculateMonthlySalesReport(
             );
         }
     }
-    const reportInventory = inventory.filter((item) =>
-        itemMatchesNonDateFilters(item, filters),
-    );
+    const reportInventory = inventory.filter((item) => itemMatchesNonDateFilters(item, filters));
 
-    const requestedLocations = new Set(
-        filters.salesLocations.map(normalizeText),
-    );
-    const requestedSalesmen = new Set(
-        filters.salesmen.map(normalizeSalesmanName),
-    );
+    const hasRequestedSalesmen = filters.salesmen.length > 0;
     const requestedBrands = new Set(filters.brands);
     const configuredLocations = locations.map((location) =>
         location.salesLocation.trim(),
     );
-    const allOptions = {
-        salesLocations: [...new Set(configuredLocations)],
-        salesmen: [...salesmanNames.values()].sort(),
-        brands: [...MONTHLY_SALES_BRANDS],
-        countries: uniqueValues(inventory, (item) => item.sourceCountry),
-        sources: uniqueOptions(
-            inventory,
-            (item) => item.sourceId,
-            (item) => item.sourceName,
-        ),
-        branches: uniqueValues(inventory, (item) => item.branch),
-        warehouses: uniqueValues(inventory, (item) => item.warehouse),
-        models: uniqueValues(inventory, (item) => item.model),
-        types: uniqueValues(inventory, (item) => item.type),
-        customerGroups: uniqueValues(inventory, (item) => item.customerGroup),
-    };
+    const allOptions = buildCascadingOptions(inventory, assignments, configuredLocations, filters);
     const rows: MonthlySalesReportRow[] = [];
 
     for (const [normalizedSalesman, salesmanName] of salesmanNames) {
@@ -167,16 +145,10 @@ export function calculateMonthlySalesReport(
         const salesLocation = assignment.location.salesLocation.trim();
         const allowedBrands = assignment.allowedBrandList;
 
-        if (
-            requestedLocations.size > 0 &&
-            !requestedLocations.has(normalizeText(salesLocation))
-        ) {
+        if (!matchesFilter(salesLocation, filters.salesLocations)) {
             continue;
         }
-        if (
-            requestedSalesmen.size > 0 &&
-            !requestedSalesmen.has(normalizedSalesman)
-        ) {
+        if (!matchesFilter(salesmanName, filters.salesmen)) {
             continue;
         }
 
@@ -193,11 +165,7 @@ export function calculateMonthlySalesReport(
             }
 
             const brand = normalizeBrand(item.brand);
-            if (
-                !brand ||
-                !allowedBrands.includes(brand) ||
-                !requestedBrands.has(brand)
-            ) {
+            if (!brand || !allowedBrands.includes(brand) || !requestedBrands.has(brand)) {
                 continue;
             }
 
@@ -281,11 +249,10 @@ export function calculateMonthlySalesReport(
         ]),
     );
     const visibleLocations = new Set(locationGroups.keys());
-    if (requestedSalesmen.size === 0) {
+    if (!hasRequestedSalesmen) {
         for (const salesLocation of configuredLocations) {
             if (
-                requestedLocations.size === 0 ||
-                requestedLocations.has(normalizeText(salesLocation))
+                matchesFilter(salesLocation, filters.salesLocations)
             ) {
                 visibleLocations.add(salesLocation);
             }
@@ -339,19 +306,29 @@ export function parseAllowedBrands(value: string) {
     return [...new Set(brands)];
 }
 
+type InventoryFilterKey =
+    | 'countries'
+    | 'sourceIds'
+    | 'branches'
+    | 'warehouses'
+    | 'models'
+    | 'types'
+    | 'customerGroups';
+
 function itemMatchesNonDateFilters(
     item: MonthlySalesInventoryRow,
     filters: MonthlySalesReportFilters,
+    ignoredKey?: InventoryFilterKey,
 ) {
     const search = normalizeText(filters.search);
     return (
-        matchesFilter(item.sourceCountry, filters.countries ?? []) &&
-        matchesFilter(item.sourceId, filters.sourceIds ?? []) &&
-        matchesFilter(item.branch, filters.branches ?? []) &&
-        matchesFilter(item.warehouse, filters.warehouses ?? []) &&
-        matchesFilter(item.model, filters.models ?? []) &&
-        matchesFilter(item.type, filters.types ?? []) &&
-        matchesFilter(item.customerGroup, filters.customerGroups ?? []) &&
+        (ignoredKey === 'countries' || matchesFilter(item.sourceCountry, filters.countries ?? [])) &&
+        (ignoredKey === 'sourceIds' || matchesFilter(item.sourceId, filters.sourceIds ?? [])) &&
+        (ignoredKey === 'branches' || matchesFilter(item.branch, filters.branches ?? [])) &&
+        (ignoredKey === 'warehouses' || matchesFilter(item.warehouse, filters.warehouses ?? [])) &&
+        (ignoredKey === 'models' || matchesFilter(item.model, filters.models ?? [])) &&
+        (ignoredKey === 'types' || matchesFilter(item.type, filters.types ?? [])) &&
+        (ignoredKey === 'customerGroups' || matchesFilter(item.customerGroup, filters.customerGroups ?? [])) &&
         (!search ||
             normalizeText(
                 [
@@ -370,10 +347,87 @@ function itemMatchesNonDateFilters(
     );
 }
 
-function matchesFilter(value: string, selected: string[]) {
+function matchesFilter(value: string, selected: string[] = []) {
     if (selected.length === 0) return true;
     const normalized = normalizeText(value);
     return selected.some((item) => normalizeText(item) === normalized);
+}
+
+function buildCascadingOptions(
+    inventory: MonthlySalesInventoryRow[],
+    assignments: MonthlySalesAssignmentRecord[],
+    configuredLocations: string[],
+    filters: MonthlySalesReportFilters,
+) {
+    const filteredItemsFor = (ignoredKey?: InventoryFilterKey) =>
+        inventory.filter((item) => itemMatchesNonDateFilters(item, filters, ignoredKey));
+    const matchingInventory = filteredItemsFor();
+    const hasMatchingInventory = matchingInventory.length > 0;
+    const matchingSalesmen = new Set(matchingInventory.map((item) => normalizeSalesmanName(item.salesMan)));
+    const matchingBrands = new Set(
+        matchingInventory
+            .map((item) => normalizeBrand(item.brand))
+            .filter((brand): brand is MonthlySalesBrand => brand !== null),
+    );
+    const assignmentMatches = (
+        assignment: MonthlySalesAssignmentRecord,
+        ignoredKey?: 'salesLocations' | 'salesmen' | 'brands',
+    ) => {
+        const allowedBrands = parseAllowedBrands(assignment.allowedBrands);
+        const hasMatchingBrand = !hasMatchingInventory || allowedBrands.some((brand) => matchingBrands.has(brand));
+        const salesmanMatchesInventory =
+            matchingSalesmen.size === 0 || matchingSalesmen.has(assignment.normalizedSalesmanName);
+
+        return (
+            (ignoredKey === 'salesLocations' ||
+                matchesFilter(assignment.location.salesLocation, filters.salesLocations)) &&
+            (ignoredKey === 'salesmen' ||
+                matchesFilter(assignment.salesmanName, filters.salesmen)) &&
+            (ignoredKey === 'brands' ||
+                allowedBrands.some((brand) => filters.brands.length === 0 || filters.brands.includes(brand))) &&
+            hasMatchingBrand &&
+            salesmanMatchesInventory
+        );
+    };
+
+    return {
+        salesLocations:
+            assignments.length === 0
+                ? configuredLocations.filter((location) =>
+                      matchesFilter(location, filters.salesLocations),
+                  )
+                : [
+                      ...new Set(
+                          configuredLocations.filter((location) =>
+                              assignments.some(
+                                  (assignment) =>
+                                      assignment.location.salesLocation.trim() === location &&
+                                      assignmentMatches(assignment, 'salesLocations'),
+                              ),
+                          ),
+                      ),
+                  ],
+        salesmen: assignments
+            .filter((assignment) => assignmentMatches(assignment, 'salesmen'))
+            .map((assignment) => assignment.salesmanName.trim())
+            .filter(Boolean)
+            .sort(),
+        brands: MONTHLY_SALES_BRANDS.filter((brand) => {
+            if (hasMatchingInventory && !matchingBrands.has(brand)) return false;
+            return assignments.some((assignment) => assignmentMatches(assignment, 'brands') && parseAllowedBrands(assignment.allowedBrands).includes(brand));
+        }),
+        countries: uniqueValues(filteredItemsFor('countries'), (item) => item.sourceCountry),
+        sources: uniqueOptions(
+            filteredItemsFor('sourceIds'),
+            (item) => item.sourceId,
+            (item) => item.sourceName,
+        ),
+        branches: uniqueValues(filteredItemsFor('branches'), (item) => item.branch),
+        warehouses: uniqueValues(filteredItemsFor('warehouses'), (item) => item.warehouse),
+        models: uniqueValues(filteredItemsFor('models'), (item) => item.model),
+        types: uniqueValues(filteredItemsFor('types'), (item) => item.type),
+        customerGroups: uniqueValues(filteredItemsFor('customerGroups'), (item) => item.customerGroup),
+    };
 }
 
 function uniqueValues(

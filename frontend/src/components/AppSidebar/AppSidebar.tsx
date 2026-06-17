@@ -24,7 +24,7 @@ const navItems = [
   { labelKey: "nav.users", href: "/users", marker: "US", permissions: ["users.view", "users.manage"] },
   { labelKey: "nav.roles", href: "/roles", marker: "RO", permissions: ["roles.view", "roles.manage"] },
   { labelKey: "nav.settings", href: "/settings", marker: "ST", permissions: ["settings.view"] },
-  { labelKey: "nav.monthlySalesTargets", href: "/monthly-sales-targets", marker: "MT", permissions: ["monthlySalesTargets.view", "monthlySalesTargets.manage"] },
+  { labelKey: "nav.monthlySalesTargets", href: "/monthly-sales-targets", marker: "MT", permissions: ["monthlySalesTargets.page.view"] },
 ];
 
 interface AppSidebarProps {

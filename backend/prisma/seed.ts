@@ -17,6 +17,7 @@ const allPermissionKeys = permissionCatalog.map((permission) => permission.key);
 const pageAndReadOnlyKeys = allPermissionKeys.filter(
     (key) =>
         key.endsWith('.view') &&
+        !key.startsWith('monthlySalesTargets.') &&
         !key.startsWith('users.') &&
         !key.startsWith('roles.') &&
         !key.startsWith('permissions.') &&
@@ -38,6 +39,7 @@ const managerKeys = allPermissionKeys.filter(
             key === 'actions.export.view' ||
             key === 'actions.export.execute' ||
             key === 'actions.refreshDashboard.execute') &&
+        !key.startsWith('monthlySalesTargets.') &&
         !key.startsWith('users.') &&
         !key.startsWith('roles.') &&
         !key.startsWith('permissions.') &&
@@ -55,6 +57,14 @@ const rolePermissions: Record<keyof typeof roleDescriptions, string[]> = {
 };
 
 async function main() {
+    await prisma.permission.deleteMany({
+        where: {
+            key: {
+                in: ['monthlySalesTargets.view', 'monthlySalesTargets.manage'],
+            },
+        },
+    });
+
     const permissionRows = new Map<string, { id: string }>();
 
     for (const item of permissionCatalog) {
@@ -77,10 +87,13 @@ async function main() {
             update: { description, isActive: true },
             where: { name },
         });
-        const rolePermissionKeys = rolePermissions[name as keyof typeof rolePermissions];
+        const rolePermissionKeys =
+            rolePermissions[name as keyof typeof rolePermissions];
         const rolePermissionIds = rolePermissionKeys
             .map((permissionKey) => permissionRows.get(permissionKey)?.id)
-            .filter((permissionId): permissionId is string => Boolean(permissionId));
+            .filter((permissionId): permissionId is string =>
+                Boolean(permissionId),
+            );
 
         await prisma.rolePermission.deleteMany({
             where: {

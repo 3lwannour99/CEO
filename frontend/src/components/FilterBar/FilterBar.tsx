@@ -5,6 +5,7 @@ import { DateFilter } from "@/components/DateFilter/DateFilter";
 import { MultiSelect } from "@/components/MultiSelect/MultiSelect";
 import { OFFICIAL_VEHICLE_STATUSES } from "@/constants/statuses";
 import { useAppBusy } from "@/hooks/useAppBusy";
+import { filterInventory } from "@/lib/filterInventory";
 import { getFilterOptions } from "@/lib/filterOptions";
 import { transactionClassOptions } from "@/lib/transactionClassification";
 import { useI18n } from "@/i18n/useI18n";
@@ -25,10 +26,30 @@ export function FilterBar({ compact = false, filters, inventoryItems, sources, o
   const isBusy = useAppBusy();
   const searchTimeoutRef = useRef<number | null>(null);
   const latestFiltersRef = useRef(filters);
-  const options = useMemo(() => getFilterOptions(inventoryItems, sources), [inventoryItems, sources]);
+  const cascadedOptions = useMemo(() => {
+    const optionsFor = (key: keyof InventoryFilters) => {
+      const scopedFilters = { ...filters, [key]: Array.isArray(filters[key]) ? [] : filters[key] };
+      return getFilterOptions(filterInventory(inventoryItems, scopedFilters), sources);
+    };
+
+    return {
+      sources: optionsFor("sourceIds").sources,
+      countries: optionsFor("countries").countries,
+      brands: optionsFor("brands").brands,
+      models: optionsFor("models").models,
+      modelYears: optionsFor("modelYears").modelYears,
+      types: optionsFor("types").types,
+      exteriorColors: optionsFor("exteriorColors").exteriorColors,
+      interiorColors: optionsFor("interiorColors").interiorColors,
+      branches: optionsFor("branches").branches,
+      warehouses: optionsFor("warehouses").warehouses,
+      customerGroups: optionsFor("customerGroups").customerGroups,
+      salesmen: optionsFor("salesmen").salesmen,
+    };
+  }, [filters, inventoryItems, sources]);
   const translatedOptions = useMemo(
     () => ({
-      ...options,
+      ...cascadedOptions,
       statuses: OFFICIAL_VEHICLE_STATUSES.map((status) => ({ label: t(status.labelKey), value: status.value })),
       movementCategories: [
         { label: t("status.fast"), value: "fast" },
@@ -45,7 +66,7 @@ export function FilterBar({ compact = false, filters, inventoryItems, sources, o
         value,
       })),
     }),
-    [options, t],
+    [cascadedOptions, t],
   );
 
   useEffect(() => {

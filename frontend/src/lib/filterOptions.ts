@@ -8,8 +8,11 @@ function uniqueOptions(items: InventoryItem[], selector: (item: InventoryItem) =
 }
 
 export function getFilterOptions(items: InventoryItem[], sources: CounterScreenSource[]) {
+  const itemSourceIds = new Set(items.map((item) => item.sourceId).filter(Boolean));
+  const visibleSources = itemSourceIds.size > 0 ? sources.filter((source) => itemSourceIds.has(source.id)) : sources;
+
   return {
-    sources: sources.map((source) => ({ label: source.name, value: source.id })),
+    sources: visibleSources.map((source) => ({ label: source.name, value: source.id })),
     countries: uniqueOptions(items, (item) => item.sourceCountry),
     brands: uniqueOptions(items, (item) => item.brand),
     models: uniqueOptions(items, (item) => item.model),

@@ -560,16 +560,19 @@ function validateTargetMonth(value: string) {
 }
 
 function parseRequestedBrands(value?: string) {
-    if (!value) return [...MONTHLY_SALES_BRANDS];
-    const brands = splitFilter(value)
-        .map(normalizeBrand)
-        .filter((brand): brand is (typeof MONTHLY_SALES_BRANDS)[number] =>
-            Boolean(brand),
-        );
+    const brands = value ? parseBrandList(value) : [...MONTHLY_SALES_BRANDS];
     if (brands.length === 0) {
         throw new BadRequestException('No supported brands were selected.');
     }
     return [...new Set(brands)];
+}
+
+function parseBrandList(value?: string) {
+    return splitFilter(value)
+        .map(normalizeBrand)
+        .filter((brand): brand is (typeof MONTHLY_SALES_BRANDS)[number] =>
+            Boolean(brand),
+        );
 }
 
 function splitFilter(value?: string) {

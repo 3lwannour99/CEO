@@ -28,7 +28,7 @@ const routePermissions: Array<{ prefix: string; permissions: string[] }> = [
   { prefix: "/settings", permissions: ["settings.view"] },
   { prefix: "/roles", permissions: ["roles.view", "roles.manage"] },
   { prefix: "/users", permissions: ["users.view", "users.manage"] },
-  { prefix: "/monthly-sales-targets", permissions: ["monthlySalesTargets.view", "monthlySalesTargets.manage"] },
+  { prefix: "/monthly-sales-targets", permissions: ["monthlySalesTargets.page.view"] },
 ];
 
 export function DashboardShell({ children }: Readonly<{ children: React.ReactNode }>) {
