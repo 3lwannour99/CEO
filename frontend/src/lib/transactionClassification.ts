@@ -20,7 +20,7 @@ export function isSoldTransaction(item: InventoryItem) {
 }
 
 export function isReservationTransaction(item: InventoryItem) {
-  return normalizedStatus(item) === "reserve" || normalizedStatus(item) === "reservationForCompanies" || item.isReserved;
+  return ["reserve", "reservationForCompanies", "contract", "cession"].includes(normalizedStatus(item)) || item.isReserved;
 }
 
 export function withTransactionClassification<T extends InventoryItem>(item: T): T {
