@@ -115,6 +115,10 @@ function normalizeStatus(value: unknown): {
             displayStatus: 'In-Stock',
         },
         instock: { normalizedStatus: 'inStock', displayStatus: 'In-Stock' },
+        available: {
+            normalizedStatus: 'inStock',
+            displayStatus: 'In-Stock',
+        },
         'not-available': {
             normalizedStatus: 'notAvailable',
             displayStatus: 'Not-Available',
