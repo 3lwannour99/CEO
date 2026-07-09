@@ -175,13 +175,46 @@
   border-block-end: 1px solid var(--color-border);
 }
 
+.reportMetaActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.exportActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exportActions button {
+  min-height: 34px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  padding-inline: 12px;
+  font-weight: 800;
+}
+
+.exportActions button:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.exportActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .tableWrap {
   overflow: auto;
 }
 
 .reportTable {
   width: 100%;
-  min-width: 1120px;
+  min-width: 1200px;
   border-collapse: collapse;
   direction: rtl;
   text-align: center;
@@ -299,6 +332,11 @@
     flex-direction: column;
   }
 
+  .reportMetaActions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .filterGrid {
     grid-template-columns: 1fr;
   }
@@ -315,13 +353,29 @@
 }
 
 @media print {
+  @page {
+    size: A4 landscape;
+    margin: 7mm;
+  }
+
   .page {
+    width: 100%;
     max-width: none;
+    min-height: 0;
+    background: #fff;
     padding: 0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .page * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 
   .headerControls,
   .filters,
+  .exportActions,
   .note {
     display: none;
   }
@@ -329,10 +383,18 @@
   .reportCard {
     border: 0;
     box-shadow: none;
+    overflow: visible;
+  }
+
+  .reportMeta {
+    align-items: flex-start;
+    color: #111827;
+    padding: 0 0 6px;
   }
 
   .tableWrap {
     overflow: visible;
+    width: 100%;
   }
 
   .reportTable thead th {
@@ -340,16 +402,34 @@
   }
 
   .reportTable {
+    width: 100%;
     min-width: 0;
-    font-size: 9pt;
+    table-layout: fixed;
+    color: #111827;
+    font-size: 6.8pt;
   }
 
   .reportTable th,
   .reportTable td {
-    padding: 5px 4px;
+    padding: 3px 2px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .locationCell,
+  .salesmanCell {
+    min-width: 0;
   }
 
   .reportTable thead {
     display: table-header-group;
+  }
+
+  .reportTable tfoot {
+    display: table-row-group;
+  }
+
+  .reportTable tfoot .repeatedHeader {
+    display: none;
   }
 }

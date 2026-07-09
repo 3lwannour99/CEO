@@ -110,6 +110,10 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       invoiced: "Invoiced",
       reservations: "Reservations",
       total: "Total",
+      totalInvoiced: "Total invoiced",
+      totalReserved: "Total reserved",
+      exportExcel: "Export Excel",
+      exportPdf: "Export PDF",
       target: "Target",
       achievement: "Achievement %",
       locationTotal: "Location Total",
@@ -1986,6 +1990,18 @@ translations.ar.transaction = {
     "تم نسخ {locations} مواقع، و{groups} مجموعات، و{assignments} توزيعات بائعين.",
   copyFailed: "تعذر نسخ ربط الأهداف.",
   copyReplaceConfirm: "استبدال الربط الموجود في شهر الهدف قبل النسخ؟",
+};
+
+(translations.ar.monthlySalesReport as TranslationTree) = {
+  ...(translations.ar.monthlySalesReport as TranslationTree),
+  totalInvoiced: "إجمالي المفوتر",
+  totalReserved: "إجمالي المحجوز",
+};
+
+(translations.ar.monthlySalesReport as TranslationTree) = {
+  ...(translations.ar.monthlySalesReport as TranslationTree),
+  exportExcel: "تصدير Excel",
+  exportPdf: "تصدير PDF",
 };
 
 (translations.ar.actions as TranslationTree) = {

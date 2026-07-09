@@ -78,6 +78,7 @@ export interface MonthlySalesReportRow {
     allowedBrands: MonthlySalesBrand[];
     brands: Record<MonthlySalesBrand, BrandCounts>;
     invoicedTotal: number;
+    reservedTotal: number;
     target: number;
     achievementPercentage: number | null;
     isMapped: boolean;
@@ -87,6 +88,7 @@ export interface MonthlySalesReportTotal {
     salesLocation?: string;
     brands: Record<MonthlySalesBrand, BrandCounts>;
     invoicedTotal: number;
+    reservedTotal: number;
     target: number;
     achievementPercentage: number | null;
 }
@@ -195,6 +197,7 @@ export function calculateMonthlySalesReport(
         }
 
         const invoicedTotal = sumInvoiced(brandCounts);
+        const reservedTotal = sumReservations(brandCounts);
         const locationReportingUnitCount =
             reportingUnitsByLocation.get(normalizeText(salesLocation))?.size ??
             0;
@@ -206,7 +209,6 @@ export function calculateMonthlySalesReport(
             ? (assignmentCountByGroup.get(assignment.group.id) ?? 1)
             : 1;
         const target = reportingUnitTarget / groupAssignmentCount;
-        const totalUnits = sumTotalUnits(brandCounts);
         rows.push({
             mappingId: assignment.id,
             salesmanName,
@@ -218,9 +220,10 @@ export function calculateMonthlySalesReport(
             allowedBrands,
             brands: brandCounts,
             invoicedTotal,
+            reservedTotal,
             target,
             achievementPercentage:
-                target > 0 ? (totalUnits / target) * 100 : null,
+                target > 0 ? (invoicedTotal / target) * 100 : null,
             isMapped: true,
         });
     }
@@ -532,10 +535,9 @@ function sumInvoiced(brands: Record<MonthlySalesBrand, BrandCounts>) {
     );
 }
 
-function sumTotalUnits(brands: Record<MonthlySalesBrand, BrandCounts>) {
+function sumReservations(brands: Record<MonthlySalesBrand, BrandCounts>) {
     return MONTHLY_SALES_BRANDS.reduce(
-        (sum, brand) =>
-            sum + brands[brand].invoiced + brands[brand].reservations,
+        (sum, brand) => sum + brands[brand].reservations,
         0,
     );
 }
@@ -552,12 +554,14 @@ function sumRows(
         }
     }
     const invoicedTotal = sumInvoiced(brands);
-    const totalUnits = sumTotalUnits(brands);
+    const reservedTotal = sumReservations(brands);
     return {
         brands,
         invoicedTotal,
+        reservedTotal,
         target,
-        achievementPercentage: target > 0 ? (totalUnits / target) * 100 : null,
+        achievementPercentage:
+            target > 0 ? (invoicedTotal / target) * 100 : null,
     };
 }
 
@@ -572,11 +576,13 @@ function sumTotals(totals: MonthlySalesReportTotal[]): MonthlySalesReportTotal {
         }
     }
     const invoicedTotal = sumInvoiced(brands);
-    const totalUnits = sumTotalUnits(brands);
+    const reservedTotal = sumReservations(brands);
     return {
         brands,
         invoicedTotal,
+        reservedTotal,
         target,
-        achievementPercentage: target > 0 ? (totalUnits / target) * 100 : null,
+        achievementPercentage:
+            target > 0 ? (invoicedTotal / target) * 100 : null,
     };
 }

@@ -16,6 +16,7 @@ export interface MonthlySalesReportRow {
   allowedBrands: MonthlySalesBrand[];
   brands: Record<MonthlySalesBrand, MonthlySalesBrandCounts>;
   invoicedTotal: number;
+  reservedTotal: number;
   target: number;
   achievementPercentage: number | null;
   isMapped: boolean;
@@ -25,6 +26,7 @@ export interface MonthlySalesReportTotal {
   salesLocation?: string;
   brands: Record<MonthlySalesBrand, MonthlySalesBrandCounts>;
   invoicedTotal: number;
+  reservedTotal: number;
   target: number;
   achievementPercentage: number | null;
 }

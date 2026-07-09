@@ -81,7 +81,7 @@ describe('calculateMonthlySalesReport', () => {
         expect(report.rows[0].brands.JAC.invoiced).toBe(1);
         expect(report.rows[0].brands.JAC.reservations).toBe(1);
         expect(report.rows[0].target).toBe(4);
-        expect(report.rows[0].achievementPercentage).toBe(50);
+        expect(report.rows[0].achievementPercentage).toBe(25);
     });
 
     it('counts reserved, company reservation, contract, and cession as reservations', () => {
@@ -99,7 +99,7 @@ describe('calculateMonthlySalesReport', () => {
         );
 
         expect(report.rows[0].brands.JAC.reservations).toBe(4);
-        expect(report.rows[0].achievementPercentage).toBe(100);
+        expect(report.rows[0].achievementPercentage).toBe(0);
     });
 
     it('maps the FOR source brand code to FORTHING', () => {
@@ -160,7 +160,7 @@ describe('calculateMonthlySalesReport', () => {
         expect(report.locationTotals[0].achievementPercentage).toBe(25);
     });
 
-    it('calculates achievement from invoices and reservations', () => {
+    it('calculates achievement from invoices only while reporting reservations separately', () => {
         const report = calculate([
             row({ chassis: 'VIN-SOLD' }),
             row({
@@ -173,8 +173,10 @@ describe('calculateMonthlySalesReport', () => {
         ]);
 
         expect(report.locationTotals[0].invoicedTotal).toBe(1);
-        expect(report.locationTotals[0].achievementPercentage).toBe(50);
-        expect(report.grandTotal.achievementPercentage).toBe(50);
+        expect(report.locationTotals[0].reservedTotal).toBe(1);
+        expect(report.locationTotals[0].achievementPercentage).toBe(25);
+        expect(report.grandTotal.reservedTotal).toBe(1);
+        expect(report.grandTotal.achievementPercentage).toBe(25);
     });
 
     it('excludes salesmen who are not assigned to a location', () => {
