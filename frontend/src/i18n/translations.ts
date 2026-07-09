@@ -155,6 +155,16 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       ungrouped: "Ungrouped",
       deleteGroupConfirm:
         "Delete this group? Its salespeople will remain in the location as ungrouped.",
+      copyMappings: "Copy month mappings",
+      copyFromMonth: "Copy from month",
+      copyToMonth: "Copy to month",
+      replaceExistingMappings: "Replace existing mappings in the target month",
+      copyMappingsAction: "Copy mappings",
+      copySuccess:
+        "Copied {locations} locations, {groups} groups, and {assignments} salesman assignments.",
+      copyFailed: "Target mappings could not be copied.",
+      copyReplaceConfirm:
+        "Replace existing mappings in the target month before copying?",
     },
     users: {
       title: "Users",
@@ -1963,6 +1973,19 @@ translations.ar.transaction = {
   ungrouped: "بدون مجموعة",
   deleteGroupConfirm:
     "حذف هذه المجموعة؟ سيبقى موظفو المبيعات في الموقع بدون مجموعة.",
+};
+
+(translations.ar.monthlySalesTargets as TranslationTree) = {
+  ...(translations.ar.monthlySalesTargets as TranslationTree),
+  copyMappings: "نسخ ربط شهر",
+  copyFromMonth: "نسخ من شهر",
+  copyToMonth: "نسخ إلى شهر",
+  replaceExistingMappings: "استبدال الربط الموجود في شهر الهدف",
+  copyMappingsAction: "نسخ الربط",
+  copySuccess:
+    "تم نسخ {locations} مواقع، و{groups} مجموعات، و{assignments} توزيعات بائعين.",
+  copyFailed: "تعذر نسخ ربط الأهداف.",
+  copyReplaceConfirm: "استبدال الربط الموجود في شهر الهدف قبل النسخ؟",
 };
 
 (translations.ar.actions as TranslationTree) = {

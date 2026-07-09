@@ -12,6 +12,7 @@ import { getFilterOptions } from "@/lib/filterOptions";
 import { useAuth } from "@/providers/AuthProvider/AuthProvider";
 import {
   assignMonthlySalesman,
+  copyMonthlySalesTargets,
   createMonthlySalesGroup,
   createMonthlySalesLocation,
   deleteMonthlySalesGroup,
@@ -55,6 +56,8 @@ export default function MonthlySalesTargetsPage() {
     [inventoryItems, sources],
   );
   const [targetMonth, setTargetMonth] = useState(currentMonth());
+  const [copySourceMonth, setCopySourceMonth] = useState(previousMonth(currentMonth()));
+  const [copyOverwrite, setCopyOverwrite] = useState(false);
   const [board, setBoard] = useState<MonthlySalesManagementBoard | null>(null);
   const [draft, setDraft] = useState<MonthlySalesLocationInput>(() =>
     emptyLocation(currentMonth()),
@@ -62,6 +65,7 @@ export default function MonthlySalesTargetsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [dragged, setDragged] = useState<DraggedSalesman | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [draggedLocationId, setDraggedLocationId] = useState<string | null>(null);
@@ -69,10 +73,12 @@ export default function MonthlySalesTargetsPage() {
   const [columnSearches, setColumnSearches] = useState<Record<string, string>>({});
   const [groupDrafts, setGroupDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const canManageLocations = auth.hasPermission("monthlySalesTargets.locations.manage");
   const canManageGroups = auth.hasPermission("monthlySalesTargets.groups.manage");
   const canManageAssignments = auth.hasPermission("monthlySalesTargets.assignments.manage");
   const canManageOrder = auth.hasPermission("monthlySalesTargets.order.manage");
+  const canCopyMappings = canManageLocations && canManageGroups && canManageAssignments;
 
   const loadBoard = useCallback(async () => {
     setLoading(true);
@@ -106,6 +112,37 @@ export default function MonthlySalesTargetsPage() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function copyTargets(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canCopyMappings || copySourceMonth === targetMonth) return;
+    if (copyOverwrite && !window.confirm(t("monthlySalesTargets.copyReplaceConfirm"))) {
+      return;
+    }
+    setCopying(true);
+    try {
+      const result = await copyMonthlySalesTargets({
+        sourceMonth: copySourceMonth,
+        targetMonth,
+        overwrite: copyOverwrite,
+      });
+      setCopyMessage(
+        t("monthlySalesTargets.copySuccess")
+          .replace("{locations}", formatNumber(result.locations))
+          .replace("{groups}", formatNumber(result.groups))
+          .replace("{assignments}", formatNumber(result.assignments)),
+      );
+      setError(null);
+      await loadBoard();
+    } catch (copyError) {
+      setCopyMessage(null);
+      setError(
+        copyError instanceof Error ? copyError.message : t("monthlySalesTargets.copyFailed"),
+      );
+    } finally {
+      setCopying(false);
     }
   }
 
@@ -325,6 +362,7 @@ export default function MonthlySalesTargetsPage() {
               onChange={(event) => {
                 const month = event.target.value;
                 setTargetMonth(month);
+                if (copySourceMonth === month) setCopySourceMonth(previousMonth(month));
                 resetDraft(month);
               }}
               required
@@ -372,6 +410,54 @@ export default function MonthlySalesTargetsPage() {
             </button>
           </div>
           </form>
+        </SectionCard>
+      ) : null}
+
+      {canCopyMappings ? (
+        <SectionCard
+          title={t("monthlySalesTargets.copyMappings")}
+          eyebrow={`${copySourceMonth} -> ${targetMonth}`}
+        >
+          <form className={styles.form} onSubmit={copyTargets}>
+            <Field label={t("monthlySalesTargets.copyFromMonth")}>
+              <input
+                type="month"
+                value={copySourceMonth}
+                onChange={(event) => setCopySourceMonth(event.target.value)}
+                required
+              />
+            </Field>
+            <Field label={t("monthlySalesTargets.copyToMonth")}>
+              <input
+                type="month"
+                value={targetMonth}
+                onChange={(event) => {
+                  const month = event.target.value;
+                  setTargetMonth(month);
+                  resetDraft(month);
+                }}
+                required
+              />
+            </Field>
+            <label className={styles.checkboxField}>
+              <input
+                type="checkbox"
+                checked={copyOverwrite}
+                onChange={(event) => setCopyOverwrite(event.target.checked)}
+              />
+              <span>{t("monthlySalesTargets.replaceExistingMappings")}</span>
+            </label>
+            <div className={styles.formActions}>
+              <button
+                className={styles.primaryButton}
+                type="submit"
+                disabled={copying || copySourceMonth === targetMonth}
+              >
+                {copying ? t("common.loading") : t("monthlySalesTargets.copyMappingsAction")}
+              </button>
+            </div>
+          </form>
+          {copyMessage ? <p className={styles.success}>{copyMessage}</p> : null}
         </SectionCard>
       ) : null}
 
@@ -880,6 +966,12 @@ function totalSalesmen(board: MonthlySalesManagementBoard | null) {
 function currentMonth() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function previousMonth(month: string) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const date = new Date(Date.UTC(year, monthNumber - 2, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 function emptyLocation(targetMonth: string): MonthlySalesLocationInput {

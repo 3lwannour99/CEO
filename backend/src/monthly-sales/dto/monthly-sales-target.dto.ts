@@ -82,3 +82,17 @@ export class ReorderMonthlySalesAssignmentsDto {
     @IsString({ each: true })
     assignmentIds!: string[];
 }
+
+export class CopyMonthlySalesTargetsDto {
+    @IsString()
+    @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
+    sourceMonth!: string;
+
+    @IsString()
+    @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
+    targetMonth!: string;
+
+    @IsOptional()
+    @IsBoolean()
+    overwrite?: boolean;
+}

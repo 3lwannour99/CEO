@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { MonthlySalesReportQueryDto } from './dto/monthly-sales-report-query.dto';
 import {
+    CopyMonthlySalesTargetsDto,
     MonthlySalesAssignmentDto,
     MonthlySalesGroupDto,
     MonthlySalesLocationDto,
@@ -145,6 +146,124 @@ export class MonthlySalesService {
                 )
                 .map((salesmanName) => ({ salesmanName })),
         };
+    }
+
+    async copyTargets(dto: CopyMonthlySalesTargetsDto) {
+        validateTargetMonth(dto.sourceMonth);
+        validateTargetMonth(dto.targetMonth);
+        if (dto.sourceMonth === dto.targetMonth) {
+            throw new BadRequestException(
+                'Source month and target month must be different.',
+            );
+        }
+
+        const [sourceLocations, targetLocationCount] = await Promise.all([
+            this.prisma.monthlySalesLocation.findMany({
+                where: { targetMonth: dto.sourceMonth },
+                include: {
+                    groups: {
+                        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+                    },
+                    assignments: {
+                        orderBy: [
+                            { groupId: 'asc' },
+                            { sortOrder: 'asc' },
+                            { salesmanName: 'asc' },
+                        ],
+                    },
+                },
+                orderBy: [{ sortOrder: 'asc' }, { salesLocation: 'asc' }],
+            }),
+            this.prisma.monthlySalesLocation.count({
+                where: { targetMonth: dto.targetMonth },
+            }),
+        ]);
+
+        if (sourceLocations.length === 0) {
+            throw new BadRequestException(
+                'No sales target mappings exist for the source month.',
+            );
+        }
+        if (targetLocationCount > 0 && !dto.overwrite) {
+            throw new BadRequestException(
+                'The target month already has sales target mappings. Enable replace existing mappings to copy into it.',
+            );
+        }
+
+        return this.prisma.$transaction(async (tx) => {
+            if (dto.overwrite) {
+                await tx.monthlySalesAssignment.deleteMany({
+                    where: { targetMonth: dto.targetMonth },
+                });
+                await tx.monthlySalesLocation.deleteMany({
+                    where: { targetMonth: dto.targetMonth },
+                });
+            }
+
+            const locationIds = new Map<string, string>();
+            const groupIds = new Map<string, string>();
+            let groupCount = 0;
+            let assignmentCount = 0;
+
+            for (const sourceLocation of sourceLocations) {
+                const copiedLocation = await tx.monthlySalesLocation.create({
+                    data: {
+                        targetMonth: dto.targetMonth,
+                        salesLocation: sourceLocation.salesLocation,
+                        normalizedLocation: sourceLocation.normalizedLocation,
+                        target: sourceLocation.target,
+                        isActive: sourceLocation.isActive,
+                        sortOrder: sourceLocation.sortOrder,
+                    },
+                });
+                locationIds.set(sourceLocation.id, copiedLocation.id);
+
+                for (const sourceGroup of sourceLocation.groups) {
+                    const copiedGroup = await tx.monthlySalesGroup.create({
+                        data: {
+                            locationId: copiedLocation.id,
+                            name: sourceGroup.name,
+                            normalizedName: sourceGroup.normalizedName,
+                            sortOrder: sourceGroup.sortOrder,
+                        },
+                    });
+                    groupIds.set(sourceGroup.id, copiedGroup.id);
+                    groupCount += 1;
+                }
+            }
+
+            for (const sourceLocation of sourceLocations) {
+                const locationId = locationIds.get(sourceLocation.id);
+                if (!locationId) continue;
+                for (const sourceAssignment of sourceLocation.assignments) {
+                    await tx.monthlySalesAssignment.create({
+                        data: {
+                            targetMonth: dto.targetMonth,
+                            salesmanName: sourceAssignment.salesmanName,
+                            normalizedSalesmanName:
+                                sourceAssignment.normalizedSalesmanName,
+                            salesmanCode: sourceAssignment.salesmanCode,
+                            allowedBrands: sourceAssignment.allowedBrands,
+                            isActive: sourceAssignment.isActive,
+                            sortOrder: sourceAssignment.sortOrder,
+                            locationId,
+                            groupId: sourceAssignment.groupId
+                                ? (groupIds.get(sourceAssignment.groupId) ??
+                                  null)
+                                : null,
+                        },
+                    });
+                    assignmentCount += 1;
+                }
+            }
+
+            return {
+                ok: true,
+                locations: sourceLocations.length,
+                groups: groupCount,
+                assignments: assignmentCount,
+            };
+        });
     }
 
     async createLocation(dto: MonthlySalesLocationDto) {

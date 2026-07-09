@@ -116,3 +116,16 @@ export interface MonthlySalesAssignmentOrderInput {
   groupId?: string;
   assignmentIds: string[];
 }
+
+export interface CopyMonthlySalesTargetsInput {
+  sourceMonth: string;
+  targetMonth: string;
+  overwrite?: boolean;
+}
+
+export interface CopyMonthlySalesTargetsResult {
+  ok: boolean;
+  locations: number;
+  groups: number;
+  assignments: number;
+}

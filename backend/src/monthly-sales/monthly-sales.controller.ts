@@ -16,6 +16,7 @@ import { RequirePermissions } from '../auth/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions.guard';
 import { MonthlySalesReportQueryDto } from './dto/monthly-sales-report-query.dto';
 import {
+    CopyMonthlySalesTargetsDto,
     MonthlySalesAssignmentDto,
     MonthlySalesGroupDto,
     MonthlySalesLocationDto,
@@ -56,6 +57,17 @@ export class MonthlySalesController {
     @RequirePermissions('monthlySalesTargets.locations.manage')
     createLocation(@Body() dto: MonthlySalesLocationDto) {
         return this.monthlySalesService.createLocation(dto);
+    }
+
+    @Post('monthly-sales-targets/copy')
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
+    @RequirePermissions(
+        'monthlySalesTargets.locations.manage',
+        'monthlySalesTargets.groups.manage',
+        'monthlySalesTargets.assignments.manage',
+    )
+    copyTargets(@Body() dto: CopyMonthlySalesTargetsDto) {
+        return this.monthlySalesService.copyTargets(dto);
     }
 
     @Put('monthly-sales-targets/locations/reorder')

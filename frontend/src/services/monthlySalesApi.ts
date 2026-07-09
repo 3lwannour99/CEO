@@ -1,5 +1,7 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/apiClient";
 import type {
+  CopyMonthlySalesTargetsInput,
+  CopyMonthlySalesTargetsResult,
   MonthlySalesAssignment,
   MonthlySalesAssignmentInput,
   MonthlySalesAssignmentOrderInput,
@@ -40,6 +42,10 @@ export function getMonthlySalesManagementBoard(targetMonth: string, countries: s
 
 export function createMonthlySalesLocation(input: MonthlySalesLocationInput) {
   return apiPost<MonthlySalesLocation>("/monthly-sales-targets/locations", input);
+}
+
+export function copyMonthlySalesTargets(input: CopyMonthlySalesTargetsInput) {
+  return apiPost<CopyMonthlySalesTargetsResult>("/monthly-sales-targets/copy", input);
 }
 
 export function updateMonthlySalesLocation(id: string, input: MonthlySalesLocationInput) {
