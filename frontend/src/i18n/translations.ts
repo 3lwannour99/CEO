@@ -138,6 +138,8 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       addLocation: "Add sales location",
       editLocation: "Edit sales location",
       locationTarget: "Location target",
+      brandTargets: "Optional brand targets",
+      brandTargetsTotal: "Brand target total",
       assignmentBoard: "Salesman assignment board",
       dragInstructions:
         "Drag a salesman card into a location. Drag it back to Unassigned to remove the mapping.",
@@ -1990,6 +1992,12 @@ translations.ar.transaction = {
     "تم نسخ {locations} مواقع، و{groups} مجموعات، و{assignments} توزيعات بائعين.",
   copyFailed: "تعذر نسخ ربط الأهداف.",
   copyReplaceConfirm: "استبدال الربط الموجود في شهر الهدف قبل النسخ؟",
+};
+
+(translations.ar.monthlySalesTargets as TranslationTree) = {
+  ...(translations.ar.monthlySalesTargets as TranslationTree),
+  brandTargets: "Optional brand targets",
+  brandTargetsTotal: "Brand target total",
 };
 
 (translations.ar.monthlySalesReport as TranslationTree) = {

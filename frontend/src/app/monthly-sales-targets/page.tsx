@@ -152,6 +152,9 @@ export default function MonthlySalesTargetsPage() {
       targetMonth: location.targetMonth,
       salesLocation: location.salesLocation,
       target: location.target,
+      jacTarget: location.jacTarget,
+      forthingTarget: location.forthingTarget,
+      roxTarget: location.roxTarget,
       isActive: location.isActive,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -388,6 +391,28 @@ export default function MonthlySalesTargetsPage() {
               required
             />
           </Field>
+          <div className={styles.brandTargets}>
+            <span>{t("monthlySalesTargets.brandTargets")}</span>
+            {ALL_BRANDS.map((brand) => (
+              <label key={brand}>
+                <span>{brand}</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={brandTargetValue(draft, brand)}
+                  onChange={(event) =>
+                    setDraft((current) =>
+                      setBrandTarget(current, brand, optionalNumber(event.target.value)),
+                    )
+                  }
+                />
+              </label>
+            ))}
+            <strong className={styles.brandTargetsTotal}>
+              {t("monthlySalesTargets.brandTargetsTotal")}:{" "}
+              {formatOptionalTarget(sumBrandTargets(draft))}
+            </strong>
+          </div>
           <Field label={t("table.active")}>
             <select
               value={draft.isActive === false ? "false" : "true"}
@@ -563,6 +588,9 @@ export default function MonthlySalesTargetsPage() {
                     <strong>
                       {t("monthlySalesTargets.locationTarget")}: {formatNumber(location.target)}
                     </strong>
+                    <small className={styles.brandTargetSummary}>
+                      {formatLocationBrandTargets(location, t)}
+                    </small>
                     <button type="button" onClick={() => editLocation(location)}>
                       {t("actions.edit")}
                     </button>
@@ -975,5 +1003,62 @@ function previousMonth(month: string) {
 }
 
 function emptyLocation(targetMonth: string): MonthlySalesLocationInput {
-  return { targetMonth, salesLocation: "", target: 0, isActive: true };
+  return {
+    targetMonth,
+    salesLocation: "",
+    target: 0,
+    jacTarget: null,
+    forthingTarget: null,
+    roxTarget: null,
+    isActive: true,
+  };
+}
+
+function brandTargetValue(
+  location: MonthlySalesLocationInput,
+  brand: (typeof ALL_BRANDS)[number],
+) {
+  const value =
+    brand === "JAC"
+      ? location.jacTarget
+      : brand === "FORTHING"
+        ? location.forthingTarget
+        : location.roxTarget;
+  return typeof value === "number" ? String(value) : "";
+}
+
+function setBrandTarget(
+  location: MonthlySalesLocationInput,
+  brand: (typeof ALL_BRANDS)[number],
+  value: number | null,
+) {
+  if (brand === "JAC") return { ...location, jacTarget: value };
+  if (brand === "FORTHING") return { ...location, forthingTarget: value };
+  return { ...location, roxTarget: value };
+}
+
+function optionalNumber(value: string) {
+  return value === "" ? null : Number(value);
+}
+
+function sumBrandTargets(location: MonthlySalesLocationInput | MonthlySalesLocation) {
+  const values = [location.jacTarget, location.forthingTarget, location.roxTarget];
+  if (values.every((value) => typeof value !== "number")) return null;
+  return values.reduce<number>(
+    (sum, value) => sum + (typeof value === "number" ? value : 0),
+    0,
+  );
+}
+
+function formatOptionalTarget(value: number | null) {
+  return typeof value === "number" ? formatNumber(value) : "-";
+}
+
+function formatLocationBrandTargets(location: MonthlySalesLocation, t: (key: string) => string) {
+  return [
+    `JAC ${formatOptionalTarget(location.jacTarget)}`,
+    `FORTHING ${formatOptionalTarget(location.forthingTarget)}`,
+    `ROX ${formatOptionalTarget(location.roxTarget)}`,
+    `${t("monthlySalesTargets.brandTargetsTotal")} ${formatOptionalTarget(sumBrandTargets(location))}`,
+  ].join(" | ");
 }

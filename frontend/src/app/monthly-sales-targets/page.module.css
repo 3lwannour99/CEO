@@ -14,27 +14,114 @@
 
 .form {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
+  grid-template-columns: minmax(150px, 0.75fr) minmax(220px, 1.2fr) minmax(150px, 0.75fr) minmax(130px, 0.55fr);
+  gap: 12px;
   align-items: end;
 }
 
 .field {
   display: grid;
-  gap: 6px;
+  gap: 7px;
+  min-width: 0;
   color: var(--color-muted);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 700;
+}
+
+.field span {
+  min-height: 14px;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .field input,
 .field select {
-  min-height: 40px;
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   background: var(--color-surface);
   color: var(--color-text);
+  padding-inline: 11px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    background 120ms ease;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
+}
+
+.field input[type="number"] {
+  text-align: end;
+}
+
+.brandTargets {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: auto repeat(3, minmax(96px, 128px)) minmax(140px, auto);
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  padding: 9px 10px;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.brandTargets > span {
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.brandTargets label {
+  display: grid;
+  grid-template-columns: auto minmax(54px, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.brandTargets input {
+  width: 100%;
+  min-width: 0;
+  min-height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding-inline: 8px;
+  text-align: end;
+}
+
+.brandTargets input:focus {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+  outline-offset: 1px;
+  border-color: var(--color-accent);
+}
+
+.brandTargetsTotal {
+  justify-self: end;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 32%, var(--color-border));
+  border-radius: var(--radius-xs);
+  background: var(--color-accent-soft);
+  color: var(--color-text);
   padding-inline: 10px;
+  white-space: nowrap;
 }
 
 .checkboxField {
@@ -69,6 +156,14 @@
   color: var(--color-text);
   cursor: pointer;
   padding-inline: 11px;
+}
+
+.formActions {
+  align-self: end;
+}
+
+.formActions button {
+  min-height: 38px;
 }
 
 .formActions .primaryButton {
@@ -192,6 +287,31 @@
   width: 100%;
   color: var(--color-accent);
   font-size: 0.82rem;
+}
+
+.brandTargetSummary {
+  width: 100%;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+@media (max-width: 720px) {
+  .form {
+    grid-template-columns: 1fr;
+  }
+
+  .brandTargets {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .brandTargets label {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .brandTargetsTotal {
+    justify-self: stretch;
+  }
 }
 
 .columnSearch {

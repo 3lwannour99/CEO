@@ -70,6 +70,7 @@ export class MonthlySalesService {
                     models: splitFilter(query.models),
                     types: splitFilter(query.types),
                     customerGroups: splitFilter(query.customerGroups),
+                    statuses: splitFilter(query.statuses),
                     search: query.search?.trim() ?? '',
                 },
             ),
@@ -212,6 +213,9 @@ export class MonthlySalesService {
                         salesLocation: sourceLocation.salesLocation,
                         normalizedLocation: sourceLocation.normalizedLocation,
                         target: sourceLocation.target,
+                        jacTarget: sourceLocation.jacTarget,
+                        forthingTarget: sourceLocation.forthingTarget,
+                        roxTarget: sourceLocation.roxTarget,
                         isActive: sourceLocation.isActive,
                         sortOrder: sourceLocation.sortOrder,
                     },
@@ -560,6 +564,9 @@ function sanitizeLocation(dto: MonthlySalesLocationDto) {
         salesLocation,
         normalizedLocation: normalizeText(salesLocation),
         target: dto.target,
+        jacTarget: dto.jacTarget ?? null,
+        forthingTarget: dto.forthingTarget ?? null,
+        roxTarget: dto.roxTarget ?? null,
         isActive: dto.isActive ?? true,
     };
 }

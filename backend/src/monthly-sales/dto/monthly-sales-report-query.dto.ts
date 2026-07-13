@@ -53,5 +53,9 @@ export class MonthlySalesReportQueryDto {
 
     @IsOptional()
     @IsString()
+    statuses?: string;
+
+    @IsOptional()
+    @IsString()
     search?: string;
 }

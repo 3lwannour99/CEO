@@ -1,12 +1,15 @@
 model MonthlySalesLocation {
   id String @id @default(cuid())
 
-  targetMonth   String
-  salesLocation String
+  targetMonth        String
+  salesLocation      String
   normalizedLocation String
-  target        Int
-  isActive      Boolean @default(true)
-  sortOrder     Int @default(0)
+  target             Int
+  jacTarget          Int?
+  forthingTarget     Int?
+  roxTarget          Int?
+  isActive           Boolean @default(true)
+  sortOrder          Int @default(0)
 
   assignments MonthlySalesAssignment[]
   groups      MonthlySalesGroup[]

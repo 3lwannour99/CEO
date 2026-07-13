@@ -26,6 +26,7 @@ export interface MonthlySalesReportQuery {
   models?: string;
   types?: string;
   customerGroups?: string;
+  statuses?: string;
   search?: string;
 }
 

@@ -3,6 +3,7 @@ export type MonthlySalesBrand = "JAC" | "FORTHING" | "ROX";
 export interface MonthlySalesBrandCounts {
   invoiced: number;
   reservations: number;
+  target: number | null;
 }
 
 export interface MonthlySalesReportRow {
@@ -50,6 +51,7 @@ export interface MonthlySalesReportResponse {
     models: string[];
     types: string[];
     customerGroups: string[];
+    statuses: string[];
   };
 }
 
@@ -80,6 +82,9 @@ export interface MonthlySalesLocation {
   salesLocation: string;
   normalizedLocation: string;
   target: number;
+  jacTarget: number | null;
+  forthingTarget: number | null;
+  roxTarget: number | null;
   isActive: boolean;
   sortOrder: number;
   assignments: MonthlySalesAssignment[];
@@ -96,6 +101,9 @@ export interface MonthlySalesLocationInput {
   targetMonth: string;
   salesLocation: string;
   target: number;
+  jacTarget?: number | null;
+  forthingTarget?: number | null;
+  roxTarget?: number | null;
   isActive?: boolean;
 }
 

@@ -22,6 +22,21 @@ export class MonthlySalesLocationDto {
     target!: number;
 
     @IsOptional()
+    @IsInt()
+    @Min(0)
+    jacTarget?: number | null;
+
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    forthingTarget?: number | null;
+
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    roxTarget?: number | null;
+
+    @IsOptional()
     @IsBoolean()
     isActive?: boolean;
 }

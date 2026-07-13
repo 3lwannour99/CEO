@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { LanguageToggle } from "@/components/LanguageToggle/LanguageToggle";
 import { MultiSelect } from "@/components/MultiSelect/MultiSelect";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
+import { OFFICIAL_VEHICLE_STATUSES } from "@/constants/statuses";
 import { useI18n } from "@/i18n/useI18n";
 import { formatNumber } from "@/lib/apiClient";
 import { getPublicMonthlySalesReport } from "@/services/monthlySalesApi";
@@ -31,6 +32,7 @@ interface ReportFilters {
   models: string[];
   types: string[];
   customerGroups: string[];
+  statuses: string[];
   search: string;
 }
 
@@ -57,6 +59,7 @@ export default function MonthlySalesReportPage() {
         models: toQueryList(filters.models),
         types: toQueryList(filters.types),
         customerGroups: toQueryList(filters.customerGroups),
+        statuses: toQueryList(filters.statuses),
         search: filters.search || undefined,
       });
       setReport(response);
@@ -110,8 +113,9 @@ export default function MonthlySalesReportPage() {
       models: toOptions(options?.models ?? []),
       types: toOptions(options?.types ?? []),
       customerGroups: toOptions(options?.customerGroups ?? []),
+      statuses: toStatusOptions(options?.statuses ?? [], t),
     };
-  }, [report]);
+  }, [report, t]);
 
   const canExport = Boolean(report && !loading);
 
@@ -221,6 +225,12 @@ export default function MonthlySalesReportPage() {
             values={filters.customerGroups}
             onChange={(customerGroups) => setFilters((current) => ({ ...current, customerGroups }))}
           />
+          <ReportMultiSelect
+            label={t("filters.status")}
+            options={reportOptions.statuses}
+            values={filters.statuses}
+            onChange={(statuses) => setFilters((current) => ({ ...current, statuses }))}
+          />
           <Field className={styles.searchField} label={t("filters.search")}>
             <input
               type="search"
@@ -280,13 +290,13 @@ export default function MonthlySalesReportPage() {
             <tbody>
               {loading && !report ? (
                 <tr>
-                  <td colSpan={12} className={styles.messageCell}>
+                  <td colSpan={15} className={styles.messageCell}>
                     {t("common.loading")}
                   </td>
                 </tr>
               ) : groupedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className={styles.messageCell}>
+                  <td colSpan={15} className={styles.messageCell}>
                     {t("monthlySalesReport.noData")}
                   </td>
                 </tr>
@@ -337,6 +347,7 @@ function BrandCells({ value }: { value: MonthlySalesReportRow | MonthlySalesRepo
       {BRANDS.flatMap((brand) => [
         <td key={`${brand}-r`}>{formatNumber(value.brands[brand].reservations)}</td>,
         <td key={`${brand}-i`}>{formatNumber(value.brands[brand].invoiced)}</td>,
+        <td key={`${brand}-t`}>{formatOptionalNumber(value.brands[brand].target)}</td>,
       ])}
       <td className={styles.totalCell}>{formatNumber(totalReservations(value))}</td>
       <td className={styles.totalCell}>{formatNumber(value.invoicedTotal)}</td>
@@ -362,6 +373,7 @@ function ReportHeaderRows({
           {BRANDS.flatMap((brand) => [
             <th key={`${brand}-reservations`}>{t("monthlySalesReport.reservations")}</th>,
             <th key={`${brand}-invoiced`}>{t("monthlySalesReport.invoiced")}</th>,
+            <th key={`${brand}-target`}>{t("monthlySalesReport.target")}</th>,
           ])}
           <th rowSpan={2}>{t("monthlySalesReport.totalReserved")}</th>
           <th rowSpan={2}>{t("monthlySalesReport.totalInvoiced")}</th>
@@ -370,7 +382,7 @@ function ReportHeaderRows({
         </tr>
         <tr className={className}>
           {BRANDS.map((brand) => (
-            <th colSpan={2} key={brand}>
+            <th colSpan={3} key={brand}>
               {brand}
             </th>
           ))}
@@ -385,7 +397,7 @@ function ReportHeaderRows({
         <th rowSpan={2}>{t("monthlySalesReport.salesLocation")}</th>
         <th rowSpan={2}>{t("monthlySalesReport.salesman")}</th>
         {BRANDS.map((brand) => (
-          <th colSpan={2} key={brand}>
+          <th colSpan={3} key={brand}>
             {brand}
           </th>
         ))}
@@ -398,6 +410,7 @@ function ReportHeaderRows({
         {BRANDS.flatMap((brand) => [
           <th key={`${brand}-reservations`}>{t("monthlySalesReport.reservations")}</th>,
           <th key={`${brand}-invoiced`}>{t("monthlySalesReport.invoiced")}</th>,
+          <th key={`${brand}-target`}>{t("monthlySalesReport.target")}</th>,
         ])}
       </tr>
     </>
@@ -446,6 +459,10 @@ function formatAchievement(value: number | null) {
   return value === null ? "-" : `${value.toFixed(1)}%`;
 }
 
+function formatOptionalNumber(value: number | null) {
+  return typeof value === "number" ? formatNumber(value) : "-";
+}
+
 function achievementFromInvoiced(value: MonthlySalesReportRow | MonthlySalesReportTotal) {
   return value.target > 0 ? (value.invoicedTotal / value.target) * 100 : null;
 }
@@ -490,7 +507,7 @@ function buildMonthlySalesPdf(report: MonthlySalesReportResponse, t: (key: strin
   const margin = 10;
   const tableTop = 52;
   const tableWidth = pageWidth - margin * 2;
-  const columnWidths = [52, 86, 31, 31, 31, 31, 31, 31, 42, 42, 36, 40];
+  const columnWidths = [48, 72, 25, 25, 25, 25, 25, 25, 25, 25, 25, 42, 42, 36, 40];
   const scale = tableWidth / columnWidths.reduce((sum, width) => sum + width, 0);
   const widths = columnWidths.map((width) => width * scale);
   const rowHeight = Math.max(4.8, Math.min(11, (pageHeight - tableTop - margin) / (rows.length + 2)));
@@ -559,7 +576,7 @@ function drawPdfHeader(
   const header1 = [
     t("monthlySalesReport.salesLocation"),
     t("monthlySalesReport.salesman"),
-    ...BRANDS.flatMap((brand) => [brand, ""]),
+    ...BRANDS.flatMap((brand) => [brand, "", ""]),
     t("monthlySalesReport.totalReserved"),
     t("monthlySalesReport.totalInvoiced"),
     t("monthlySalesReport.target"),
@@ -571,6 +588,7 @@ function drawPdfHeader(
     ...BRANDS.flatMap(() => [
       t("monthlySalesReport.reservations"),
       t("monthlySalesReport.invoiced"),
+      t("monthlySalesReport.target"),
     ]),
     "",
     "",
@@ -678,6 +696,7 @@ function pdfRow(
     ...BRANDS.flatMap((brand) => [
       value.brands[brand].reservations,
       value.brands[brand].invoiced,
+      formatExportOptionalNumber(value.brands[brand].target),
     ]),
     totalReservations(value),
     value.invoicedTotal,
@@ -718,17 +737,17 @@ function buildMonthlySalesExcelHtml(report: MonthlySalesReportResponse, t: (key:
     <colgroup>
       <col style="width: 105px" />
       <col style="width: 145px" />
-      ${BRANDS.map(() => '<col style="width: 58px" /><col style="width: 58px" />').join("")}
+      ${BRANDS.map(() => '<col style="width: 58px" /><col style="width: 58px" /><col style="width: 58px" />').join("")}
       <col style="width: 72px" />
       <col style="width: 72px" />
       <col style="width: 64px" />
       <col style="width: 74px" />
     </colgroup>
     <tr class="title-row">
-      <th colspan="12">${escapeHtml(t("monthlySalesReport.title"))}</th>
+      <th colspan="15">${escapeHtml(t("monthlySalesReport.title"))}</th>
     </tr>
     <tr class="meta-row">
-      <th colspan="12">${escapeHtml(t("monthlySalesReport.period"))}: ${escapeHtml(report.dateFrom)} - ${escapeHtml(report.dateTo)}</th>
+      <th colspan="15">${escapeHtml(t("monthlySalesReport.period"))}: ${escapeHtml(report.dateFrom)} - ${escapeHtml(report.dateTo)}</th>
     </tr>
     ${monthlySalesExcelHeaderRows(t)}
     ${tableRows.join("")}
@@ -791,7 +810,7 @@ function monthlySalesExcelHeaderRows(t: (key: string) => string) {
     <tr class="brand-row">
       <th rowspan="2">${escapeHtml(t("monthlySalesReport.salesLocation"))}</th>
       <th rowspan="2">${escapeHtml(t("monthlySalesReport.salesman"))}</th>
-      ${BRANDS.map((brand) => `<th colspan="2">${escapeHtml(brand)}</th>`).join("")}
+      ${BRANDS.map((brand) => `<th colspan="3">${escapeHtml(brand)}</th>`).join("")}
       <th rowspan="2">${escapeHtml(t("monthlySalesReport.totalReserved"))}</th>
       <th rowspan="2">${escapeHtml(t("monthlySalesReport.totalInvoiced"))}</th>
       <th rowspan="2">${escapeHtml(t("monthlySalesReport.target"))}</th>
@@ -800,7 +819,7 @@ function monthlySalesExcelHeaderRows(t: (key: string) => string) {
     <tr class="subheader-row">
       ${BRANDS.map(
         () =>
-          `<th>${escapeHtml(t("monthlySalesReport.reservations"))}</th><th>${escapeHtml(t("monthlySalesReport.invoiced"))}</th>`,
+          `<th>${escapeHtml(t("monthlySalesReport.reservations"))}</th><th>${escapeHtml(t("monthlySalesReport.invoiced"))}</th><th>${escapeHtml(t("monthlySalesReport.target"))}</th>`,
       ).join("")}
     </tr>`;
 }
@@ -824,7 +843,7 @@ function monthlySalesExcelDataRow(
     <td class="salesman-cell">${escapeHtml(salesman)}</td>
     ${BRANDS.map(
       (brand) =>
-        `<td>${value.brands[brand].reservations}</td><td>${value.brands[brand].invoiced}</td>`,
+        `<td>${value.brands[brand].reservations}</td><td>${value.brands[brand].invoiced}</td><td>${escapeHtml(formatExportOptionalNumber(value.brands[brand].target))}</td>`,
     ).join("")}
     <td>${totalReservations(value)}</td>
     <td>${value.invoicedTotal}</td>
@@ -844,7 +863,7 @@ function monthlySalesExcelSummaryRow(
     <th colspan="2">${escapeHtml(label)}</th>
     ${BRANDS.map(
       (brand) =>
-        `<td>${value.brands[brand].reservations}</td><td>${value.brands[brand].invoiced}</td>`,
+        `<td>${value.brands[brand].reservations}</td><td>${value.brands[brand].invoiced}</td><td>${escapeHtml(formatExportOptionalNumber(value.brands[brand].target))}</td>`,
     ).join("")}
     <td>${totalReservations(value)}</td>
     <td>${value.invoicedTotal}</td>
@@ -859,6 +878,10 @@ function monthlySalesReportFileName(report: MonthlySalesReportResponse, extensio
 
 function formatExportNumber(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+function formatExportOptionalNumber(value: number | null) {
+  return typeof value === "number" ? formatExportNumber(value) : "-";
 }
 
 function escapeHtml(value: string | number) {
@@ -887,6 +910,7 @@ function defaultFilters(): ReportFilters {
     models: [],
     types: [],
     customerGroups: [],
+    statuses: [],
     search: "",
   };
 }
@@ -902,6 +926,25 @@ function ReportMultiSelect(props: {
 
 function toOptions(values: string[]): PageFilterOption[] {
   return values.map((value) => ({ value, label: value }));
+}
+
+function toStatusOptions(values: string[], t: (key: string) => string): PageFilterOption[] {
+  const statusLabelByValue = new Map(
+    OFFICIAL_VEHICLE_STATUSES.map((status) => [normalizeStatusOption(status.value), t(status.labelKey)]),
+  );
+
+  return values.map((value) => ({
+    value,
+    label: statusLabelByValue.get(normalizeStatusOption(value)) ?? value,
+  }));
+}
+
+function normalizeStatusOption(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-")
+    .replace(/[^a-z-]/g, "")
+    .replace(/-/g, "");
 }
 
 function toQueryList(values: string[]) {

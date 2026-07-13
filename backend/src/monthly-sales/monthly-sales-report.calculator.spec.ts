@@ -160,6 +160,46 @@ describe('calculateMonthlySalesReport', () => {
         expect(report.locationTotals[0].achievementPercentage).toBe(25);
     });
 
+    it('allocates optional brand targets to rows and keeps brand targets on totals', () => {
+        const locationWithBrandTargets: MonthlySalesLocationRecord = {
+            ...location,
+            target: 6,
+            jacTarget: 4,
+            roxTarget: 2,
+        };
+        const secondAssignment: MonthlySalesAssignmentRecord = {
+            ...assignment,
+            id: 'assignment-2',
+            salesmanName: 'Sara Ali',
+            normalizedSalesmanName: 'sara ali',
+            location: locationWithBrandTargets,
+        };
+        const report = calculateMonthlySalesReport(
+            [row(), row({ chassis: 'VIN-2', salesMan: 'Sara Ali', brand: 'ROX' })],
+            [locationWithBrandTargets],
+            [{ ...assignment, location: locationWithBrandTargets }, secondAssignment],
+            {
+                dateFrom: '2026-06-01',
+                dateTo: '2026-06-30',
+                salesLocations: [],
+                salesmen: [],
+                brands: ['JAC', 'FORTHING', 'ROX'],
+            },
+        );
+
+        expect(report.rows.map((item) => item.brands.JAC.target)).toEqual([
+            2, 2,
+        ]);
+        expect(report.rows.map((item) => item.brands.ROX.target)).toEqual([
+            1, 1,
+        ]);
+        expect(report.locationTotals[0].brands.JAC.target).toBe(4);
+        expect(report.locationTotals[0].brands.FORTHING.target).toBeNull();
+        expect(report.locationTotals[0].brands.ROX.target).toBe(2);
+        expect(report.grandTotal.brands.JAC.target).toBe(4);
+        expect(report.grandTotal.brands.ROX.target).toBe(2);
+    });
+
     it('calculates achievement from invoices only while reporting reservations separately', () => {
         const report = calculate([
             row({ chassis: 'VIN-SOLD' }),
@@ -359,17 +399,23 @@ describe('calculateMonthlySalesReport', () => {
     });
 
     it('includes an active location target even when no salesman is assigned', () => {
-        const report = calculateMonthlySalesReport([], [location], [], {
+        const report = calculateMonthlySalesReport(
+            [],
+            [{ ...location, jacTarget: 3 }],
+            [],
+            {
             dateFrom: '2026-06-01',
             dateTo: '2026-06-30',
             salesLocations: [],
             salesmen: [],
             brands: ['JAC', 'FORTHING', 'ROX'],
-        });
+            },
+        );
 
         expect(report.rows).toHaveLength(0);
         expect(report.locationTotals[0].salesLocation).toBe('Amman');
         expect(report.locationTotals[0].target).toBe(4);
+        expect(report.locationTotals[0].brands.JAC.target).toBe(3);
         expect(report.grandTotal.target).toBe(4);
     });
 
@@ -434,5 +480,41 @@ describe('calculateMonthlySalesReport', () => {
 
         expect(report.rows[0].brands.JAC.invoiced).toBe(1);
         expect(report.rows[0].brands.JAC.reservations).toBe(1);
+    });
+
+    it('filters monthly target counts by vehicle status', () => {
+        const report = calculateMonthlySalesReport(
+            [
+                row({ chassis: 'VIN-SOLD' }),
+                row({
+                    chassis: 'VIN-RESERVE',
+                    arInvoiceDate: '',
+                    normalizedStatus: 'reserve',
+                    isSold: false,
+                    isReserved: true,
+                }),
+                row({
+                    chassis: 'VIN-CONTRACT',
+                    arInvoiceDate: '',
+                    normalizedStatus: 'contract',
+                    isSold: false,
+                    isReserved: false,
+                }),
+            ],
+            [location],
+            [assignment],
+            {
+                dateFrom: '2026-06-01',
+                dateTo: '2026-06-30',
+                salesLocations: [],
+                salesmen: [],
+                brands: ['JAC', 'FORTHING', 'ROX'],
+                statuses: ['reserve'],
+            },
+        );
+
+        expect(report.rows[0].invoicedTotal).toBe(0);
+        expect(report.rows[0].reservedTotal).toBe(1);
+        expect(report.options.statuses).toEqual(['contract', 'reserve', 'sold']);
     });
 });

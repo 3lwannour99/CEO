@@ -32,6 +32,9 @@ export interface MonthlySalesLocationRecord {
     id: string;
     salesLocation: string;
     target: number;
+    jacTarget?: number | null;
+    forthingTarget?: number | null;
+    roxTarget?: number | null;
     sortOrder?: number;
 }
 
@@ -59,12 +62,14 @@ export interface MonthlySalesReportFilters {
     models?: string[];
     types?: string[];
     customerGroups?: string[];
+    statuses?: string[];
     search?: string;
 }
 
 export interface BrandCounts {
     invoiced: number;
     reservations: number;
+    target: number | null;
 }
 
 export interface MonthlySalesReportRow {
@@ -209,6 +214,18 @@ export function calculateMonthlySalesReport(
             ? (assignmentCountByGroup.get(assignment.group.id) ?? 1)
             : 1;
         const target = reportingUnitTarget / groupAssignmentCount;
+        for (const brand of MONTHLY_SALES_BRANDS) {
+            const locationBrandTarget = getLocationBrandTarget(
+                assignment.location,
+                brand,
+            );
+            brandCounts[brand].target =
+                locationBrandTarget === null || locationReportingUnitCount === 0
+                    ? null
+                    : locationBrandTarget /
+                      locationReportingUnitCount /
+                      groupAssignmentCount;
+        }
         rows.push({
             mappingId: assignment.id,
             salesmanName,
@@ -251,6 +268,12 @@ export function calculateMonthlySalesReport(
             location.target,
         ]),
     );
+    const locationByName = new Map(
+        locations.map((location) => [
+            normalizeText(location.salesLocation),
+            location,
+        ]),
+    );
     const visibleLocations = new Set(locationGroups.keys());
     if (!hasRequestedSalesmen) {
         for (const salesLocation of configuredLocations) {
@@ -272,9 +295,10 @@ export function calculateMonthlySalesReport(
     const locationTotals = orderedVisibleLocations.map((salesLocation) => {
         const group = locationGroups.get(salesLocation) ?? [];
         const target = targetByLocation.get(normalizeText(salesLocation)) ?? 0;
+        const location = locationByName.get(normalizeText(salesLocation));
         return {
             salesLocation,
-            ...sumRows(group, target),
+            ...sumRows(group, target, location),
         };
     });
     const grandTotal = sumTotals(locationTotals);
@@ -316,7 +340,8 @@ type InventoryFilterKey =
     | 'warehouses'
     | 'models'
     | 'types'
-    | 'customerGroups';
+    | 'customerGroups'
+    | 'statuses';
 
 function itemMatchesNonDateFilters(
     item: MonthlySalesInventoryRow,
@@ -332,6 +357,7 @@ function itemMatchesNonDateFilters(
         (ignoredKey === 'models' || matchesFilter(item.model, filters.models ?? [])) &&
         (ignoredKey === 'types' || matchesFilter(item.type, filters.types ?? [])) &&
         (ignoredKey === 'customerGroups' || matchesFilter(item.customerGroup, filters.customerGroups ?? [])) &&
+        (ignoredKey === 'statuses' || matchesStatusFilter(item, filters.statuses ?? [])) &&
         (!search ||
             normalizeText(
                 [
@@ -345,6 +371,7 @@ function itemMatchesNonDateFilters(
                     item.warehouse,
                     item.salesMan,
                     item.customerGroup,
+                    item.normalizedStatus,
                 ].join(' '),
             ).includes(search))
     );
@@ -430,6 +457,7 @@ function buildCascadingOptions(
         models: uniqueValues(filteredItemsFor('models'), (item) => item.model),
         types: uniqueValues(filteredItemsFor('types'), (item) => item.type),
         customerGroups: uniqueValues(filteredItemsFor('customerGroups'), (item) => item.customerGroup),
+        statuses: uniqueValues(filteredItemsFor('statuses'), (item) => item.normalizedStatus),
     };
 }
 
@@ -469,6 +497,33 @@ function normalizeText(value: string | null | undefined) {
         .trim()
         .replace(/\s+/g, ' ')
         .toLowerCase();
+}
+
+function matchesStatusFilter(
+    item: MonthlySalesInventoryRow,
+    selected: string[] = [],
+) {
+    if (selected.length === 0) return true;
+    const itemStatus = normalizeStatusFilter(item.normalizedStatus);
+    return selected.some((status) => {
+        const normalized = normalizeStatusFilter(status);
+        return (
+            itemStatus === normalized ||
+            (normalized === 'sold' && item.isSold) ||
+            (['reserve', 'reservationforcompanies', 'reserved'].includes(
+                normalized,
+            ) &&
+                item.isReserved)
+        );
+    });
+}
+
+function normalizeStatusFilter(value?: string) {
+    return String(value ?? '')
+        .toLowerCase()
+        .replace(/[_\s]+/g, '-')
+        .replace(/[^a-z-]/g, '')
+        .replace(/-/g, '');
 }
 
 function isInternalCustomerGroup(value: string) {
@@ -522,9 +577,9 @@ function normalizeDate(value: string) {
 
 function emptyBrandCounts(): Record<MonthlySalesBrand, BrandCounts> {
     return {
-        JAC: { invoiced: 0, reservations: 0 },
-        FORTHING: { invoiced: 0, reservations: 0 },
-        ROX: { invoiced: 0, reservations: 0 },
+        JAC: { invoiced: 0, reservations: 0, target: null },
+        FORTHING: { invoiced: 0, reservations: 0, target: null },
+        ROX: { invoiced: 0, reservations: 0, target: null },
     };
 }
 
@@ -545,12 +600,22 @@ function sumReservations(brands: Record<MonthlySalesBrand, BrandCounts>) {
 function sumRows(
     rows: MonthlySalesReportRow[],
     target = 0,
+    location?: MonthlySalesLocationRecord,
 ): MonthlySalesReportTotal {
     const brands = emptyBrandCounts();
     for (const row of rows) {
         for (const brand of MONTHLY_SALES_BRANDS) {
             brands[brand].invoiced += row.brands[brand].invoiced;
             brands[brand].reservations += row.brands[brand].reservations;
+            brands[brand].target = sumOptionalTargets(
+                brands[brand].target,
+                row.brands[brand].target,
+            );
+        }
+    }
+    if (location) {
+        for (const brand of MONTHLY_SALES_BRANDS) {
+            brands[brand].target = getLocationBrandTarget(location, brand);
         }
     }
     const invoicedTotal = sumInvoiced(brands);
@@ -573,6 +638,10 @@ function sumTotals(totals: MonthlySalesReportTotal[]): MonthlySalesReportTotal {
         for (const brand of MONTHLY_SALES_BRANDS) {
             brands[brand].invoiced += total.brands[brand].invoiced;
             brands[brand].reservations += total.brands[brand].reservations;
+            brands[brand].target = sumOptionalTargets(
+                brands[brand].target,
+                total.brands[brand].target,
+            );
         }
     }
     const invoicedTotal = sumInvoiced(brands);
@@ -585,4 +654,22 @@ function sumTotals(totals: MonthlySalesReportTotal[]): MonthlySalesReportTotal {
         achievementPercentage:
             target > 0 ? (invoicedTotal / target) * 100 : null,
     };
+}
+
+function getLocationBrandTarget(
+    location: MonthlySalesLocationRecord,
+    brand: MonthlySalesBrand,
+) {
+    const target =
+        brand === 'JAC'
+            ? location.jacTarget
+            : brand === 'FORTHING'
+              ? location.forthingTarget
+              : location.roxTarget;
+    return typeof target === 'number' ? target : null;
+}
+
+function sumOptionalTargets(left: number | null, right: number | null) {
+    if (left === null && right === null) return null;
+    return (left ?? 0) + (right ?? 0);
 }
