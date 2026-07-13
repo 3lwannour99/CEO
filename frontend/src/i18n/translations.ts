@@ -430,6 +430,7 @@ export const translations: Record<LanguageCode, TranslationTree> = {
       clear: "Clear",
       clearAll: "Clear All",
       clearAllFilters: "Clear all filters",
+      selectAll: "Select all",
       selected: "Selected",
       moreSelected: "more selected",
       noPreset: "No preset",
@@ -1998,6 +1999,11 @@ translations.ar.transaction = {
   ...(translations.ar.monthlySalesTargets as TranslationTree),
   brandTargets: "Optional brand targets",
   brandTargetsTotal: "Brand target total",
+};
+
+(translations.ar.filters as TranslationTree) = {
+  ...(translations.ar.filters as TranslationTree),
+  selectAll: "Select all",
 };
 
 (translations.ar.monthlySalesReport as TranslationTree) = {

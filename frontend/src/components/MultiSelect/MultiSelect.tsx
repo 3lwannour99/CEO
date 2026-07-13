@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppBusy } from "@/hooks/useAppBusy";
 import { useI18n } from "@/i18n/useI18n";
 import type { PageFilterOption } from "@/types/inventory";
@@ -17,6 +17,15 @@ export function MultiSelect({ label, options, values, onChange }: MultiSelectPro
   const { t } = useI18n();
   const isBusy = useAppBusy();
   const [query, setQuery] = useState("");
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  const optionValues = useMemo(() => options.map((option) => option.value), [options]);
+  const optionValueSet = useMemo(() => new Set(optionValues), [optionValues]);
+  const selectedOptionCount = useMemo(
+    () => values.filter((value) => optionValueSet.has(value)).length,
+    [optionValueSet, values],
+  );
+  const allSelected = optionValues.length > 0 && selectedOptionCount === optionValues.length;
+  const someSelected = selectedOptionCount > 0 && selectedOptionCount < optionValues.length;
   const filteredOptions = useMemo(
     () => options.filter((option) => option.label.toLowerCase().includes(query.toLowerCase())),
     [options, query],
@@ -42,6 +51,21 @@ export function MultiSelect({ label, options, values, onChange }: MultiSelectPro
     onChange(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
   }
 
+  function toggleAll() {
+    if (allSelected) {
+      onChange(values.filter((value) => !optionValueSet.has(value)));
+      return;
+    }
+
+    onChange([...values.filter((value) => !optionValueSet.has(value)), ...optionValues]);
+  }
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
+
   return (
     <div className={styles.multiSelect}>
       <div className={styles.labelRow}>
@@ -66,6 +90,18 @@ export function MultiSelect({ label, options, values, onChange }: MultiSelectPro
             disabled={isBusy}
           />
           <div className={styles.options}>
+            {options.length > 0 ? (
+              <label className={`${styles.option} ${styles.selectAllOption}`}>
+                <input
+                  ref={selectAllRef}
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleAll}
+                  disabled={isBusy}
+                />
+                <span>{t("filters.selectAll")}</span>
+              </label>
+            ) : null}
             {filteredOptions.map((option) => (
               <label className={styles.option} key={option.value}>
                 <input
