@@ -517,4 +517,52 @@ describe('calculateMonthlySalesReport', () => {
         expect(report.rows[0].reservedTotal).toBe(1);
         expect(report.options.statuses).toEqual(['contract', 'reserve', 'sold']);
     });
+
+    it('does not include company reservations when only other reservation statuses are selected', () => {
+        const report = calculateMonthlySalesReport(
+            [
+                row({
+                    chassis: 'VIN-RESERVE',
+                    arInvoiceDate: '',
+                    normalizedStatus: 'reserve',
+                    isSold: false,
+                    isReserved: true,
+                }),
+                row({
+                    chassis: 'VIN-COMPANY-RESERVATION',
+                    arInvoiceDate: '',
+                    normalizedStatus: 'reservationForCompanies',
+                    isSold: false,
+                    isReserved: true,
+                }),
+                row({
+                    chassis: 'VIN-CONTRACT',
+                    arInvoiceDate: '',
+                    normalizedStatus: 'contract',
+                    isSold: false,
+                    isReserved: false,
+                }),
+                row({
+                    chassis: 'VIN-CESSION',
+                    arInvoiceDate: '',
+                    normalizedStatus: 'cession',
+                    isSold: false,
+                    isReserved: false,
+                }),
+            ],
+            [location],
+            [assignment],
+            {
+                dateFrom: '2026-06-01',
+                dateTo: '2026-06-30',
+                salesLocations: [],
+                salesmen: [],
+                brands: ['JAC', 'FORTHING', 'ROX'],
+                statuses: ['reserve', 'contract', 'cession'],
+            },
+        );
+
+        expect(report.rows[0].reservedTotal).toBe(3);
+        expect(report.rows[0].brands.JAC.reservations).toBe(3);
+    });
 });

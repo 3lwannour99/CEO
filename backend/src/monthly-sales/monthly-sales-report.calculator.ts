@@ -504,26 +504,28 @@ function matchesStatusFilter(
     selected: string[] = [],
 ) {
     if (selected.length === 0) return true;
-    const itemStatus = normalizeStatusFilter(item.normalizedStatus);
-    return selected.some((status) => {
-        const normalized = normalizeStatusFilter(status);
-        return (
-            itemStatus === normalized ||
-            (normalized === 'sold' && item.isSold) ||
-            (['reserve', 'reservationforcompanies', 'reserved'].includes(
-                normalized,
-            ) &&
-                item.isReserved)
-        );
-    });
+    const selectedStatuses = new Set(
+        selected.map((status) => canonicalStatusFilter(status)),
+    );
+    const itemStatus = canonicalStatusFilter(item.normalizedStatus);
+    if (itemStatus) {
+        return selectedStatuses.has(itemStatus);
+    }
+
+    return (
+        (item.isSold && selectedStatuses.has('sold')) ||
+        (item.isReserved && selectedStatuses.has('reserve'))
+    );
 }
 
-function normalizeStatusFilter(value?: string) {
-    return String(value ?? '')
+function canonicalStatusFilter(value?: string) {
+    const normalized = String(value ?? '')
         .toLowerCase()
         .replace(/[_\s]+/g, '-')
         .replace(/[^a-z-]/g, '')
         .replace(/-/g, '');
+    if (normalized === 'reserved') return 'reserve';
+    return normalized;
 }
 
 function isInternalCustomerGroup(value: string) {
